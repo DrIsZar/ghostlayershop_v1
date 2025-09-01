@@ -34,12 +34,12 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-900 safe">
       {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-20">
+      <div className="lg:hidden fixed top-8 left-4 z-20">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-3 bg-gray-800/80 backdrop-blur-sm border border-gray-600/50 rounded-xl text-white hover:bg-gray-700/90 hover:border-gray-500/70 transition-all duration-200 shadow-lg shadow-black/20"
+          className="p-4 bg-gray-800/80 backdrop-blur-sm border border-gray-600/50 rounded-xl text-white hover:bg-gray-700/90 hover:border-gray-500/70 transition-all duration-200 shadow-lg shadow-black/20"
         >
-          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
@@ -103,7 +103,7 @@ export default function Layout() {
 
         {/* Main Content */}
         <div className="lg:ml-64 flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 p-4 lg:p-6 pt-20 lg:pt-6 overflow-y-auto">
+          <main className="flex-1 p-4 lg:p-6 pt-24 lg:pt-6 overflow-y-auto">
             <Outlet />
           </main>
         </div>
