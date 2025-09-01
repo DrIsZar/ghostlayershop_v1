@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root { 
+  height: 100%; 
+  margin: 0; 
+}
+
+body { 
+  background: #0b0f14; 
+}
+
+.safe { 
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); 
+}
+
 * {
   font-family: 'Inter', sans-serif;
 }

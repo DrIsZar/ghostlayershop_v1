@@ -32,7 +32,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 safe">
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-4 left-4 z-20">
         <button
