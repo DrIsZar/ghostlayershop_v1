@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, PieChart, DollarSign, Users, Package, Calendar, Filter, Download, Target, Clock, UserCheck, AlertTriangle, Zap, TrendingDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, TrendingUp, DollarSign, Users, Package, Download, Target, AlertTriangle, TrendingDown } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
 import { clientsDb } from '../lib/clients';
+import SearchableDropdown from '../components/SearchableDropdown';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -53,9 +54,9 @@ export default function Reports() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [, setTransactions] = useState<Transaction[]>([]);
+  const [, setServices] = useState<Service[]>([]);
+  const [, setClients] = useState<Client[]>([]);
   const [showLowProfitAlert, setShowLowProfitAlert] = useState(false);
 
   useEffect(() => {
@@ -108,7 +109,7 @@ export default function Reports() {
       setClients(clientsData);
 
       // Process data for reports
-      const processedData = processReportData(transactionsData, servicesData, clientsData, period);
+      const processedData = processReportData(transactionsData, servicesData, clientsData);
       setReportData(processedData);
       
       // Check for low profit margin alerts
@@ -147,8 +148,7 @@ export default function Reports() {
   const processReportData = (
     transactions: Transaction[],
     services: Service[],
-    clients: Client[],
-    period: string
+    clients: Client[]
   ): ReportData => {
     // Calculate totals
     const totalRevenue = transactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
@@ -178,7 +178,7 @@ export default function Reports() {
       .slice(0, 5);
 
     // Monthly data
-    const monthlyData = getMonthlyData(transactions, period);
+    const monthlyData = getMonthlyData(transactions);
 
     // Service category data with profit
     const categoryData = new Map<string, { count: number; revenue: number; profit: number }>();
@@ -305,7 +305,7 @@ export default function Reports() {
     };
   };
 
-  const getMonthlyData = (transactions: Transaction[], period: string) => {
+  const getMonthlyData = (transactions: Transaction[]) => {
     const months = [];
     const now = new Date();
     
@@ -480,15 +480,18 @@ export default function Reports() {
           <p className="text-gray-400 mt-1 text-sm lg:text-base">Comprehensive business insights and performance metrics</p>
         </div>
         <div className="mt-3 sm:mt-0 flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <select
+          <SearchableDropdown
+            options={[
+              { value: 'month', label: 'This Month' },
+              { value: 'quarter', label: 'This Quarter' },
+              { value: 'year', label: 'This Year' }
+            ]}
             value={period}
-            onChange={(e) => setPeriod(e.target.value as 'month' | 'quarter' | 'year')}
-            className="ghost-input px-3 py-2 text-sm"
-          >
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-          </select>
+            onChange={(value) => setPeriod(value as 'month' | 'quarter' | 'year')}
+            placeholder="Select period"
+            className="px-3 py-2 text-sm"
+            showSearchThreshold={10}
+          />
           <button
             onClick={exportReport}
             className="ghost-button flex items-center justify-center gap-2 px-4 py-2 text-sm"

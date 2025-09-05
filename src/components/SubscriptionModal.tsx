@@ -4,6 +4,7 @@ import { Subscription, RenewalStrategyKey } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { supabase } from '../lib/supabase';
 import { calculateEndDateFromDuration, formatServiceTitleWithDuration, parseServiceDuration } from '../lib/subscriptionUtils';
+import SearchableDropdown from './SearchableDropdown';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -240,56 +241,51 @@ export default function SubscriptionModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Service Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              <Package className="w-4 h-4 inline mr-2" />
-              Service
-            </label>
-            <select
+            <SearchableDropdown
+              label="Service"
+              icon={<Package className="w-4 h-4" />}
+              options={[
+                { value: '', label: 'Select a service' },
+                ...services.map(service => ({
+                  value: service.id,
+                  label: `${formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')}${service.selling_price ? ` - $${service.selling_price}` : ''}`
+                }))
+              ]}
               value={formData.serviceId}
-              onChange={(e) => handleInputChange('serviceId', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              onChange={(value) => handleInputChange('serviceId', value)}
+              placeholder="Select a service"
+              searchPlaceholder="Search services..."
               disabled={!!initialServiceId}
-            >
-                             <option value="">Select a service</option>
-               {services.map(service => (
-                 <option key={service.id} value={service.id}>
-                   {formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')}
-                   {service.selling_price && ` - $${service.selling_price}`}
-                 </option>
-               ))}
-            </select>
-            {errors.serviceId && (
-              <p className="mt-1 text-sm text-red-400">{errors.serviceId}</p>
+              error={errors.serviceId}
+              showSearchThreshold={5}
+            />
+            {selectedService && selectedService.duration && (
+              <p className="mt-1 text-sm text-blue-400">
+                This service will create a {parseServiceDuration(selectedService.duration)}-month subscription
+              </p>
             )}
-                         {selectedService && selectedService.duration && (
-               <p className="mt-1 text-sm text-blue-400">
-                 This service will create a {parseServiceDuration(selectedService.duration)}-month subscription
-               </p>
-             )}
           </div>
 
           {/* Client Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              <User className="w-4 h-4 inline mr-2" />
-              Client
-            </label>
-            <select
+            <SearchableDropdown
+              label="Client"
+              icon={<User className="w-4 h-4" />}
+              options={[
+                { value: '', label: 'Select a client' },
+                ...clients.map(client => ({
+                  value: client.id,
+                  label: `${client.name} (${client.email})`
+                }))
+              ]}
               value={formData.clientId}
-              onChange={(e) => handleInputChange('clientId', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              onChange={(value) => handleInputChange('clientId', value)}
+              placeholder="Select a client"
+              searchPlaceholder="Search clients..."
               disabled={!!initialClientId}
-            >
-              <option value="">Select a client</option>
-              {clients.map(client => (
-                <option key={client.id} value={client.id}>
-                  {client.name} ({client.email})
-                </option>
-              ))}
-            </select>
-            {errors.clientId && (
-              <p className="mt-1 text-sm text-red-400">{errors.clientId}</p>
-            )}
+              error={errors.clientId}
+              showSearchThreshold={5}
+            />
           </div>
 
           {/* Start Date */}
@@ -332,21 +328,19 @@ export default function SubscriptionModal({
 
           {/* Strategy Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              <Clock className="w-4 h-4 inline mr-2" />
-              Renewal Strategy
-            </label>
-            <select
+            <SearchableDropdown
+              label="Renewal Strategy"
+              icon={<Clock className="w-4 h-4" />}
+              options={[
+                { value: 'MONTHLY', label: 'Monthly' },
+                { value: 'EVERY_N_DAYS', label: 'Every N Days' }
+              ]}
               value={formData.strategy}
-              onChange={(e) => handleInputChange('strategy', e.target.value as RenewalStrategyKey)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
-            >
-              <option value="MONTHLY">Monthly</option>
-              <option value="EVERY_N_DAYS">Every N Days</option>
-            </select>
-            {errors.strategy && (
-              <p className="mt-1 text-sm text-red-400">{errors.strategy}</p>
-            )}
+              onChange={(value) => handleInputChange('strategy', value as RenewalStrategyKey)}
+              placeholder="Select strategy"
+              error={errors.strategy}
+              showSearchThreshold={10}
+            />
           </div>
 
           {/* Interval Days (for EVERY_N_DAYS strategy) */}

@@ -4,6 +4,7 @@ import { Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
 import { clientsDb } from '../lib/clients';
 import ClientModal from './ClientModal';
+import SearchableDropdown from './SearchableDropdown';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -107,19 +108,22 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           <div>
             <label className="block text-sm font-medium mb-2">Client</label>
             <div className="flex gap-2">
-              <select
+              <SearchableDropdown
+                options={[
+                  { value: '', label: 'Select a client' },
+                  ...clients.map(client => ({
+                    value: client.id,
+                    label: `${client.name} ${client.email ? `(${client.email})` : ''}`
+                  }))
+                ]}
                 value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="ghost-select flex-1"
+                onChange={(value) => setFormData({ ...formData, client_id: value })}
+                placeholder="Select a client"
+                searchPlaceholder="Search clients..."
+                className="flex-1"
+                showSearchThreshold={5}
                 required
-              >
-                <option value="">Select a client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name} {client.email ? `(${client.email})` : ''}
-                  </option>
-                ))}
-              </select>
+              />
               <button
                 type="button"
                 onClick={() => setIsClientModalOpen(true)}
@@ -133,19 +137,22 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
 
           <div>
             <label className="block text-sm font-medium mb-2">Service</label>
-            <select
+            <SearchableDropdown
+              options={[
+                { value: '', label: 'Select a service' },
+                ...services.map(service => ({
+                  value: service.id,
+                  label: `${service.product_service} - ${service.duration}`
+                }))
+              ]}
               value={formData.service_id}
-              onChange={(e) => handleServiceChange(e.target.value)}
-              className="ghost-select w-full"
+              onChange={(value) => handleServiceChange(value)}
+              placeholder="Select a service"
+              searchPlaceholder="Search services..."
+              className="w-full"
+              showSearchThreshold={5}
               required
-            >
-              <option value="">Select a service</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.product_service} - {service.duration}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>

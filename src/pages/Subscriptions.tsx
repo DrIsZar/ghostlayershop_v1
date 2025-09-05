@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
-  Filter, 
   Clock, 
   AlertTriangle, 
-  CheckCircle,
   Calendar,
   TrendingUp,
   Users,
@@ -16,12 +13,13 @@ import {
   X,
   RotateCcw
 } from 'lucide-react';
-import { Subscription, SubscriptionStatus } from '../types/subscription';
+import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import SubscriptionModal from '../components/SubscriptionModal';
 import SubscriptionDetailModal from '../components/SubscriptionDetailModal';
-import { getStatusBadge, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
+import SearchableDropdown from '../components/SearchableDropdown';
+import { formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
 
 type ViewMode = 'all' | 'active' | 'completed' | 'archived' | 'dueToday' | 'dueIn3Days' | 'overdue';
@@ -65,25 +63,15 @@ export default function Subscriptions() {
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
   
   // Data for selectors
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [serviceSearchTerm, setServiceSearchTerm] = useState('');
-  const [debouncedClientSearch, setDebouncedClientSearch] = useState('');
-  const [debouncedServiceSearch, setDebouncedServiceSearch] = useState('');
   
   // UI state
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  
-  // Refs for dropdown positioning
-  const clientInputRef = useRef<HTMLInputElement>(null);
-  const serviceInputRef = useRef<HTMLInputElement>(null);
-  const [clientDropdownPosition, setClientDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-  const [serviceDropdownPosition, setServiceDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     fetchSubscriptions();
@@ -97,37 +85,26 @@ export default function Subscriptions() {
     }
   }, [subscriptions]);
 
-  // Debounce search terms
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedClientSearch(clientSearchTerm);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [clientSearchTerm]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedServiceSearch(serviceSearchTerm);
-    }, 200);
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [serviceSearchTerm]);
+  }, [searchTerm]);
 
   useEffect(() => {
     applyFilters();
     saveFiltersToURL();
-  }, [subscriptions, viewMode, groupBy, selectedClientId, selectedServiceId]);
+  }, [subscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, debouncedSearchTerm]);
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowClientDropdown(false);
-        setShowServiceDropdown(false);
-      }
       if (event.key === '/' && !event.target || (event.target as Element).tagName === 'BODY') {
         event.preventDefault();
         // Focus the first selector (View dropdown)
-        const viewSelect = document.querySelector('select[value="all"]') as HTMLSelectElement;
+        const viewSelect = document.querySelector('input[data-testid]') as HTMLInputElement;
         if (viewSelect) viewSelect.focus();
       }
     };
@@ -244,6 +221,27 @@ export default function Subscriptions() {
 
   const applyFilters = () => {
     let filtered = [...subscriptions];
+
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(sub => {
+        // Search in service name
+        const service = services.find(s => s.id === sub.serviceId);
+        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
+        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
+        
+        // Search in client name
+        const client = clients.find(c => c.id === sub.clientId);
+        const clientName = client ? client.name : '';
+        const clientMatch = clientName.toLowerCase().includes(searchLower);
+        
+        // Search in notes
+        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
+        
+        return serviceMatch || clientMatch || notesMatch;
+      });
+    }
 
     // Apply client filter
     if (selectedClientId) {
@@ -370,8 +368,7 @@ export default function Subscriptions() {
     setGroupBy('none');
     setSelectedClientId('');
     setSelectedServiceId('');
-    setClientSearchTerm('');
-    setServiceSearchTerm('');
+    setSearchTerm('');
     
     // Clear localStorage
     localStorage.removeItem('subscription-view-mode');
@@ -390,27 +387,6 @@ export default function Subscriptions() {
     setCollapsedGroups(newCollapsed);
   };
 
-  const calculateDropdownPosition = (ref: React.RefObject<HTMLInputElement>) => {
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      return {
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      };
-    }
-    return { top: 0, left: 0, width: 0 };
-  };
-
-  const handleClientFocus = () => {
-    setShowClientDropdown(true);
-    setClientDropdownPosition(calculateDropdownPosition(clientInputRef));
-  };
-
-  const handleServiceFocus = () => {
-    setShowServiceDropdown(true);
-    setServiceDropdownPosition(calculateDropdownPosition(serviceInputRef));
-  };
 
   const handleSubscriptionCreated = (subscription: Subscription) => {
     setSubscriptions(prev => [subscription, ...prev]);
@@ -446,14 +422,6 @@ export default function Subscriptions() {
     return subscriptions.filter(sub => sub.status === 'archived').length;
   };
 
-  // Filter clients and services for dropdowns
-  const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(debouncedClientSearch.toLowerCase())
-  );
-
-  const filteredServices = services.filter(service =>
-                 formatServiceTitleWithDuration(service.product_service, service.duration || '1 month').toLowerCase().includes(debouncedServiceSearch.toLowerCase())
-  );
 
   if (loading) {
     return (
@@ -488,93 +456,111 @@ export default function Subscriptions() {
       {/* Filter Toolbar */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
         <div className="flex flex-wrap gap-4 items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[300px]">
+            <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search by service, client, or notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* View Dropdown */}
           <div className="relative">
-            <label className="block text-xs font-medium text-gray-400 mb-1">View</label>
-            <select
+            <SearchableDropdown
+              label="View"
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'active', label: 'Active' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'archived', label: 'Archived' },
+                { value: 'dueToday', label: 'Due Today' },
+                { value: 'dueIn3Days', label: 'Due in 3 Days' },
+                { value: 'overdue', label: 'Overdue' }
+              ]}
               value={viewMode}
-              onChange={(e) => setViewMode(e.target.value as ViewMode)}
-              className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 min-w-[140px]"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="archived">Archived</option>
-              <option value="dueToday">Due Today</option>
-              <option value="dueIn3Days">Due in 3 Days</option>
-              <option value="overdue">Overdue</option>
-            </select>
+              onChange={(value) => setViewMode(value as ViewMode)}
+              placeholder="Select view"
+              className="min-w-[140px]"
+              showSearchThreshold={10}
+              data-testid="view-dropdown"
+            />
           </div>
 
           {/* Group by Dropdown */}
           <div className="relative">
-            <label className="block text-xs font-medium text-gray-400 mb-1">Group by</label>
-            <select
+            <SearchableDropdown
+              label="Group by"
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'client', label: 'Client' },
+                { value: 'service', label: 'Service' }
+              ]}
               value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as GroupByMode)}
-              className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 min-w-[120px]"
-            >
-              <option value="none">None</option>
-              <option value="client">Client</option>
-              <option value="service">Service</option>
-            </select>
+              onChange={(value) => setGroupBy(value as GroupByMode)}
+              placeholder="Select grouping"
+              className="min-w-[120px]"
+              showSearchThreshold={10}
+            />
           </div>
 
-                                {/* Client Selector */}
-           <div className="relative client-selector">
-             <label className="block text-xs font-medium text-gray-400 mb-1">Client</label>
-             <div className="relative">
-               <input
-                 ref={clientInputRef}
-                 type="text"
-                 placeholder="All clients"
-                 value={selectedClientId ? clients.find(c => c.id === selectedClientId)?.name || '' : clientSearchTerm}
-                 onChange={(e) => {
-                   setClientSearchTerm(e.target.value);
-                   setSelectedClientId('');
-                   setShowClientDropdown(true);
-                 }}
-                 onFocus={handleClientFocus}
-                 className="px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 min-w-[160px]"
-               />
-               {selectedClientId && (
-                 <button
-                   onClick={() => setSelectedClientId('')}
-                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                 >
-                   <X className="w-4 h-4" />
-                 </button>
-               )}
-             </div>
-           </div>
+          {/* Client Selector */}
+          <div className="relative client-selector">
+            <SearchableDropdown
+              label="Client"
+              options={[
+                { value: '', label: 'All clients' },
+                ...clients.map(client => ({
+                  value: client.id,
+                  label: client.name
+                }))
+              ]}
+              value={selectedClientId}
+              onChange={(value) => setSelectedClientId(value)}
+              placeholder="All clients"
+              searchPlaceholder="Search clients..."
+              className="min-w-[160px]"
+              allowClear={true}
+              onClear={() => setSelectedClientId('')}
+              showSearchThreshold={3}
+            />
+          </div>
 
-                                {/* Service Selector */}
-           <div className="relative service-selector">
-             <label className="block text-xs font-medium text-gray-400 mb-1">Service</label>
-             <div className="relative">
-               <input
-                 ref={serviceInputRef}
-                 type="text"
-                 placeholder="All services"
-                 value={selectedServiceId ? services.find(s => s.id === selectedServiceId)?.product_service || '' : serviceSearchTerm}
-                 onChange={(e) => {
-                   setServiceSearchTerm(e.target.value);
-                   setSelectedServiceId('');
-                   setShowServiceDropdown(true);
-                 }}
-                 onFocus={handleServiceFocus}
-                 className="px-3 py-2 pr-8 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 min-w-[160px]"
-               />
-               {selectedServiceId && (
-                 <button
-                   onClick={() => setSelectedServiceId('')}
-                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                 >
-                   <X className="w-4 h-4" />
-                 </button>
-               )}
-             </div>
-           </div>
+          {/* Service Selector */}
+          <div className="relative service-selector">
+            <SearchableDropdown
+              label="Service"
+              options={[
+                { value: '', label: 'All services' },
+                ...services.map(service => ({
+                  value: service.id,
+                  label: formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')
+                }))
+              ]}
+              value={selectedServiceId}
+              onChange={(value) => setSelectedServiceId(value)}
+              placeholder="All services"
+              searchPlaceholder="Search services..."
+              className="min-w-[160px]"
+              allowClear={true}
+              onClear={() => setSelectedServiceId('')}
+              showSearchThreshold={3}
+            />
+          </div>
 
           {/* Reset Button */}
           <div className="flex items-end">
@@ -777,91 +763,6 @@ export default function Subscriptions() {
          onDelete={handleSubscriptionDelete}
        />
 
-       {/* Client Dropdown Portal */}
-     {showClientDropdown && createPortal(
-       <>
-         <div 
-           className="fixed inset-0 z-40" 
-           onClick={() => setShowClientDropdown(false)}
-         />
-         <div
-           className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto"
-           style={{
-             top: clientDropdownPosition.top + 4,
-             left: clientDropdownPosition.left,
-             width: clientDropdownPosition.width
-           }}
-         >
-           <div className="p-2">
-             <div
-               className="px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 rounded cursor-pointer"
-               onClick={() => {
-                 setSelectedClientId('');
-                 setShowClientDropdown(false);
-               }}
-             >
-               All clients
-             </div>
-             {filteredClients.map(client => (
-               <div
-                 key={client.id}
-                 className="px-2 py-1 text-sm text-white hover:bg-gray-700 rounded cursor-pointer"
-                 onClick={() => {
-                   setSelectedClientId(client.id);
-                   setShowClientDropdown(false);
-                 }}
-               >
-                 {client.name}
-               </div>
-             ))}
-           </div>
-         </div>
-       </>,
-       document.body
-     )}
-
-     {/* Service Dropdown Portal */}
-     {showServiceDropdown && createPortal(
-       <>
-         <div 
-           className="fixed inset-0 z-40" 
-           onClick={() => setShowServiceDropdown(false)}
-         />
-         <div
-           className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto"
-           style={{
-             top: serviceDropdownPosition.top + 4,
-             left: serviceDropdownPosition.left,
-             width: serviceDropdownPosition.width
-           }}
-         >
-           <div className="p-2">
-             <div
-               className="px-2 py-1 text-sm text-gray-300 hover:bg-gray-700 rounded cursor-pointer"
-               onClick={() => {
-                 setSelectedServiceId('');
-                 setShowServiceDropdown(false);
-               }}
-             >
-               All services
-             </div>
-             {filteredServices.map(service => (
-               <div
-                 key={service.id}
-                 className="px-2 py-1 text-sm text-white hover:bg-gray-700 rounded cursor-pointer"
-                 onClick={() => {
-                   setSelectedServiceId(service.id);
-                   setShowServiceDropdown(false);
-                 }}
-               >
-                 {formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')}
-               </div>
-             ))}
-           </div>
-         </div>
-       </>,
-       document.body
-     )}
      </div>
    );
  }

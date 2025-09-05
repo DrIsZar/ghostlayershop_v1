@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Image, Trash2 } from 'lucide-react';
+import { X, Upload, Trash2 } from 'lucide-react';
 import { Service, categories } from '../lib/supabase';
-import { uploadServiceLogo, validateLogoFile, removeServiceLogo } from '../lib/fileUtils';
+import { uploadServiceLogo, validateLogoFile } from '../lib/fileUtils';
+import SearchableDropdown from './SearchableDropdown';
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -288,16 +289,18 @@ export default function ServiceModal({ isOpen, onClose, onSave, service }: Servi
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Category</label>
-            <select
+            <SearchableDropdown
+              label="Category"
+              options={categories.sort().map(category => ({
+                value: category,
+                label: category
+              }))}
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="ghost-select w-full"
-            >
-              {categories.sort().map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+              onChange={(value) => setFormData({ ...formData, category: value })}
+              placeholder="Select category"
+              searchPlaceholder="Search categories..."
+              showSearchThreshold={5}
+            />
           </div>
 
           <div>

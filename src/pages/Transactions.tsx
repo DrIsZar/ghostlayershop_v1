@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, Filter, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import TransactionModal from '../components/TransactionModal';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -255,18 +256,21 @@ export default function Transactions() {
             />
           </div>
           
-          <select
+          <SearchableDropdown
+            options={[
+              { value: '', label: 'All Services' },
+              ...services.map(service => ({
+                value: service.id,
+                label: service.product_service
+              }))
+            ]}
             value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            className="ghost-select w-full"
-          >
-            <option value="">All Services</option>
-            {services.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.product_service}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setSelectedService(value)}
+            placeholder="All Services"
+            searchPlaceholder="Search services..."
+            className="w-full"
+            showSearchThreshold={5}
+          />
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 flex-1">
@@ -277,15 +281,18 @@ export default function Transactions() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
 
-              <select
+              <SearchableDropdown
+                options={[
+                  { value: 'day', label: 'Today' },
+                  { value: 'week', label: 'This Week' },
+                  { value: 'month', label: 'This Month' }
+                ]}
                 value={period}
-                onChange={(e) => handlePeriodChange(e.target.value as 'day' | 'week' | 'month')}
-                className="ghost-select flex-1"
-              >
-                <option value="day">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-              </select>
+                onChange={(value) => handlePeriodChange(value as 'day' | 'week' | 'month')}
+                placeholder="Select period"
+                className="flex-1"
+                showSearchThreshold={10}
+              />
 
               <button
                 onClick={() => handleNavigate('next')}

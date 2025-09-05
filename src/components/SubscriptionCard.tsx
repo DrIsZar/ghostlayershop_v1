@@ -270,6 +270,26 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         </div>
       )}
 
+      {/* Notes Section */}
+      {subscription.notes && (
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {subscription.notes.length > 150 
+                  ? `${subscription.notes.substring(0, 150)}...` 
+                  : subscription.notes
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Timeline Info */}
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2">

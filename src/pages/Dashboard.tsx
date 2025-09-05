@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Package, ShoppingCart } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -544,34 +545,26 @@ export default function Dashboard() {
               >
                 ←
               </button>
-              <div className="relative">
-                <select 
-                  className="ghost-select text-sm min-w-[160px] appearance-none"
-                  value={topServicesPeriodState.type}
-                  onChange={(e) => {
-                    const type = e.target.value as PeriodState['type'];
-                    const now = new Date();
-                    setTopServicesPeriodState({
-                      type,
-                      date: now,
-                      label: formatPeriodRange(type, now, 'current')
-                    });
-                  }}
-                >
-                  <option value={topServicesPeriodState.type}>{topServicesPeriodState.label}</option>
-                  <option value={topServicesPeriodState.type === 'week' ? 'month' : 'week'}>
-                    {formatPeriodRange(topServicesPeriodState.type === 'week' ? 'month' : 'week', new Date(), 'current')}
-                  </option>
-                  <option value={topServicesPeriodState.type === 'year' ? 'month' : 'year'}>
-                    {formatPeriodRange(topServicesPeriodState.type === 'year' ? 'month' : 'year', new Date(), 'current')}
-                  </option>
-                </select>
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <SearchableDropdown
+                options={[
+                  { value: 'week', label: formatPeriodRange('week', new Date(), 'current') },
+                  { value: 'month', label: formatPeriodRange('month', new Date(), 'current') },
+                  { value: 'year', label: formatPeriodRange('year', new Date(), 'current') }
+                ]}
+                value={topServicesPeriodState.type}
+                onChange={(value) => {
+                  const type = value as PeriodState['type'];
+                  const now = new Date();
+                  setTopServicesPeriodState({
+                    type,
+                    date: now,
+                    label: formatPeriodRange(type, now, 'current')
+                  });
+                }}
+                placeholder="Select period"
+                className="ghost-select text-sm min-w-[160px]"
+                showSearchThreshold={10}
+              />
               <button
                 onClick={() => handleTopServicesPeriodChange('next')}
                 className="ghost-button-secondary p-2 text-sm"
@@ -688,42 +681,26 @@ export default function Dashboard() {
             >
               ←
             </button>
-            <div className="relative">
-              <select 
-                className="ghost-select text-sm min-w-[160px] appearance-none"
-                value={analyticsPeriodState.type}
-                onChange={(e) => {
-                  const type = e.target.value as AnalyticsPeriodState['type'];
-                  const now = new Date();
-                  setAnalyticsPeriodState({
-                    type,
-                    date: now,
-                    label: formatAnalyticsPeriod(type, now, 'current')
-                  });
-                }}
-              >
-                <option value={analyticsPeriodState.type}>{analyticsPeriodState.label}</option>
-                <option value={analyticsPeriodState.type === 'month' ? 'quarter' : 'month'}>
-                  {formatAnalyticsPeriod(
-                    analyticsPeriodState.type === 'month' ? 'quarter' : 'month',
-                    new Date(),
-                    'current'
-                  )}
-                </option>
-                <option value={analyticsPeriodState.type === 'year' ? 'quarter' : 'year'}>
-                  {formatAnalyticsPeriod(
-                    analyticsPeriodState.type === 'year' ? 'quarter' : 'year',
-                    new Date(),
-                    'current'
-                  )}
-                </option>
-              </select>
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <SearchableDropdown
+              options={[
+                { value: 'month', label: formatAnalyticsPeriod('month', new Date(), 'current') },
+                { value: 'quarter', label: formatAnalyticsPeriod('quarter', new Date(), 'current') },
+                { value: 'year', label: formatAnalyticsPeriod('year', new Date(), 'current') }
+              ]}
+              value={analyticsPeriodState.type}
+              onChange={(value) => {
+                const type = value as AnalyticsPeriodState['type'];
+                const now = new Date();
+                setAnalyticsPeriodState({
+                  type,
+                  date: now,
+                  label: formatAnalyticsPeriod(type, now, 'current')
+                });
+              }}
+              placeholder="Select period"
+              className="ghost-select text-sm min-w-[160px]"
+              showSearchThreshold={10}
+            />
             <button
               onClick={() => {
                 const newDate = new Date(analyticsPeriodState.date);

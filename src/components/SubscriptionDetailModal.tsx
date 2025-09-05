@@ -6,6 +6,7 @@ import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRe
 import { computeCycleProgress, computeRenewalProgress } from '../lib/subscriptionStrategies';
 import { supabase } from '../lib/supabase';
 import { getServiceLogo } from '../lib/fileUtils';
+import SearchableDropdown from './SearchableDropdown';
 
 interface SubscriptionDetailModalProps {
   isOpen: boolean;
@@ -647,20 +648,20 @@ export default function SubscriptionDetailModal({
 
                 {/* Strategy */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Renewal Strategy
-                  </label>
-                  <select
+                  <SearchableDropdown
+                    label="Renewal Strategy"
+                    options={[
+                      { value: 'MONTHLY', label: 'Monthly' },
+                      { value: 'EVERY_N_DAYS', label: 'Every N Days' }
+                    ]}
                     value={editData.strategy || subscription.strategy}
-                    onChange={(e) => setEditData(prev => ({ 
+                    onChange={(value) => setEditData(prev => ({ 
                       ...prev, 
-                      strategy: e.target.value as RenewalStrategyKey 
+                      strategy: value as RenewalStrategyKey 
                     }))}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="EVERY_N_DAYS">Every N Days</option>
-                  </select>
+                    placeholder="Select strategy"
+                    showSearchThreshold={10}
+                  />
                 </div>
 
                 {/* Interval Days (for EVERY_N_DAYS strategy) */}

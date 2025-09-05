@@ -4,6 +4,7 @@ import { clientsDb } from '../lib/clients';
 import { supabase } from '../lib/supabase';
 import type { Client, ClientStatistics } from '../types/client';
 import ClientModal from '../components/ClientModal';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 export default function Clients() {
   const [clients, setClients] = useState<(Client & Partial<ClientStatistics>)[]>([]);
@@ -198,15 +199,18 @@ export default function Clients() {
           </div>
         </div>
         <div className="flex gap-2">
-          <select
+          <SearchableDropdown
+            options={[
+              { value: 'name', label: 'Sort by Name' },
+              { value: 'total_spent', label: 'Sort by Total Spent' },
+              { value: 'type', label: 'Sort by Type' }
+            ]}
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'name' | 'total_spent' | 'type')}
+            onChange={(value) => setSortBy(value as 'name' | 'total_spent' | 'type')}
+            placeholder="Sort by"
             className="rounded-md border-0 bg-white/5 py-1.5 pl-3 pr-8 text-white focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="total_spent">Sort by Total Spent</option>
-            <option value="type">Sort by Type</option>
-          </select>
+            showSearchThreshold={10}
+          />
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
             className="rounded-md bg-white/5 px-3 py-1.5 text-sm text-white hover:bg-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
