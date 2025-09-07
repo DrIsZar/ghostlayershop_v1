@@ -240,7 +240,8 @@ export default function SearchableDropdown({
           onClick={handleOpen}
           onKeyDown={handleKeyDown}
           className={`
-            w-full px-3 py-2 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm
+            w-full py-2 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm
+            ${icon ? 'pl-10' : 'pl-3'}
             focus:outline-none focus:border-green-500
             disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed
             ${error ? 'border-red-500' : ''}
