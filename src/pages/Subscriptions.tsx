@@ -56,6 +56,7 @@ export default function Subscriptions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [dueBuckets, setDueBuckets] = useState({ dueToday: 0, dueIn3Days: 0, overdue: 0 });
   
   // Filter state
@@ -398,6 +399,11 @@ export default function Subscriptions() {
     setIsDetailModalOpen(true);
   };
 
+  const handleSubscriptionEdit = (subscription: Subscription) => {
+    setEditingSubscription(subscription);
+    setIsModalOpen(true);
+  };
+
   const handleSubscriptionUpdate = (updatedSubscription: Subscription) => {
     setSubscriptions(prev => prev.map(sub => 
       sub.id === updatedSubscription.id ? updatedSubscription : sub
@@ -721,6 +727,7 @@ export default function Subscriptions() {
                         onUpdate={handleSubscriptionUpdate}
                         onDelete={handleSubscriptionDelete}
                         onView={handleSubscriptionView}
+                        onEdit={handleSubscriptionEdit}
                       />
                     ))}
                   </div>
@@ -738,17 +745,23 @@ export default function Subscriptions() {
                 onUpdate={handleSubscriptionUpdate}
                 onDelete={handleSubscriptionDelete}
                 onView={handleSubscriptionView}
+                onEdit={handleSubscriptionEdit}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Create Subscription Modal */}
+      {/* Create/Edit Subscription Modal */}
       <SubscriptionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingSubscription(null);
+        }}
         onSubscriptionCreated={handleSubscriptionCreated}
+        onSubscriptionUpdated={handleSubscriptionUpdate}
+        editingSubscription={editingSubscription}
       />
 
              {/* Subscription Detail Modal */}

@@ -9,9 +9,10 @@ interface ServiceModalProps {
   onClose: () => void;
   onSave: (service: Omit<Service, 'id' | 'created_at' | 'updated_at'>) => void;
   service?: Service | null;
+  onLogoChange?: () => void; // Callback for logo changes
 }
 
-export default function ServiceModal({ isOpen, onClose, onSave, service }: ServiceModalProps) {
+export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoChange }: ServiceModalProps) {
   const [formData, setFormData] = useState({
     product_service: '',
     category: 'Software',
@@ -70,6 +71,8 @@ export default function ServiceModal({ isOpen, onClose, onSave, service }: Servi
         const reader = new FileReader();
         reader.onload = () => {
           setLogoPreview(reader.result as string);
+          // Notify parent of logo change
+          onLogoChange?.();
         };
         reader.readAsDataURL(file);
       }
@@ -83,16 +86,18 @@ export default function ServiceModal({ isOpen, onClose, onSave, service }: Servi
     if (url.trim()) {
       // Clear any existing file upload
       setLogoFile(null);
-      // Clear any existing logo preview
-      setLogoPreview('');
-      // Update the form data to clear old logo
-      setFormData({ ...formData, logo_url: '' });
+      // Update the form data with the new URL
+      setFormData({ ...formData, logo_url: url.trim() });
       // Set new preview immediately
       setLogoPreview(url.trim());
+      // Notify parent of logo change
+      onLogoChange?.();
     } else {
       // If URL is empty, clear everything
       setLogoPreview('');
       setFormData({ ...formData, logo_url: '' });
+      // Notify parent of logo change
+      onLogoChange?.();
     }
   };
 
@@ -104,6 +109,18 @@ export default function ServiceModal({ isOpen, onClose, onSave, service }: Servi
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    
+    // Remove logo from localStorage for immediate UI updates
+    if (formData.product_service) {
+      const logoKey = `service_logo_${formData.product_service.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      localStorage.removeItem(logoKey);
+    }
+    
+    // Dispatch custom event for immediate UI update
+    window.dispatchEvent(new CustomEvent('logoUpdated'));
+    
+    // Notify parent of logo change
+    onLogoChange?.();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,9 +135,26 @@ export default function ServiceModal({ isOpen, onClose, onSave, service }: Servi
         // Upload new logo file
         const uploadedFile = await uploadServiceLogo(logoFile, formData.product_service);
         finalLogoUrl = uploadedFile.url;
+        
+        // Dispatch custom event for immediate UI update
+        window.dispatchEvent(new CustomEvent('logoUpdated'));
       } else if (logoInputType === 'url' && logoUrlInput.trim()) {
-        // Use provided URL
+        // Use provided URL and store it in localStorage for immediate UI updates
         finalLogoUrl = logoUrlInput.trim();
+        
+        // Store URL-based logo in localStorage for immediate UI updates
+        const logoKey = `service_logo_${formData.product_service.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        const urlBasedLogo = {
+          name: 'URL Logo',
+          url: finalLogoUrl,
+          size: 0,
+          type: 'image/url',
+          timestamp: Date.now()
+        };
+        localStorage.setItem(logoKey, JSON.stringify(urlBasedLogo));
+        
+        // Dispatch custom event for immediate UI update
+        window.dispatchEvent(new CustomEvent('logoUpdated'));
       } else if (formData.logo_url) {
         // Keep existing logo if no new input
         finalLogoUrl = formData.logo_url;

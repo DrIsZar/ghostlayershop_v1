@@ -11,8 +11,8 @@ CREATE TABLE public.client_purchases (
   purchase_date timestamp with time zone DEFAULT now(),
   CONSTRAINT client_purchases_pkey PRIMARY KEY (id),
   CONSTRAINT client_purchases_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id),
-  CONSTRAINT client_purchases_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id),
-  CONSTRAINT client_purchases_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
+  CONSTRAINT client_purchases_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT client_purchases_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id)
 );
 CREATE TABLE public.clients (
   name character varying NOT NULL,
@@ -70,8 +70,8 @@ CREATE TABLE public.subscriptions (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
-  CONSTRAINT subscriptions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT subscriptions_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id),
+  CONSTRAINT subscriptions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT subscriptions_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id)
 );
 CREATE TABLE public.transactions (

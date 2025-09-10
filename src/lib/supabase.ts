@@ -11,16 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Initialize auth state
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    // Sign in anonymously when signed out
-    supabase.auth.signInWithPassword({
-      email: 'anonymous@example.com',
-      password: 'anonymous'
-    });
-  }
-});
+// For now, we'll work without authentication
+// The RLS policies should allow access for authenticated users
+// If you need authentication, you can enable it in Supabase dashboard
 
 export interface Service {
   id: string;

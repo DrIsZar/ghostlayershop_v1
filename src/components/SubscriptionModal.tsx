@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, User, Package, Info, Clock } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Calendar, User, Package, Info, Clock, Mail, Archive, Edit, Unlink } from 'lucide-react';
 import { Subscription, RenewalStrategyKey } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { supabase } from '../lib/supabase';
 import { calculateEndDateFromDuration, formatServiceTitleWithDuration, parseServiceDuration } from '../lib/subscriptionUtils';
 import SearchableDropdown from './SearchableDropdown';
+import { LinkResourceSection } from './LinkResourceSection';
+import { SERVICE_PROVISIONING } from '../constants/provisioning';
+import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool } from '../lib/inventory';
+import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
+import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubscriptionCreated: (subscription: Subscription) => void;
+  onSubscriptionUpdated?: (subscription: Subscription) => void;
   saleId?: string;
   initialServiceId?: string;
   initialClientId?: string;
+  editingSubscription?: Subscription | null;
 }
 
 interface Service {
@@ -34,9 +41,11 @@ export default function SubscriptionModal({
   isOpen, 
   onClose, 
   onSubscriptionCreated,
+  onSubscriptionUpdated,
   saleId,
   initialServiceId,
-  initialClientId
+  initialClientId,
+  editingSubscription
 }: SubscriptionModalProps) {
   const [formData, setFormData] = useState({
     serviceId: initialServiceId || '',
@@ -53,6 +62,40 @@ export default function SubscriptionModal({
   const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [createdSubscriptionId, setCreatedSubscriptionId] = useState<string | null>(null);
+  const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
+  const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Update form data when initial values change
+  useEffect(() => {
+    if (initialServiceId !== undefined || initialClientId !== undefined) {
+      setFormData(prev => ({
+        ...prev,
+        serviceId: initialServiceId || '',
+        clientId: initialClientId || ''
+      }));
+    }
+  }, [initialServiceId, initialClientId]);
+
+  // Populate form data when editing existing subscription
+  useEffect(() => {
+    if (editingSubscription) {
+      setIsEditing(true);
+      setFormData({
+        serviceId: editingSubscription.serviceId,
+        clientId: editingSubscription.clientId,
+        startDate: editingSubscription.startedAt ? editingSubscription.startedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        strategy: editingSubscription.strategy,
+        intervalDays: editingSubscription.intervalDays || 30,
+        isAutoRenew: editingSubscription.isAutoRenew || false,
+        notes: editingSubscription.notes || ''
+      });
+      setCreatedSubscriptionId(editingSubscription.id);
+    } else {
+      setIsEditing(false);
+    }
+  }, [editingSubscription]);
 
   // Ensure start date is valid
   useEffect(() => {
@@ -77,6 +120,23 @@ export default function SubscriptionModal({
   };
 
   const calculatedEndDate = calculateEndDate();
+
+  // Memoize options to prevent unnecessary re-renders
+  const serviceOptions = useMemo(() => [
+    { value: '', label: 'Select a service' },
+    ...services.map(service => ({
+      value: service.id,
+      label: `${formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')}${service.selling_price ? ` - $${service.selling_price}` : ''}`
+    }))
+  ], [services]);
+
+  const clientOptions = useMemo(() => [
+    { value: '', label: 'Select a client' },
+    ...clients.map(client => ({
+      value: client.id,
+      label: `${client.name} (${client.email})`
+    }))
+  ], [clients]);
 
   // Fetch services and clients
   useEffect(() => {
@@ -108,6 +168,42 @@ export default function SubscriptionModal({
       fetchData();
     }
   }, [isOpen]);
+
+  // Fetch pool information when editing
+  useEffect(() => {
+    const fetchPoolInfo = async () => {
+      if (!editingSubscription?.resourcePoolId) {
+        setResourcePool(null);
+        setAssignedSeat(null);
+        return;
+      }
+
+      try {
+        // Fetch resource pool
+        const { data: pool, error: poolError } = await getResourcePool(editingSubscription.resourcePoolId);
+        if (poolError) throw poolError;
+        setResourcePool(pool);
+
+        // Fetch assigned seat if linked
+        if (editingSubscription.resourcePoolSeatId) {
+          const { data: seats, error: seatsError } = await getPoolSeats(editingSubscription.resourcePoolId);
+          if (seatsError) throw seatsError;
+          const seat = seats?.find(s => s.id === editingSubscription.resourcePoolSeatId);
+          setAssignedSeat(seat || null);
+        } else {
+          setAssignedSeat(null);
+        }
+      } catch (error) {
+        console.error('Error fetching pool info:', error);
+        setResourcePool(null);
+        setAssignedSeat(null);
+      }
+    };
+
+    if (editingSubscription) {
+      fetchPoolInfo();
+    }
+  }, [editingSubscription]);
 
   // Update selected service when serviceId changes
   useEffect(() => {
@@ -159,7 +255,6 @@ export default function SubscriptionModal({
     
     if (!validateForm()) return;
     
-    console.log('Form data being submitted:', formData); // Debug log
     
     setIsLoading(true);
     try {
@@ -194,10 +289,9 @@ export default function SubscriptionModal({
         );
       }
 
-      console.log('Created subscription:', subscription); // Debug log
       onSubscriptionCreated(subscription);
-      onClose();
-      resetForm();
+      setCreatedSubscriptionId(subscription.id);
+      // Don't close immediately if we need to link resources
     } catch (error) {
       console.error('Error creating subscription:', error);
       alert('Failed to create subscription');
@@ -218,6 +312,130 @@ export default function SubscriptionModal({
     });
     setErrors({});
     setSelectedService(null);
+    setCreatedSubscriptionId(null);
+  };
+
+  const handleResourceLinked = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleUnlinkPool = async () => {
+    if (!editingSubscription?.resourcePoolId) return;
+    
+    if (!confirm('Are you sure you want to unlink this subscription from the resource pool? This will free up the assigned seat.')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await unlinkSubscriptionFromPool(editingSubscription.id);
+      
+      // Update local state
+      setResourcePool(null);
+      setAssignedSeat(null);
+      
+      // Update the subscription in parent component
+      if (onSubscriptionUpdated && editingSubscription) {
+        const updatedSubscription = {
+          ...editingSubscription,
+          resourcePoolId: undefined,
+          resourcePoolSeatId: undefined
+        };
+        onSubscriptionUpdated(updatedSubscription);
+      }
+    } catch (error) {
+      console.error('Error unlinking pool:', error);
+      alert('Failed to unlink resource pool');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSwitchPool = () => {
+    // This will show the LinkResourceSection for switching pools
+    setCreatedSubscriptionId(editingSubscription?.id || '');
+  };
+
+  const fetchPoolInfo = async () => {
+    if (!editingSubscription?.resourcePoolId) {
+      setResourcePool(null);
+      setAssignedSeat(null);
+      return;
+    }
+
+    try {
+      // Fetch resource pool
+      const { data: pool, error: poolError } = await getResourcePool(editingSubscription.resourcePoolId);
+      if (poolError) throw poolError;
+      setResourcePool(pool);
+
+      // Fetch assigned seat if linked
+      if (editingSubscription.resourcePoolSeatId) {
+        const { data: seats, error: seatsError } = await getPoolSeats(editingSubscription.resourcePoolId);
+        if (seatsError) throw seatsError;
+        const seat = seats?.find(s => s.id === editingSubscription.resourcePoolSeatId);
+        setAssignedSeat(seat || null);
+      } else {
+        setAssignedSeat(null);
+      }
+    } catch (error) {
+      console.error('Error fetching pool info:', error);
+      setResourcePool(null);
+      setAssignedSeat(null);
+    }
+  };
+
+  const handleUpdateSubscription = async () => {
+    if (!editingSubscription || !onSubscriptionUpdated) return;
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    try {
+      const updatedSubscription = await subscriptionService.update(editingSubscription.id, {
+        serviceId: formData.serviceId,
+        clientId: formData.clientId,
+        strategy: formData.strategy,
+        intervalDays: formData.intervalDays,
+        startedAt: formData.startDate,
+        targetEndAt: calculatedEndDate ? new Date(calculatedEndDate).toISOString() : undefined,
+        notes: formData.notes,
+        isAutoRenew: formData.isAutoRenew
+      });
+      
+      onSubscriptionUpdated(updatedSubscription);
+      onClose();
+    } catch (error) {
+      console.error('Error updating subscription:', error);
+      alert('Failed to update subscription');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getServiceProvider = () => {
+    if (!selectedService) return '';
+    // Map service name to provider key
+    const serviceName = selectedService.product_service.toLowerCase();
+    const providerMap: Record<string, string> = {
+      'adobe': 'adobe',
+      'acrobat': 'acrobat',
+      'apple one': 'apple_one',
+      'canva': 'canva',
+      'chatgpt': 'chatgpt',
+      'duolingo': 'duolingo',
+      'lastpass': 'lastpass',
+      'microsoft 365': 'microsoft_365',
+      'spotify': 'spotify',
+    };
+    
+    for (const [key, provider] of Object.entries(providerMap)) {
+      if (serviceName.includes(key)) {
+        return provider;
+      }
+    }
+    return '';
   };
 
   if (!isOpen) return null;
@@ -228,7 +446,7 @@ export default function SubscriptionModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
-            {saleId ? 'Create Subscription from Sale' : 'Create New Subscription'}
+            {isEditing ? 'Edit Subscription' : saleId ? 'Create Subscription from Sale' : 'Create New Subscription'}
           </h2>
           <button
             onClick={onClose}
@@ -244,13 +462,7 @@ export default function SubscriptionModal({
             <SearchableDropdown
               label="Service"
               icon={<Package className="w-4 h-4" />}
-              options={[
-                { value: '', label: 'Select a service' },
-                ...services.map(service => ({
-                  value: service.id,
-                  label: `${formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')}${service.selling_price ? ` - $${service.selling_price}` : ''}`
-                }))
-              ]}
+              options={serviceOptions}
               value={formData.serviceId}
               onChange={(value) => handleInputChange('serviceId', value)}
               placeholder="Select a service"
@@ -271,13 +483,7 @@ export default function SubscriptionModal({
             <SearchableDropdown
               label="Client"
               icon={<User className="w-4 h-4" />}
-              options={[
-                { value: '', label: 'Select a client' },
-                ...clients.map(client => ({
-                  value: client.id,
-                  label: `${client.name} (${client.email})`
-                }))
-              ]}
+              options={clientOptions}
               value={formData.clientId}
               onChange={(value) => handleInputChange('clientId', value)}
               placeholder="Select a client"
@@ -382,19 +588,136 @@ export default function SubscriptionModal({
             </label>
           </div>
 
-          {/* Notes */}
+          {/* Login */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Notes (optional)
+              <Mail className="w-4 h-4 inline mr-2" />
+              Login
             </label>
-            <textarea
+            <input
+              type="text"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              rows={3}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
-              placeholder="Add any additional notes about this subscription..."
+              placeholder="customer@example.com or customer@example.com:password"
             />
+            <p className="mt-1 text-sm text-gray-400">
+              Customer login for this subscription (used for seat assignment)
+            </p>
           </div>
+
+          {/* Resource Pool Information (when editing) */}
+          {isEditing && resourcePool && (
+            <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <Archive className="w-4 h-4" />
+                  Linked Resource Pool
+                </h4>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSwitchPool}
+                    disabled={isLoading}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Switch Pool
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUnlinkPool}
+                    disabled={isLoading}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                  >
+                    <Unlink className="w-3 h-3" />
+                    Unlink
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Pool Info */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center text-lg">
+                    {PROVIDER_ICONS[resourcePool.provider] || '📦'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium">
+                        {resourcePool.provider.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
+                        resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
+                        'bg-red-900/30 text-red-400'
+                      }`}>
+                        {STATUS_LABELS[resourcePool.status] || resourcePool.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-400">
+                      {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} • 
+                      {resourcePool.login_email}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Seat Assignment */}
+                {assignedSeat && (
+                  <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
+                    <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium">
+                        Seat #{assignedSeat.seat_index}
+                      </span>
+                      <span className="text-sm text-gray-400">
+                        Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
+                      </span>
+                    </div>
+                    {assignedSeat.assigned_email && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        Email: {assignedSeat.assigned_email}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Pool Stats */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">Seats:</span>
+                    <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">Expires:</span>
+                    <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">Status:</span>
+                    <div className={`w-2 h-2 rounded-full ${
+                      resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Resource Pool Linking */}
+          {createdSubscriptionId && selectedService && (
+            <LinkResourceSection
+              serviceProvider={getServiceProvider()}
+              subscriptionId={createdSubscriptionId}
+              customerEmail={formData.notes}
+              onResourceLinked={isEditing ? () => {
+                // Refresh pool info after linking
+                if (editingSubscription) {
+                  fetchPoolInfo();
+                }
+                setCreatedSubscriptionId(null);
+              } : handleResourceLinked}
+            />
+          )}
 
           {/* Info Section */}
           <div className="p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-300 text-sm">
@@ -415,20 +738,50 @@ export default function SubscriptionModal({
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              {isLoading ? 'Creating...' : 'Create Subscription'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              Cancel
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleUpdateSubscription}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  {isLoading ? 'Updating...' : 'Update Subscription'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : !createdSubscriptionId ? (
+              <>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  {isLoading ? 'Creating...' : 'Create Subscription'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+              >
+                Close
+              </button>
+            )}
           </div>
         </form>
       </div>

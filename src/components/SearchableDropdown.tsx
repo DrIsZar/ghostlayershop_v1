@@ -58,6 +58,7 @@ export default function SearchableDropdown({
 
   // Find selected option
   const selectedOption = options.find(option => option.value === value);
+  
 
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
@@ -76,11 +77,12 @@ export default function SearchableDropdown({
   const calculatePosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
-      setDropdownPosition({
+      const position = {
         top: rect.bottom + window.scrollY + 4,
         left: rect.left + window.scrollX,
         width: rect.width
-      });
+      };
+      setDropdownPosition(position);
     }
   };
 
@@ -101,10 +103,14 @@ export default function SearchableDropdown({
   };
 
   // Handle option selection
-  const handleSelect = (option: SearchableDropdownOption) => {
+  const handleSelect = (option: SearchableDropdownOption, e?: React.MouseEvent) => {
     if (option.disabled) return;
+    e?.stopPropagation();
     onChange(option.value);
-    handleClose();
+    // Add a small delay before closing to ensure the click event is processed
+    setTimeout(() => {
+      handleClose();
+    }, 10);
   };
 
   // Handle clear
@@ -194,7 +200,11 @@ export default function SearchableDropdown({
   // Handle clicks outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+      const isInsidePortal = document.querySelector('[data-dropdown-portal]')?.contains(target);
+      
+      if (!isInsideDropdown && !isInsidePortal) {
         handleClose();
       }
     };
@@ -229,7 +239,7 @@ export default function SearchableDropdown({
       )}
 
       {/* Input */}
-      <div className="relative">
+      <div className="relative cursor-pointer" onClick={handleOpen}>
         <input
           ref={inputRef}
           type="text"
@@ -237,14 +247,14 @@ export default function SearchableDropdown({
           placeholder={placeholder}
           readOnly
           disabled={disabled}
-          onClick={handleOpen}
           onKeyDown={handleKeyDown}
           className={`
-            w-full py-2 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm
+            w-full py-2 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-sm
             ${icon ? 'pl-10' : 'pl-3'}
             focus:outline-none focus:border-green-500
             disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed
             ${error ? 'border-red-500' : ''}
+            ${selectedOption ? 'text-white' : 'text-gray-400'}
           `}
           data-testid={dataTestId}
         />
@@ -280,22 +290,16 @@ export default function SearchableDropdown({
 
       {/* Dropdown Portal */}
       {isOpen && createPortal(
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={handleClose}
-          />
-          
-          {/* Dropdown */}
-          <div
-            className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 max-h-64 overflow-hidden"
-            style={{
-              top: dropdownPosition.top,
-              left: dropdownPosition.left,
-              width: dropdownPosition.width
-            }}
-          >
+        <div
+          data-dropdown-portal
+          className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 max-h-64 overflow-hidden"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
             {/* Search input */}
             {showSearch && (
               <div className="p-2 border-b border-gray-600">
@@ -338,7 +342,11 @@ export default function SearchableDropdown({
                       ${option.disabled ? 'text-gray-500 cursor-not-allowed' : 'text-white'}
                       ${option.value === value ? 'bg-green-900/30 text-green-400' : ''}
                     `}
-                    onClick={() => handleSelect(option)}
+                    onMouseUp={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSelect(option, e);
+                    }}
                     onMouseEnter={() => setHighlightedIndex(index)}
                   >
                     {option.label}
@@ -346,8 +354,7 @@ export default function SearchableDropdown({
                 ))
               )}
             </div>
-          </div>
-        </>,
+        </div>,
         document.body
       )}
     </div>

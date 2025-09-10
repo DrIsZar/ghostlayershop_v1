@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, DollarSign, Users, Package, Download, Target, AlertTriangle, TrendingDown } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Users, Package, Download, Target, AlertTriangle, TrendingDown, Archive, Clock } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
 import { clientsDb } from '../lib/clients';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { listResourcePools } from '../lib/inventory';
+import { ResourcePool } from '../types/inventory';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,6 +50,17 @@ interface ReportData {
   serviceDurationData: Array<{ duration: string; count: number; revenue: number }>;
   profitTrends: { trend: 'up' | 'down' | 'stable'; percentage: number; period: string };
   lowProfitServices: Array<{ name: string; revenue: number; profit: number; margin: number }>;
+  // Inventory data
+  inventoryData: {
+    totalPools: number;
+    activePools: number;
+    expiringSoon: number;
+    totalSeats: number;
+    usedSeats: number;
+    utilizationRate: number;
+    poolsByProvider: Array<{ provider: string; count: number; seats: number }>;
+    expiringPools: Array<{ provider: string; login_email: string; end_at: string; daysLeft: number }>;
+  };
 }
 
 export default function Reports() {
@@ -70,7 +83,7 @@ export default function Reports() {
       // Get date range based on period
       const { from, to } = getDateRange();
       
-      const [transactionsResult, servicesResult, clientsResult] = await Promise.all([
+      const [transactionsResult, servicesResult, clientsResult, poolsResult] = await Promise.all([
         supabase
           .from('transactions')
           .select(`
@@ -94,22 +107,25 @@ export default function Reports() {
           .from('services')
           .select('*')
           .order('product_service'),
-        clientsDb.getAll()
+        clientsDb.getAll(),
+        listResourcePools()
       ]);
 
       if (transactionsResult.error) throw transactionsResult.error;
       if (servicesResult.error) throw servicesResult.error;
+      if (poolsResult.error) throw poolsResult.error;
 
       const transactionsData = transactionsResult.data || [];
       const servicesData = servicesResult.data || [];
       const clientsData = clientsResult || [];
+      const poolsData = poolsResult.data || [];
 
       setTransactions(transactionsData);
       setServices(servicesData);
       setClients(clientsData);
 
       // Process data for reports
-      const processedData = processReportData(transactionsData, servicesData, clientsData);
+      const processedData = processReportData(transactionsData, servicesData, clientsData, poolsData);
       setReportData(processedData);
       
       // Check for low profit margin alerts
@@ -148,7 +164,8 @@ export default function Reports() {
   const processReportData = (
     transactions: Transaction[],
     services: Service[],
-    clients: Client[]
+    clients: Client[],
+    pools: ResourcePool[]
   ): ReportData => {
     // Calculate totals
     const totalRevenue = transactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
@@ -261,6 +278,54 @@ export default function Reports() {
       .sort((a, b) => a.margin - b.margin)
       .slice(0, 3);
 
+    // Process inventory data
+    const now = new Date();
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    
+    const totalPools = pools.length;
+    const activePools = pools.filter(p => p.status === 'active' && p.is_alive).length;
+    const expiringSoon = pools.filter(p => {
+      const endDate = new Date(p.end_at);
+      return endDate >= now && endDate <= threeDaysFromNow && p.status === 'active';
+    }).length;
+    
+    const totalSeats = pools.reduce((sum, p) => sum + p.max_seats, 0);
+    const usedSeats = pools.reduce((sum, p) => sum + p.used_seats, 0);
+    const utilizationRate = totalSeats > 0 ? (usedSeats / totalSeats) * 100 : 0;
+    
+    // Pools by provider
+    const poolsByProvider = new Map<string, { count: number; seats: number }>();
+    pools.forEach(pool => {
+      const existing = poolsByProvider.get(pool.provider) || { count: 0, seats: 0 };
+      poolsByProvider.set(pool.provider, {
+        count: existing.count + 1,
+        seats: existing.seats + pool.max_seats
+      });
+    });
+    
+    const poolsByProviderArray = Array.from(poolsByProvider.entries())
+      .map(([provider, data]) => ({ provider, ...data }))
+      .sort((a, b) => b.count - a.count);
+    
+    // Expiring pools
+    const expiringPools = pools
+      .filter(p => {
+        const endDate = new Date(p.end_at);
+        const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return daysLeft >= 0 && daysLeft <= 7 && p.status === 'active';
+      })
+      .map(pool => {
+        const endDate = new Date(pool.end_at);
+        const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          provider: pool.provider,
+          login_email: pool.login_email,
+          end_at: pool.end_at,
+          daysLeft
+        };
+      })
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
     return {
       totalRevenue,
       totalProfit,
@@ -276,7 +341,17 @@ export default function Reports() {
       topClients,
       serviceDurationData,
       profitTrends,
-      lowProfitServices
+      lowProfitServices,
+      inventoryData: {
+        totalPools,
+        activePools,
+        expiringSoon,
+        totalSeats,
+        usedSeats,
+        utilizationRate,
+        poolsByProvider: poolsByProviderArray,
+        expiringPools
+      }
     };
   };
 
@@ -622,6 +697,56 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Inventory Metrics */}
+      <div className="mb-6 lg:mb-8">
+        <h2 className="text-xl lg:text-2xl font-bold text-white mb-4 lg:mb-6 flex items-center gap-2">
+          <Archive className="h-6 w-6 text-green-400" />
+          Inventory Overview
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="ghost-card p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-xs lg:text-sm">Total Pools</p>
+                <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.totalPools}</p>
+              </div>
+              <Archive className="h-6 w-6 lg:h-8 lg:w-8 text-green-500" />
+            </div>
+          </div>
+          
+          <div className="ghost-card p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-xs lg:text-sm">Active Pools</p>
+                <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.activePools}</p>
+              </div>
+              <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-blue-500" />
+            </div>
+          </div>
+          
+          <div className="ghost-card p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-xs lg:text-sm">Expiring Soon</p>
+                <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.expiringSoon}</p>
+              </div>
+              <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-amber-500" />
+            </div>
+          </div>
+          
+          <div className="ghost-card p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-xs lg:text-sm">Seat Utilization</p>
+                <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.utilizationRate.toFixed(1)}%</p>
+                <p className="text-xs text-gray-400">{reportData.inventoryData.usedSeats}/{reportData.inventoryData.totalSeats} seats</p>
+              </div>
+              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-purple-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Profit Trends */}
@@ -784,6 +909,85 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Inventory Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+        {/* Pools by Provider */}
+        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+          <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Pools by Provider</h3>
+          <div className="h-[250px] lg:h-[300px]">
+            <Bar
+              data={{
+                labels: reportData.inventoryData.poolsByProvider.map(p => p.provider),
+                datasets: [
+                  {
+                    label: 'Pool Count',
+                    data: reportData.inventoryData.poolsByProvider.map(p => p.count),
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderWidth: 2,
+                    borderColor: '#1f2937',
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                },
+                scales: {
+                  x: {
+                    ticks: { color: '#9ca3af', font: { size: 10 } },
+                    grid: { color: '#374151' }
+                  },
+                  y: {
+                    ticks: { color: '#9ca3af', font: { size: 10 } },
+                    grid: { color: '#374151' }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Seat Utilization */}
+        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+          <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Seat Utilization</h3>
+          <div className="h-[250px] lg:h-[300px]">
+            <Doughnut
+              data={{
+                labels: ['Used Seats', 'Available Seats'],
+                datasets: [
+                  {
+                    data: [
+                      reportData.inventoryData.usedSeats,
+                      reportData.inventoryData.totalSeats - reportData.inventoryData.usedSeats
+                    ],
+                    backgroundColor: [
+                      'rgba(34, 197, 94, 0.8)',
+                      'rgba(107, 114, 128, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#1f2937',
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: { color: '#9ca3af', font: { size: 10 } }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Detailed Tables */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         {/* Top Services Table */}
@@ -813,30 +1017,41 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Category Performance */}
+        {/* Expiring Pools */}
         <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
-          <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Category Performance</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left text-gray-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">Category</th>
-                  <th className="text-right text-gray-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">Transactions</th>
-                  <th className="text-right text-gray-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">Revenue</th>
-                  <th className="text-right text-gray-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.serviceCategoryData.map((category, index) => (
-                  <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                    <td className="text-white py-2 lg:py-3 text-xs lg:text-sm">{category.category}</td>
-                    <td className="text-right text-gray-300 py-2 lg:py-3 text-xs lg:text-sm font-medium">{category.count}</td>
-                    <td className="text-right text-green-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">${category.revenue.toLocaleString()}</td>
-                    <td className="text-right text-blue-400 py-3 text-xs lg:text-sm font-medium">${category.profit.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Pools Expiring Soon</h3>
+          <div className="space-y-3 lg:space-y-4">
+            {reportData.inventoryData.expiringPools.length > 0 ? (
+              reportData.inventoryData.expiringPools.map((pool, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                  <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs lg:text-sm font-bold">
+                      {pool.provider.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm lg:text-base">{pool.provider}</p>
+                      <p className="text-gray-400 text-xs lg:text-sm">{pool.login_email}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm lg:text-base font-bold ${
+                      pool.daysLeft <= 1 ? 'text-red-400' : 
+                      pool.daysLeft <= 3 ? 'text-amber-400' : 'text-gray-400'
+                    }`}>
+                      {pool.daysLeft === 0 ? 'Today' : `${pool.daysLeft} days`}
+                    </p>
+                    <p className="text-gray-400 text-xs lg:text-sm">
+                      {new Date(pool.end_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-400">No pools expiring soon</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

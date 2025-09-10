@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import ServicesManager from './pages/ServicesManager';
 import Transactions from './pages/Transactions';
 import Subscriptions from './pages/Subscriptions';
+import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import Clients from './pages/Clients';
 import Settings from './pages/Settings';
@@ -18,6 +19,7 @@ function App() {
           <Route path="services" element={<ServicesManager />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="subscriptions" element={<Subscriptions />} />
+          <Route path="inventory" element={<Inventory />} />
           <Route path="reports" element={<Reports />} />
           <Route path="clients" element={<Clients />} />
           <Route path="settings" element={<Settings />} />

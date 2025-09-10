@@ -50,6 +50,10 @@ export interface Subscription {
   isAutoRenew: boolean;
   notes?: string;
   
+  // Resource pool linking
+  resourcePoolId?: string;
+  resourcePoolSeatId?: string;
+  
   // Metadata
   createdAt: string;
   updatedAt: string;

@@ -10,7 +10,8 @@ import {
   Ghost,
   Menu,
   X,
-  Clock
+  Clock,
+  Archive
 } from 'lucide-react';
 
 export default function Layout() {
@@ -22,6 +23,7 @@ export default function Layout() {
     { name: 'Services Manager', href: '/services', icon: Package },
     { name: 'Sales & Expenses', href: '/transactions', icon: DollarSign },
     { name: 'Subscriptions', href: '/subscriptions', icon: Clock },
+    { name: 'Inventory', href: '/inventory', icon: Archive },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },

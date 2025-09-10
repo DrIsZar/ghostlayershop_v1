@@ -1,8 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Edit, Trash2, Search, Download, Package, ChevronDown, ChevronRight, Clock, Tag, Info, DollarSign, Image } from 'lucide-react';
 import { supabase, Service } from '../lib/supabase';
 import ServiceModal from '../components/ServiceModal';
 import { getServiceLogo, migrateExistingLogos } from '../lib/fileUtils';
+
+// ServiceLogo component for reactive logo display
+interface ServiceLogoProps {
+  serviceName: string;
+  refreshTrigger: number;
+  size: 'small' | 'large';
+}
+
+const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, size }) => {
+  const serviceLogo = useMemo(() => {
+    // This will re-compute when refreshTrigger changes
+    return getServiceLogo(serviceName);
+  }, [serviceName, refreshTrigger]);
+
+  const containerClass = size === 'large' 
+    ? "w-12 h-12 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border-2 border-gray-600 shadow-lg"
+    : "w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600 shadow-sm";
+
+  const iconSize = size === 'large' ? "h-6 w-6" : "h-4 w-4";
+
+  return (
+    <div className={containerClass}>
+      {serviceLogo ? (
+        <img 
+          key={`${serviceName}_${refreshTrigger}`} // Force re-render with new key
+          src={serviceLogo} 
+          alt={`${serviceName} logo`} 
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            target.nextElementSibling?.classList.remove('hidden');
+          }}
+        />
+      ) : null}
+      <div className={`w-full h-full flex items-center justify-center text-gray-400 ${serviceLogo ? 'hidden' : ''}`}>
+        <Image className={iconSize} />
+      </div>
+    </div>
+  );
+};
 
 export default function ServicesManager() {
   const [services, setServices] = useState<Service[]>([]);
@@ -11,7 +52,6 @@ export default function ServicesManager() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [logoRefreshTrigger, setLogoRefreshTrigger] = useState(0); // State to force re-render of logo
 
   useEffect(() => {
@@ -24,6 +64,29 @@ export default function ServicesManager() {
       migrateExistingLogos(services);
     }
   }, [services]);
+
+  // Listen for localStorage changes and custom logo update events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('service_logo_')) {
+        // Force logo refresh when localStorage changes
+        setLogoRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    const handleLogoUpdate = () => {
+      // Force logo refresh when custom logo update event is dispatched
+      setLogoRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('logoUpdated', handleLogoUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('logoUpdated', handleLogoUpdate);
+    };
+  }, []);
 
   const fetchServices = async () => {
     try {
@@ -50,6 +113,13 @@ export default function ServicesManager() {
           email: 'anonymous@example.com',
           password: 'anonymous'
         });
+      }
+
+      // Handle logo name change if service name changed
+      if (editingService && editingService.product_service !== serviceData.product_service) {
+        // Update logo key in localStorage if service name changed
+        const { updateServiceLogoName } = await import('../lib/fileUtils');
+        updateServiceLogoName(editingService.product_service, serviceData.product_service);
       }
 
       if (editingService) {
@@ -84,10 +154,12 @@ export default function ServicesManager() {
         if (data) console.log('Inserted service:', data);
       }
       
+      // Force logo refresh immediately after successful save
+      setLogoRefreshTrigger(prev => prev + 1);
+      
       await fetchServices();
       setEditingService(null);
       setIsModalOpen(false);
-      setLogoRefreshTrigger(prev => prev + 1); // Refresh logo after saving
     } catch (error: any) {
       console.error('Error saving service:', error);
       alert(error.message || 'Error saving service');
@@ -320,29 +392,11 @@ export default function ServicesManager() {
                               </button>
                               
                               {/* Service Logo - Improved styling */}
-                              <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border-2 border-gray-600 shadow-lg">
-                                {(() => {
-                                  // Get logo from localStorage (includes refresh trigger for reactivity)
-                                  const serviceLogo = getServiceLogo(service.product_service);
-                                  // Force re-render when logoRefreshTrigger changes
-                                  logoRefreshTrigger; // eslint-disable-line no-unused-expressions
-                                  return serviceLogo ? (
-                                    <img 
-                                      src={serviceLogo} 
-                                      alt={`${service.product_service} logo`} 
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        target.nextElementSibling?.classList.remove('hidden');
-                                      }}
-                                    />
-                                  ) : null;
-                                })()}
-                                <div className={`w-full h-full flex items-center justify-center text-gray-400 ${getServiceLogo(service.product_service) ? 'hidden' : ''}`}>
-                                  <Image className="h-6 w-6" />
-                                </div>
-                              </div>
+                              <ServiceLogo 
+                                serviceName={service.product_service}
+                                refreshTrigger={logoRefreshTrigger}
+                                size="large"
+                              />
                               
                               <div className="flex items-center gap-3">
                                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
@@ -365,26 +419,12 @@ export default function ServicesManager() {
                         <td className="px-6 py-4">
                           <div className="flex items-center pl-8">
                             {/* Service Logo in Detail Row - Improved styling */}
-                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center mr-4 border border-gray-600 shadow-sm">
-                              {(() => {
-                                // Get logo by service name (not individual service ID)
-                                const serviceLogo = getServiceLogo(service.product_service);
-                                return serviceLogo ? (
-                                  <img 
-                                    src={serviceLogo} 
-                                    alt={`${service.product_service} logo`} 
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                      target.nextElementSibling?.classList.remove('hidden');
-                                    }}
-                                  />
-                                ) : null;
-                              })()}
-                              <div className={`w-full h-full flex items-center justify-center text-gray-400 ${getServiceLogo(service.product_service) ? 'hidden' : ''}`}>
-                                <Image className="h-4 w-4" />
-                              </div>
+                            <div className="mr-4">
+                              <ServiceLogo 
+                                serviceName={service.product_service}
+                                refreshTrigger={logoRefreshTrigger}
+                                size="small"
+                              />
                             </div>
                             
                             <span className="text-white font-medium">{service.product_service}</span>
@@ -487,6 +527,10 @@ export default function ServicesManager() {
         }}
         onSave={handleSaveService}
         service={editingService}
+        onLogoChange={() => {
+          // Force logo refresh when logo changes in modal
+          setLogoRefreshTrigger(prev => prev + 1);
+        }}
       />
     </div>
   );
