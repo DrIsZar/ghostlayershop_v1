@@ -422,12 +422,17 @@ export default function SubscriptionModal({
       'adobe': 'adobe',
       'acrobat': 'acrobat',
       'apple one': 'apple_one',
+      'apple music': 'apple_music',
       'canva': 'canva',
       'chatgpt': 'chatgpt',
       'duolingo': 'duolingo',
+      'icloud': 'icloud',
       'lastpass': 'lastpass',
       'microsoft 365': 'microsoft_365',
+      'netflix': 'netflix',
       'spotify': 'spotify',
+      'workspace': 'workspace',
+      'google workspace': 'google_workspace',
     };
     
     for (const [key, provider] of Object.entries(providerMap)) {
@@ -708,7 +713,7 @@ export default function SubscriptionModal({
             <LinkResourceSection
               serviceProvider={getServiceProvider()}
               subscriptionId={createdSubscriptionId}
-              customerEmail={formData.notes}
+              customerEmail={formData.notes || `customer-${createdSubscriptionId.slice(0, 8)}`}
               onResourceLinked={isEditing ? () => {
                 // Refresh pool info after linking
                 if (editingSubscription) {

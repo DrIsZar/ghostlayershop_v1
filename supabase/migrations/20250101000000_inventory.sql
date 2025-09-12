@@ -141,8 +141,7 @@ BEGIN
     updated_at = now()
   WHERE id = v_seat_id;
 
-  -- Trigger the used_seats sync
-  PERFORM public.fn_sync_used_seats();
+  -- Note: used_seats sync is handled automatically by triggers
   
   RETURN v_seat_id;
 END;
@@ -164,8 +163,7 @@ BEGIN
     updated_at = now()
   WHERE id = p_seat_id;
   
-  -- Trigger the used_seats sync
-  PERFORM public.fn_sync_used_seats();
+  -- Note: used_seats sync is handled automatically by triggers
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

@@ -13,11 +13,12 @@ import {
   RotateCcw,
   Archive
 } from 'lucide-react';
-import { ResourcePool, PoolFilter } from '../types/inventory';
-import { listResourcePools, refreshPoolStatus } from '../lib/inventory';
+import { ResourcePool, PoolFilter, AssignmentWithDetails, AssignmentFilter } from '../types/inventory';
+import { listResourcePools, refreshPoolStatus, getAllAssignedSeats } from '../lib/inventory';
 import { PoolCard } from '../components/PoolCard';
 import { PoolFormModal } from '../components/PoolFormModal';
 import { PoolDetailModal } from '../components/PoolDetailModal';
+import { AssignmentCard } from '../components/AssignmentCard';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 
@@ -28,6 +29,8 @@ export default function Inventory() {
   const [viewMode, setViewMode] = useState<ViewMode>('pools');
   const [pools, setPools] = useState<ResourcePool[]>([]);
   const [filteredPools, setFilteredPools] = useState<ResourcePool[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
+  const [filteredAssignments, setFilteredAssignments] = useState<AssignmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -35,6 +38,7 @@ export default function Inventory() {
   
   // Filter state
   const [filters, setFilters] = useState<PoolFilter>({});
+  const [assignmentFilters, setAssignmentFilters] = useState<AssignmentFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   
@@ -43,6 +47,7 @@ export default function Inventory() {
 
   useEffect(() => {
     fetchPools();
+    fetchAssignments();
     refreshPoolStatus(); // Refresh status on load
   }, []);
 
@@ -57,6 +62,10 @@ export default function Inventory() {
     applyFilters();
   }, [pools, filters, debouncedSearchTerm]);
 
+  useEffect(() => {
+    applyAssignmentFilters();
+  }, [assignments, assignmentFilters]);
+
   const fetchPools = async () => {
     try {
       setLoading(true);
@@ -67,6 +76,16 @@ export default function Inventory() {
       console.error('Error fetching pools:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    try {
+      const { data, error } = await getAllAssignedSeats();
+      if (error) throw error;
+      setAssignments(data || []);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
     }
   };
 
@@ -134,9 +153,43 @@ export default function Inventory() {
     setFilteredPools(filtered);
   };
 
+  const applyAssignmentFilters = () => {
+    let filtered = [...assignments];
+
+    // Apply filters
+    if (assignmentFilters.pool_id) {
+      filtered = filtered.filter(assignment => assignment.pool_id === assignmentFilters.pool_id);
+    }
+    if (assignmentFilters.provider) {
+      filtered = filtered.filter(assignment => assignment.resource_pools.provider === assignmentFilters.provider);
+    }
+    if (assignmentFilters.client_id) {
+      filtered = filtered.filter(assignment => assignment.assigned_client_id === assignmentFilters.client_id);
+    }
+    if (assignmentFilters.subscription_id) {
+      filtered = filtered.filter(assignment => assignment.assigned_subscription_id === assignmentFilters.subscription_id);
+    }
+    if (assignmentFilters.assigned_after) {
+      filtered = filtered.filter(assignment => 
+        assignment.assigned_at && new Date(assignment.assigned_at) >= new Date(assignmentFilters.assigned_after!)
+      );
+    }
+    if (assignmentFilters.assigned_before) {
+      filtered = filtered.filter(assignment => 
+        assignment.assigned_at && new Date(assignment.assigned_at) <= new Date(assignmentFilters.assigned_before!)
+      );
+    }
+
+    setFilteredAssignments(filtered);
+  };
+
   const resetFilters = () => {
     setFilters({});
     setSearchTerm('');
+  };
+
+  const resetAssignmentFilters = () => {
+    setAssignmentFilters({});
   };
 
   const toggleSection = (sectionKey: string) => {
@@ -168,6 +221,7 @@ export default function Inventory() {
     setPools(prev => prev.filter(pool => pool.id !== poolId));
   };
 
+
   const getStats = () => {
     const total = pools.length;
     const active = pools.filter(p => p.status === 'active').length;
@@ -176,7 +230,26 @@ export default function Inventory() {
     const totalSeats = pools.reduce((sum, p) => sum + p.max_seats, 0);
     const usedSeats = pools.reduce((sum, p) => sum + p.used_seats, 0);
     
-    return { total, active, overdue, expired, totalSeats, usedSeats };
+    // Assignment stats
+    const totalAssignments = assignments.length;
+    const recentAssignments = assignments.filter(a => {
+      if (!a.assigned_at) return false;
+      const assignedDate = new Date(a.assigned_at);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return assignedDate >= weekAgo;
+    }).length;
+    
+    return { 
+      total, 
+      active, 
+      overdue, 
+      expired, 
+      totalSeats, 
+      usedSeats, 
+      totalAssignments, 
+      recentAssignments 
+    };
   };
 
   const stats = getStats();
@@ -453,15 +526,151 @@ export default function Inventory() {
       )}
 
       {viewMode === 'assignments' && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-gray-400" />
+        <>
+          {/* Assignment Filter Toolbar */}
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Provider Filter */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="Provider"
+                  options={[
+                    { value: '', label: 'All providers' },
+                    ...Object.keys(SERVICE_PROVISIONING).map(provider => ({
+                      value: provider,
+                      label: `${PROVIDER_ICONS[provider] || '📦'} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
+                    }))
+                  ]}
+                  value={assignmentFilters.provider || ''}
+                  onChange={(value) => setAssignmentFilters(prev => ({ ...prev, provider: value || undefined }))}
+                  placeholder="All providers"
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => setAssignmentFilters(prev => ({ ...prev, provider: undefined }))}
+                />
+              </div>
+
+              {/* Pool Filter */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="Pool"
+                  options={[
+                    { value: '', label: 'All pools' },
+                    ...pools.map(pool => ({
+                      value: pool.id,
+                      label: `${PROVIDER_ICONS[pool.provider] || '📦'} ${pool.login_email} (${pool.provider})`
+                    }))
+                  ]}
+                  value={assignmentFilters.pool_id || ''}
+                  onChange={(value) => setAssignmentFilters(prev => ({ ...prev, pool_id: value || undefined }))}
+                  placeholder="All pools"
+                  className="min-w-[200px]"
+                  allowClear={true}
+                  onClear={() => setAssignmentFilters(prev => ({ ...prev, pool_id: undefined }))}
+                />
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={resetAssignmentFilters}
+                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-medium text-white mb-2">Assignments View</h3>
-          <p className="text-gray-400">
-            This view will show all seat assignments across pools.
-          </p>
-        </div>
+
+          {/* Assignment Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Total Assignments</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalAssignments}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Recent (7 days)</p>
+                  <p className="text-2xl font-bold text-white">{stats.recentAssignments}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Active Pools</p>
+                  <p className="text-2xl font-bold text-white">{stats.active}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Utilization</p>
+                  <p className="text-2xl font-bold text-white">
+                    {stats.totalSeats > 0 ? Math.round((stats.usedSeats / stats.totalSeats) * 100) : 0}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Assignments List */}
+          <div className="space-y-4">
+            {filteredAssignments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No assignments found</h3>
+                <p className="text-gray-400 mb-4">
+                  {assignments.length === 0 
+                    ? "No seats have been assigned yet." 
+                    : "No assignments match your current filters."
+                  }
+                </p>
+                {assignments.length > 0 && (
+                  <button
+                    onClick={resetAssignmentFilters}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredAssignments.map(assignment => (
+                  <AssignmentCard
+                    key={assignment.id}
+                    assignment={assignment}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Modals */}

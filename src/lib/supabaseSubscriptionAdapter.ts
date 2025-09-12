@@ -98,6 +98,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       strategy: data.strategy as RenewalStrategyKey,
       status: data.status as any,
       isAutoRenew: data.is_auto_renew,
+      resourcePoolId: data.resource_pool_id,
+      resourcePoolSeatId: data.resource_pool_seat_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -124,6 +126,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
     if (updates.strategy !== undefined) dbUpdates.strategy = updates.strategy;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
     if (updates.isAutoRenew !== undefined) dbUpdates.is_auto_renew = updates.isAutoRenew;
+    if (updates.resourcePoolId !== undefined) dbUpdates.resource_pool_id = updates.resourcePoolId;
+    if (updates.resourcePoolSeatId !== undefined) dbUpdates.resource_pool_seat_id = updates.resourcePoolSeatId;
 
     const { data, error } = await supabase
       .from('subscriptions')
@@ -155,6 +159,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       strategy: data.strategy as RenewalStrategyKey,
       status: data.status as any,
       isAutoRenew: data.is_auto_renew,
+      resourcePoolId: data.resource_pool_id,
+      resourcePoolSeatId: data.resource_pool_seat_id,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -195,6 +201,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       strategy: dbSub.strategy as RenewalStrategyKey,
       status: dbSub.status as any,
       isAutoRenew: dbSub.is_auto_renew,
+      resourcePoolId: dbSub.resource_pool_id,
+      resourcePoolSeatId: dbSub.resource_pool_seat_id,
       createdAt: dbSub.created_at,
       updatedAt: dbSub.updated_at
     }));

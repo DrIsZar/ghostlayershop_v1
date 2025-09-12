@@ -10,6 +10,7 @@ import SearchableDropdown from './SearchableDropdown';
 import { getResourcePool, getPoolSeats } from '../lib/inventory';
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { LinkResourceSection } from './LinkResourceSection';
 
 interface SubscriptionDetailModalProps {
   isOpen: boolean;
@@ -314,6 +315,8 @@ export default function SubscriptionDetailModal({
 
   // Calculate suggested target end date based on strategy
   const getSuggestedTargetEndDate = () => {
+    if (!subscription) return '';
+    
     const startDate = new Date(subscription.startedAt);
     let suggestedDate: Date;
     
@@ -355,6 +358,47 @@ export default function SubscriptionDetailModal({
       alert('Failed to set target end date');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getServiceProvider = () => {
+    if (!serviceName) return '';
+    // Map service name to provider key
+    const serviceNameLower = serviceName.toLowerCase();
+    const providerMap: Record<string, string> = {
+      'adobe': 'adobe',
+      'acrobat': 'acrobat',
+      'apple one': 'apple_one',
+      'apple music': 'apple_music',
+      'icloud': 'icloud',
+      'netflix': 'netflix',
+      'spotify': 'spotify',
+    };
+    
+    for (const [key, provider] of Object.entries(providerMap)) {
+      if (serviceNameLower.includes(key)) {
+        return provider;
+      }
+    }
+    return '';
+  };
+
+  const handleResourceLinked = async (poolId: string, seatId: string) => {
+    if (!subscription) return;
+    
+    try {
+      // Update the subscription with the new resource pool and seat IDs
+      const updated = await subscriptionService.updateSubscription(subscription.id, {
+        resourcePoolId: poolId,
+        resourcePoolSeatId: seatId
+      });
+      
+      onUpdate(updated);
+      // Refresh the subscription data to show the linked resource
+      await fetchSubscriptionData();
+    } catch (error) {
+      console.error('Error linking resource:', error);
+      alert('Failed to link resource to subscription');
     }
   };
 
@@ -765,6 +809,16 @@ export default function SubscriptionDetailModal({
                     Auto-renew subscription
                   </label>
                 </div>
+
+                {/* Resource Pool Linking */}
+                {getServiceProvider() && (
+                  <LinkResourceSection
+                    serviceProvider={getServiceProvider()}
+                    subscriptionId={subscription.id}
+                    customerEmail={subscription.notes || `customer-${subscription.id.slice(0, 8)}`}
+                    onResourceLinked={handleResourceLinked}
+                  />
+                )}
               </div>
             ) : (
               <div className="space-y-4">

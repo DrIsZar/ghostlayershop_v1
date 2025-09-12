@@ -73,7 +73,7 @@ export function LinkResourceSection({ serviceProvider, subscriptionId, customerE
   };
 
   const handleLinkResource = async () => {
-    if (!selectedPoolId || !subscriptionId || !customerEmail) return;
+    if (!selectedPoolId || !subscriptionId) return;
     
     try {
       setLoading(true);
@@ -86,50 +86,52 @@ export function LinkResourceSection({ serviceProvider, subscriptionId, customerE
         customerEmail
       });
       
-      let assignedSeatId: string | undefined;
+      // Link the subscription to the pool (this will handle seat assignment)
+      console.log('Linking subscription to pool:', { subscriptionId, selectedPoolId, selectedSeatId, customerEmail });
       
+      let result;
       if (selectedSeatId) {
-        // Assign specific seat
+        // Assign specific seat first, then link
         console.log('Assigning specific seat:', selectedSeatId);
         const { data: seatData, error: assignError } = await assignSeat(selectedSeatId, {
-          email: customerEmail,
-          subscriptionId: subscriptionId,
-        });
-        
-        if (assignError) throw assignError;
-        assignedSeatId = seatData?.id;
-        console.log('Assigned specific seat:', assignedSeatId);
-      } else {
-        // Auto-assign next available seat
-        console.log('Auto-assigning next available seat in pool:', selectedPoolId);
-        const { data: seatId, error: assignError } = await assignNextFreeSeat(selectedPoolId, {
-          email: customerEmail,
+          email: customerEmail || undefined,
           subscriptionId: subscriptionId,
         });
         
         if (assignError) {
-          console.error('Auto-assignment error:', assignError);
-          if (assignError.code === 'P0001') {
-            throw new Error('No available seats in the selected pool');
-          }
-          throw assignError;
+          console.error('Specific seat assignment error:', assignError);
+          throw new Error(`Seat assignment failed: ${assignError.message || 'Unknown error'}`);
         }
-        assignedSeatId = seatId;
-        console.log('Auto-assigned seat:', assignedSeatId);
+        
+        console.log('Assigned specific seat:', seatData?.id);
+        result = await linkSubscriptionToPool(subscriptionId, selectedPoolId, seatData?.id);
+      } else {
+        // Auto-assign next available seat
+        console.log('Auto-assigning next available seat in pool:', selectedPoolId);
+        result = await linkSubscriptionToPool(subscriptionId, selectedPoolId, undefined, {
+          email: customerEmail || undefined,
+          subscriptionId: subscriptionId,
+        });
       }
       
-      // Then link the subscription to the pool
-      console.log('Linking subscription to pool:', { subscriptionId, selectedPoolId, assignedSeatId });
-      const { error } = await linkSubscriptionToPool(
-        subscriptionId,
-        selectedPoolId,
-        assignedSeatId
-      );
+      const { error } = result;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Subscription linking error:', error);
+        throw new Error(`Failed to link subscription to pool: ${error.message || 'Unknown error'}`);
+      }
       
       console.log('Successfully linked resource');
-      onResourceLinked?.(selectedPoolId, assignedSeatId || '');
+      // Get the seat ID - for specific seat, we already have it; for auto-assign, we need to get it from the result
+      let finalSeatId = '';
+      if (selectedSeatId) {
+        finalSeatId = selectedSeatId;
+      } else {
+        // For auto-assign, we need to get the seat ID from the linkSubscriptionToPool result
+        // The function returns the updated subscription, so we can get the seat ID from there
+        finalSeatId = result.data?.resource_pool_seat_id || '';
+      }
+      onResourceLinked?.(selectedPoolId, finalSeatId);
       setError('');
     } catch (error) {
       console.error('Error linking resource:', error);

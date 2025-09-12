@@ -201,11 +201,99 @@ export async function getAvailableSeatsInPool(poolId: string) {
     .order('seat_index');
 }
 
+export async function getAllAssignedSeats() {
+  console.log('Fetching all assigned seats...');
+  
+  // Try to find assignments using the subscriptions table first
+  // This is more reliable since we know subscriptions can be linked to pools
+  const { data: linkedSubscriptions, error: subsError } = await supabase
+    .from('subscriptions')
+    .select(`
+      id,
+      resource_pool_id,
+      resource_pool_seat_id,
+      client_id,
+      service_id,
+      status,
+      notes,
+      clients (
+        id,
+        name,
+        email
+      ),
+      services (
+        id,
+        product_service
+      )
+    `)
+    .not('resource_pool_id', 'is', null)
+    .not('resource_pool_seat_id', 'is', null);
+  
+  console.log('Linked subscriptions:', linkedSubscriptions);
+  
+  if (subsError) {
+    console.error('Error fetching linked subscriptions:', subsError);
+    return { data: [], error: subsError };
+  }
+  
+  if (!linkedSubscriptions || linkedSubscriptions.length === 0) {
+    console.log('No linked subscriptions found');
+    return { data: [], error: null };
+  }
+  
+  // Now get the seat and pool information for these subscriptions
+  const seatIds = linkedSubscriptions.map(sub => sub.resource_pool_seat_id).filter(Boolean);
+  const poolIds = linkedSubscriptions.map(sub => sub.resource_pool_id).filter(Boolean);
+  
+  const { data: seats, error: seatsError } = await supabase
+    .from('resource_pool_seats')
+    .select(`
+      *,
+      resource_pools (
+        id,
+        provider,
+        pool_type,
+        login_email,
+        status,
+        end_at
+      )
+    `)
+    .in('id', seatIds);
+  
+  console.log('Seats for linked subscriptions:', seats);
+  
+  if (seatsError) {
+    console.error('Error fetching seats:', seatsError);
+    return { data: [], error: seatsError };
+  }
+  
+  // Combine the data to create assignment objects
+  const assignments = linkedSubscriptions.map(subscription => {
+    const seat = seats?.find(s => s.id === subscription.resource_pool_seat_id);
+    if (!seat) return null;
+    
+    return {
+      ...seat,
+      clients: subscription.clients,
+      subscriptions: {
+        id: subscription.id,
+        service_id: subscription.service_id,
+        client_id: subscription.client_id,
+        status: subscription.status,
+        notes: subscription.notes
+      }
+    };
+  }).filter(Boolean);
+  
+  console.log('Final assignments:', assignments);
+  return { data: assignments, error: null };
+}
+
 // Subscription integration
-export async function linkSubscriptionToPool(subscriptionId: string, poolId: string, seatId?: string) {
+export async function linkSubscriptionToPool(subscriptionId: string, poolId: string, seatId?: string, assignment?: SeatAssignment) {
   if (seatId) {
-    // Link to specific seat
-    return supabase
+    // Link to specific seat - update both subscription and seat
+    const subscriptionUpdate = supabase
       .from('subscriptions')
       .update({
         resource_pool_id: poolId,
@@ -213,9 +301,28 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
         updated_at: new Date().toISOString(),
       })
       .eq('id', subscriptionId);
+
+    // Also update the seat to mark it as assigned
+    const seatUpdate = supabase
+      .from('resource_pool_seats')
+      .update({
+        seat_status: 'assigned',
+        assigned_subscription_id: subscriptionId,
+        assigned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', seatId);
+
+    // Execute both updates
+    const [subResult, seatResult] = await Promise.all([subscriptionUpdate, seatUpdate]);
+    
+    if (subResult.error) return { data: null, error: subResult.error };
+    if (seatResult.error) return { data: null, error: seatResult.error };
+    
+    return subResult;
   } else {
     // Auto-assign next available seat
-    const { data: seatData, error: seatError } = await assignNextFreeSeat(poolId, {});
+    const { data: seatData, error: seatError } = await assignNextFreeSeat(poolId, assignment || {});
     if (seatError) return { data: null, error: seatError };
     
     return supabase

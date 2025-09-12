@@ -92,3 +92,39 @@ export interface SeatFilter {
   assigned_client_id?: string;
   assigned_subscription_id?: string;
 }
+
+export interface AssignmentWithDetails {
+  id: string;
+  pool_id: string;
+  seat_index: number;
+  assigned_email?: string | null;
+  assigned_client_id?: string | null;
+  assigned_subscription_id?: string | null;
+  assigned_at?: string | null;
+  unassigned_at?: string | null;
+  seat_status: SeatStatus;
+  created_at: string;
+  updated_at: string;
+  resource_pools: ResourcePool;
+  clients?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  subscriptions?: {
+    id: string;
+    service_id: string;
+    client_id: string;
+    status: string;
+    notes?: string;
+  } | null;
+}
+
+export interface AssignmentFilter {
+  pool_id?: string;
+  provider?: string;
+  client_id?: string;
+  subscription_id?: string;
+  assigned_after?: string;
+  assigned_before?: string;
+}
