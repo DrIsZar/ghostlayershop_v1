@@ -249,7 +249,7 @@ export default function SearchableDropdown({
           disabled={disabled}
           onKeyDown={handleKeyDown}
           className={`
-            w-full py-2 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-sm
+            w-full py-3 pr-8 bg-gray-800 border border-gray-600 rounded-lg text-base min-h-[44px]
             ${icon ? 'pl-10' : 'pl-3'}
             focus:outline-none focus:border-green-500
             disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed
@@ -271,7 +271,8 @@ export default function SearchableDropdown({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Clear selection"
           >
             <X className="w-4 h-4" />
           </button>
@@ -312,12 +313,13 @@ export default function SearchableDropdown({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleSearchKeyDown}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-base min-h-[44px] focus:outline-none focus:border-green-500"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Clear search"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -337,7 +339,7 @@ export default function SearchableDropdown({
                   <div
                     key={option.value}
                     className={`
-                      px-3 py-2 text-sm cursor-pointer transition-colors
+                      px-3 py-3 text-base cursor-pointer transition-colors min-h-[44px] flex items-center
                       ${index === highlightedIndex ? 'bg-gray-700' : 'hover:bg-gray-700'}
                       ${option.disabled ? 'text-gray-500 cursor-not-allowed' : 'text-white'}
                       ${option.value === value ? 'bg-green-900/30 text-green-400' : ''}

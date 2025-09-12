@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -18,6 +18,24 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Close sidebar when route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+  
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+  
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Services Manager', href: '/services', icon: Package },
@@ -34,81 +52,94 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 safe">
+    <div className="min-h-screen bg-gray-900 flex">
       {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-8 left-4 z-20">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-4 bg-gray-800/80 backdrop-blur-sm border border-gray-600/50 rounded-xl text-white hover:bg-gray-700/90 hover:border-gray-500/70 transition-all duration-200 shadow-lg shadow-black/20"
-        >
-          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="lg:hidden fixed z-50 p-3 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+        style={{ 
+          top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`, 
+          left: `calc(1rem + env(safe-area-inset-left))` 
+        }}
+        aria-label="Open menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={closeSidebar}
         />
       )}
 
-      {/* Desktop Layout Container */}
-      <div className="lg:flex lg:min-h-screen">
-        {/* Sidebar */}
-        <div className={`
-          fixed left-0 top-0 h-full bg-gray-800 border-r border-gray-700 z-40
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:fixed lg:z-10
-          w-64
-        `}>
-          <div className="flex items-center justify-between p-6 border-b border-gray-700">
-            <div className="flex items-center gap-3">
-              <Ghost className="h-8 w-8 text-green-500" />
-              <div>
-                <h1 className="text-xl font-bold text-white">GhostLayer</h1>
-                <p className="text-sm text-gray-400">Shop Dashboard</p>
-              </div>
+      {/* Sidebar */}
+      <div className={`
+        fixed left-0 top-0 h-full w-64 max-w-[85vw] bg-gray-800 border-r border-gray-700 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:h-screen lg:min-h-screen
+      `}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700" style={{
+          paddingTop: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
+          minHeight: 'calc(80px + env(safe-area-inset-top) + 0.5rem)'
+        }}>
+          <div className="flex items-center gap-3">
+            <Ghost className="h-8 w-8 text-green-500 flex-shrink-0" />
+            <div>
+              <h1 className="text-lg font-bold text-white">GhostLayer</h1>
+              <p className="text-xs text-gray-400">Shop Dashboard</p>
             </div>
-            <button
-              onClick={closeSidebar}
-              className="lg:hidden p-1 text-gray-400 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
-          
-          <nav className="mt-6 px-3">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={closeSidebar}
-                  className={`
-                    flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-all duration-200
-                    ${isActive 
-                      ? 'bg-green-500/20 text-green-500 border-r-2 border-green-500' 
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }
-                  `}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+          <button
+            onClick={closeSidebar}
+            className="lg:hidden p-2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
+        
+        {/* Navigation */}
+        <nav className="px-3 pb-4 overflow-y-auto" style={{
+          height: 'calc(100vh - 80px - env(safe-area-inset-top) - 0.5rem)',
+          paddingTop: '1rem'
+        }}>
+          {navigation.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                onClick={closeSidebar}
+                className={`
+                  flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors
+                  ${isActive 
+                    ? 'bg-green-500/20 text-green-500' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  }
+                `}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <span className="truncate">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
-        {/* Main Content */}
-        <div className="lg:ml-64 flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 p-4 lg:p-6 pt-24 lg:pt-6 overflow-y-auto">
-            <Outlet />
-          </main>
-        </div>
+      {/* Main Content */}
+      <div className="flex-1 min-h-screen bg-gray-900 lg:ml-64">
+        <main className="h-full p-4 lg:p-6" style={{
+          paddingTop: `calc(80px + env(safe-area-inset-top) + 0.5rem)`,
+          paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,
+          paddingLeft: `calc(1rem + env(safe-area-inset-left))`,
+          paddingRight: `calc(1rem + env(safe-area-inset-right))`
+        }}>
+          <Outlet />
+        </main>
       </div>
     </div>
   );

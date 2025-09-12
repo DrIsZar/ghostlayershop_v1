@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Package, ShoppingCart } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { toast, copyToClipboard } from '../lib/toast';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -66,6 +67,7 @@ export default function Dashboard() {
       setServices(servicesResult.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      toast.show('Failed to load data', { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -378,29 +380,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="mb-4 lg:mb-6">
+        <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard Overview</h1>
-            <p className="text-gray-400 mt-1">Monitor your business performance</p>
+            <h1 className="text-xl lg:text-3xl font-bold text-white">Dashboard Overview</h1>
+            <p className="text-gray-400 mt-1 text-sm lg:text-base">Monitor your business performance</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3">
             <button
               onClick={() => {
                 setLoading(true);
                 fetchData();
               }}
-              className="px-3 py-1 text-sm bg-blue-500/20 text-blue-400 rounded-md hover:bg-blue-500/30 transition-colors"
+              className="ghost-button-secondary w-full sm:w-auto"
             >
               Refresh Data
             </button>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">View:</span>
-              <div className="flex bg-gray-700/50 rounded-lg p-1">
+              <div className="flex bg-gray-700/50 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setMainDashboardView('daily')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition-colors ${
                     mainDashboardView === 'daily'
                       ? 'bg-blue-500 text-white'
                       : 'text-gray-400 hover:text-white'
@@ -410,7 +412,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setMainDashboardView('monthly')}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition-colors ${
                     mainDashboardView === 'monthly'
                       ? 'bg-blue-500 text-white'
                       : 'text-gray-400 hover:text-white'
@@ -426,9 +428,9 @@ export default function Dashboard() {
 
       {/* Stats Cards - Dynamic Daily/Monthly Overview */}
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Dynamic Overview */}
-        <div className="ghost-card p-6">
+        <div className="ghost-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-400">
               {mainDashboardView === 'daily' ? 'Today\'s Overview' : 'Current Month Overview'}
@@ -437,7 +439,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             <div>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-2xl sm:text-3xl font-bold text-white">
                 ${currentStats.profit.toFixed(2)}
               </p>
               <p className="text-sm text-gray-400 mt-1">
@@ -465,7 +467,7 @@ export default function Dashboard() {
         </div>
 
         {/* Dynamic Performance Comparison */}
-        <div className="ghost-card p-6">
+        <div className="ghost-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-400">
               {mainDashboardView === 'daily' ? 'Daily Performance' : 'Monthly Performance'}
@@ -501,7 +503,7 @@ export default function Dashboard() {
         </div>
 
         {/* Business Health */}
-        <div className="ghost-card p-6">
+        <div className="ghost-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-400">Business Health</h3>
             <Package className="h-5 w-5 text-green-500" />
@@ -533,15 +535,16 @@ export default function Dashboard() {
       </div>
 
       {/* Performance Analysis Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Top Services */}
-        <div className="ghost-card p-6 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Top Performing Services</h2>
+        <div className="ghost-card p-4 lg:p-6 lg:col-span-2">
+          <div className="flex flex-col gap-4 mb-4">
+            <h2 className="text-lg lg:text-xl font-bold text-white">Top Performing Services</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleTopServicesPeriodChange('prev')}
-                className="ghost-button-secondary p-2 text-sm"
+                className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Previous period"
               >
                 ←
               </button>
@@ -562,12 +565,13 @@ export default function Dashboard() {
                   });
                 }}
                 placeholder="Select period"
-                className="ghost-select text-sm min-w-[160px]"
+                className="ghost-select text-sm flex-1"
                 showSearchThreshold={10}
               />
               <button
                 onClick={() => handleTopServicesPeriodChange('next')}
-                className="ghost-button-secondary p-2 text-sm"
+                className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Next period"
               >
                 →
               </button>
@@ -607,9 +611,9 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="ghost-card p-6">
+        <div className="ghost-card p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Recent Activity</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h2>
             <span className="text-xs text-gray-400">Last 24h</span>
           </div>
           <div className="space-y-4">
@@ -640,9 +644,9 @@ export default function Dashboard() {
       </div>
 
       {/* Analytics Summary */}
-      <div className="ghost-card p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Analytics Summary</h2>
+      <div className="ghost-card p-4 lg:p-6">
+        <div className="flex flex-col gap-4 mb-4 lg:mb-6">
+          <h2 className="text-lg lg:text-xl font-bold text-white">Analytics Summary</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -677,7 +681,8 @@ export default function Dashboard() {
                   label
                 });
               }}
-              className="ghost-button-secondary p-2 text-sm"
+              className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Previous period"
             >
               ←
             </button>
@@ -698,7 +703,7 @@ export default function Dashboard() {
                 });
               }}
               placeholder="Select period"
-              className="ghost-select text-sm min-w-[160px]"
+              className="ghost-select text-sm flex-1"
               showSearchThreshold={10}
             />
             <button
@@ -734,13 +739,14 @@ export default function Dashboard() {
                   label
                 });
               }}
-              className="ghost-button-secondary p-2 text-sm"
+              className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Next period"
             >
               →
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <div className="p-4 bg-gray-700/50 rounded-lg">
             <div className="flex flex-col">
               <p className="text-sm text-gray-400 mb-1">Total Orders</p>

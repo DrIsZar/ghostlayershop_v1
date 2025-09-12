@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { ResourcePool } from '../types/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS } from '../constants/provisioning';
+import { copyToClipboard } from '../lib/toast';
 
 interface PoolCardProps {
   pool: ResourcePool;
@@ -73,9 +74,8 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
     return 'bg-green-500';
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
+  const handleCopy = async (text: string) => {
+    await copyToClipboard(text);
   };
 
   const handleToggleAlive = async () => {
@@ -89,26 +89,26 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 hover:bg-gray-800/70 transition-all duration-200 group">
+    <div className="ghost-card p-4 lg:p-6 hover:bg-gray-800/70 transition-all duration-200 group">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center text-2xl">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-700 rounded-xl flex items-center justify-center text-xl lg:text-2xl flex-shrink-0">
             {PROVIDER_ICONS[pool.provider] || '📦'}
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white capitalize">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base lg:text-lg font-semibold text-white capitalize truncate">
               {pool.provider.replace('_', ' ')}
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-xs lg:text-sm text-gray-400 truncate">
               {POOL_TYPE_LABELS[pool.pool_type] || pool.pool_type}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Status Badge */}
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(pool.status)}`}>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(pool.status)} hidden sm:inline-block`}>
             {pool.status}
           </span>
           
@@ -119,7 +119,8 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="More options"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -148,10 +149,10 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
                 </button>
                 <button
                   onClick={() => {
-                    copyToClipboard(pool.login_email);
+                    handleCopy(pool.login_email);
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2 min-h-[44px]"
                 >
                   <Copy className="w-4 h-4" />
                   Copy Email
@@ -201,8 +202,9 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
           <span className="text-sm text-gray-400">Login:</span>
           <span className="text-sm text-white font-mono">{pool.login_email}</span>
           <button
-            onClick={() => copyToClipboard(pool.login_email)}
-            className="p-1 text-gray-400 hover:text-white transition-colors"
+            onClick={() => handleCopy(pool.login_email)}
+            className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Copy email"
           >
             <Copy className="w-3 h-3" />
           </button>
@@ -221,8 +223,9 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
               <Eye className="w-3 h-3" />
             </button>
             <button
-              onClick={() => copyToClipboard(pool.login_secret || '')}
-              className="p-1 text-gray-400 hover:text-white transition-colors"
+              onClick={() => handleCopy(pool.login_secret || '')}
+              className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Copy password"
             >
               <Copy className="w-3 h-3" />
             </button>

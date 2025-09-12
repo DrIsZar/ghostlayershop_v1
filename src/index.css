@@ -2,45 +2,172 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Custom Properties for Safe Areas */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bot: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+}
+
+/* Base Styles */
 html, body, #root { 
   height: 100%; 
   margin: 0; 
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Ensure full height layout */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+html {
+  background: #111827;
+  font-size: 16px; /* Prevent iOS zoom on input focus */
 }
 
 body { 
-  background: #0b0f14; 
-}
-
-.safe { 
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); 
-}
-
-* {
+  background: #111827;
   font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-@layer components {
-  .ghost-select {
-    @apply bg-gray-700/50 text-white border border-gray-600 rounded-lg px-4 py-2 appearance-none cursor-pointer
-    transition-all duration-200 ease-in-out hover:bg-gray-700/70 focus:outline-none focus:ring-2 focus:ring-blue-500/50;
-  }
+/* Safe area utility classes */
+.safe-top { padding-top: var(--safe-top); }
+.safe-bottom { padding-bottom: var(--safe-bot); }
+.safe-left { padding-left: var(--safe-left); }
+.safe-right { padding-right: var(--safe-right); }
+.safe-x { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+.safe-y { padding-top: var(--safe-top); padding-bottom: var(--safe-bot); }
 
-  .ghost-select-wrapper {
-    @apply relative inline-block;
+/* Mobile-first responsive design */
+@media (max-width: 1023px) {
+  /* Mobile sidebar */
+  .sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 256px;
+    max-width: 85vw;
+    z-index: 50;
+    background-color: #1f2937;
+    border-right: 1px solid #374151;
   }
-
-  .ghost-button-secondary {
-    @apply rounded-lg bg-gray-700/50 text-white hover:bg-gray-700/70
-    transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/50;
+  
+  .sidebar.open {
+    transform: translateX(0);
   }
+  
+  /* Mobile menu header with Dynamic Island spacing */
+  .sidebar .header {
+    padding-top: calc(1rem + env(safe-area-inset-top) + 0.5rem);
+    min-height: calc(80px + env(safe-area-inset-top) + 0.5rem);
+  }
+  
+  /* Mobile navigation with proper spacing */
+  .sidebar nav {
+    padding-top: 1rem;
+    height: calc(100vh - 80px - env(safe-area-inset-top) - 0.5rem);
+  }
+  
+  /* Main content on mobile */
+  .main-content {
+    width: 100%;
+    margin-left: 0;
+    padding: 1rem;
+    padding-top: calc(80px + var(--safe-top) + 0.5rem);
+    padding-bottom: calc(1rem + var(--safe-bot));
+    padding-left: calc(1rem + var(--safe-left));
+    padding-right: calc(1rem + var(--safe-right));
+  }
+  
+  /* Mobile grid - single column */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Mobile cards */
+  .ghost-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 1rem 0;
+    padding: 1rem;
+  }
+  
+  /* Mobile buttons */
+  button, .btn, input, select, textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  
+  /* Mobile typography */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  
+  /* Mobile spacing */
+  .space-y-4 > * + * { margin-top: 1rem; }
+  .space-y-6 > * + * { margin-top: 1.5rem; }
+  .space-y-8 > * + * { margin-top: 2rem; }
 }
 
-@layer base {
+/* Desktop styles */
+@media (min-width: 1024px) {
+  .sidebar {
+    transform: translateX(0);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    min-height: 100vh;
+    width: 256px;
+    z-index: 40;
+    background-color: #1f2937;
+    border-right: 1px solid #374151;
+  }
+  
+  /* Ensure sidebar background extends full page height */
   body {
-    @apply bg-gray-900 text-white;
+    background-color: #1f2937;
   }
+  
+  /* Main content area background */
+  .main-content {
+    background-color: #111827;
+  }
+  
+  .main-content {
+    padding: 1.5rem !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: calc(1.5rem + var(--safe-bot)) !important;
+    padding-left: calc(1.5rem + var(--safe-left)) !important;
+    padding-right: calc(1.5rem + var(--safe-right)) !important;
+  }
+  
+  .grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+  
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
+/* Component styles */
 @layer components {
   .ghost-card {
     @apply bg-gray-800 border border-gray-700 rounded-xl shadow-lg backdrop-blur-sm;
@@ -60,5 +187,177 @@ body {
   
   .ghost-select {
     @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 430px) {
+  /* Force single column on very small screens */
+  .grid-cols-1,
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .sm\\:grid-cols-2,
+  .sm\\:grid-cols-3,
+  .md\\:grid-cols-2,
+  .md\\:grid-cols-3,
+  .md\\:grid-cols-4,
+  .lg\\:grid-cols-2,
+  .lg\\:grid-cols-3,
+  .lg\\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Mobile cards */
+  .ghost-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Mobile buttons */
+  .ghost-button, .ghost-button-secondary {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 16px;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Mobile forms */
+  .ghost-input, .ghost-select {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 12px 16px;
+    width: 100%;
+  }
+  
+  /* Mobile typography */
+  body {
+    font-size: 16px;
+  }
+  
+  h1 { font-size: 1.5rem; line-height: 1.2; }
+  h2 { font-size: 1.25rem; line-height: 1.3; }
+  h3 { font-size: 1.125rem; line-height: 1.4; }
+  
+  /* Mobile spacing */
+  .space-y-4 > * + * { margin-top: 1rem; }
+  .space-y-6 > * + * { margin-top: 1.5rem; }
+  .space-y-8 > * + * { margin-top: 2rem; }
+  
+  /* Mobile modals */
+  .modal-content {
+    max-width: 95vw;
+    margin: 1rem;
+    border-radius: 12px;
+  }
+}
+
+/* Toast System */
+#toast-container {
+  position: fixed; 
+  left: 50%; 
+  bottom: calc(16px + var(--safe-bot));
+  transform: translateX(-50%);
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+  z-index: 9999;
+  pointer-events: none;
+  max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 32px);
+}
+
+.toast {
+  pointer-events: auto;
+  max-width: min(90vw, 420px);
+  padding: 12px 14px; 
+  border-radius: 12px;
+  background: rgba(0,0,0,0.85); 
+  color: #fff; 
+  font-size: 14px; 
+  line-height: 1.3;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn { 
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, 8px);
+  } 
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, 0);
+  } 
+}
+
+/* Focus styles for accessibility */
+button:focus-visible, 
+.btn:focus-visible, 
+input:focus-visible, 
+select:focus-visible, 
+textarea:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Touch-friendly interactions */
+button, .btn, input, select, textarea, [role="button"] {
+  -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+  touch-action: manipulation;
+}
+
+/* Prevent horizontal overflow */
+* {
+  max-width: 100%;
+}
+
+/* Responsive images */
+img, video, canvas, svg { 
+  max-width: 100%; 
+  height: auto; 
+}
+
+/* Dynamic Island specific handling */
+@supports (padding: env(safe-area-inset-top)) {
+  /* For devices with Dynamic Island (iPhone 14 Pro and newer) */
+  @media (max-width: 1023px) {
+    .sidebar .header {
+      padding-top: max(calc(1rem + env(safe-area-inset-top) + 0.5rem), calc(1rem + 44px + 0.5rem));
+    }
+    
+    .main-content {
+      padding-top: max(calc(80px + var(--safe-top) + 0.5rem), calc(80px + 44px + 0.5rem));
+    }
+    
+    .mobile-menu-button {
+      top: max(calc(1rem + env(safe-area-inset-top) + 0.5rem), calc(1rem + 44px + 0.5rem)) !important;
+    }
+  }
+}
+
+/* Fallback for devices without safe-area-inset support */
+@supports not (padding: env(safe-area-inset-top)) {
+  :root {
+    --safe-top: 44px; /* Increased for Dynamic Island area */
+    --safe-bot: 0px;
+    --safe-left: 0px;
+    --safe-right: 0px;
+  }
+  
+  @media (max-width: 1023px) {
+    .sidebar .header {
+      padding-top: calc(1rem + 44px + 0.5rem);
+    }
+    
+    .main-content {
+      padding-top: calc(80px + 44px + 0.5rem);
+    }
+    
+    .mobile-menu-button {
+      top: calc(1rem + 44px + 0.5rem) !important;
+    }
   }
 }

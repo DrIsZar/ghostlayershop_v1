@@ -4,6 +4,7 @@ import { CreatePoolData, PoolType } from '../types/inventory';
 import { createResourcePool } from '../lib/inventory';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS } from '../constants/provisioning';
 import SearchableDropdown from './SearchableDropdown';
+import { toast } from '../lib/toast';
 
 interface PoolFormModalProps {
   isOpen: boolean;
@@ -125,11 +126,12 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
       const { data, error } = await createResourcePool(formData);
       if (error) throw error;
       
+      toast.show('Pool created successfully', { type: 'success' });
       onPoolCreated(data);
       onClose();
     } catch (error) {
       console.error('Error creating pool:', error);
-      alert('Failed to create pool');
+      toast.show('Failed to create pool', { type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -148,23 +150,29 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overlay" style={{
+      paddingTop: 'var(--safe-top)',
+      paddingLeft: 'var(--safe-left)',
+      paddingRight: 'var(--safe-right)',
+      paddingBottom: 'var(--safe-bot)'
+    }}>
       <div 
-        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto m-2 sm:m-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Create New Pool</h2>
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-700">
+          <h2 className="text-lg sm:text-xl font-semibold text-white">Create New Pool</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Close modal"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Provider Selection */}
           <div>
             <SearchableDropdown
@@ -215,7 +223,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               type="email"
               value={formData.login_email}
               onChange={(e) => handleInputChange('login_email', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
               placeholder="admin@example.com"
             />
             {errors.login_email && (
@@ -233,7 +241,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               type="password"
               value={formData.login_secret}
               onChange={(e) => handleInputChange('login_secret', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
               placeholder="Password or app-specific secret"
             />
             <p className="mt-1 text-sm text-gray-400">
@@ -254,7 +262,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               onKeyDown={(e) => e.stopPropagation()}
               onFocus={(e) => e.stopPropagation()}
               onBlur={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
             />
             {errors.start_at && (
               <p className="mt-1 text-sm text-red-400">{errors.start_at}</p>
@@ -274,7 +282,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               onKeyDown={(e) => e.stopPropagation()}
               onFocus={(e) => e.stopPropagation()}
               onBlur={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
             />
             {errors.end_at && (
               <p className="mt-1 text-sm text-red-400">{errors.end_at}</p>
@@ -292,7 +300,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               min="1"
               value={isNaN(formData.max_seats) ? 1 : formData.max_seats}
               onChange={(e) => handleInputChange('max_seats', parseInt(e.target.value) || 1)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
             />
             {errors.max_seats && (
               <p className="mt-1 text-sm text-red-400">{errors.max_seats}</p>
@@ -312,24 +320,24 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500 text-base min-h-[44px]"
               placeholder="Add any additional notes about this pool..."
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+              className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 min-h-[44px]"
             >
               {isLoading ? 'Creating...' : 'Create Pool'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+              className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 min-h-[44px]"
             >
               Cancel
             </button>
