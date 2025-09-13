@@ -383,23 +383,24 @@ export default function Dashboard() {
     <div className="space-y-4 lg:space-y-6">
       <div className="mb-6 lg:mb-8">
         <div className="flex flex-col gap-4 sm:gap-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-white">Dashboard Overview</h1>
-            <p className="text-gray-400 mt-2 text-sm sm:text-base lg:text-base">Monitor your business performance</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Dashboard Overview</h1>
+            <p className="text-gray-400 mt-2 text-sm sm:text-base">Monitor your business performance</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={() => {
                 setLoading(true);
                 fetchData();
               }}
-              className="ghost-button-secondary w-full sm:w-auto min-h-[48px] px-6 py-3 text-sm font-medium rounded-lg hover:bg-gray-600/50 transition-colors"
+              className="ghost-button-secondary w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg hover:bg-gray-600/50 transition-colors"
             >
               <span className="flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Refresh Data
+                <span className="hidden xs:inline">Refresh Data</span>
+                <span className="xs:hidden">Refresh</span>
               </span>
             </button>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -407,7 +408,7 @@ export default function Dashboard() {
               <div className="flex bg-gray-700/50 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setMainDashboardView('daily')}
-                  className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 text-sm font-medium rounded-md transition-colors min-h-[48px] sm:min-h-auto ${
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     mainDashboardView === 'daily'
                       ? 'bg-blue-500 text-white shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
@@ -417,7 +418,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setMainDashboardView('monthly')}
-                  className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 text-sm font-medium rounded-md transition-colors min-h-[48px] sm:min-h-auto ${
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     mainDashboardView === 'monthly'
                       ? 'bg-blue-500 text-white shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-gray-600/30'

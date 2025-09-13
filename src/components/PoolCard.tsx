@@ -74,8 +74,9 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
     return 'bg-green-500';
   };
 
-  const handleCopy = async (text: string) => {
-    await copyToClipboard(text);
+  const handleCopy = async (text: string, type: 'login' | 'password') => {
+    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
+    await copyToClipboard(text, message);
   };
 
   const handleToggleAlive = async () => {
@@ -149,7 +150,7 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
                 </button>
                 <button
                   onClick={() => {
-                    handleCopy(pool.login_email);
+                    handleCopy(pool.login_email, 'login');
                     setShowMenu(false);
                   }}
                   className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2 min-h-[44px]"
@@ -202,7 +203,7 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
           <span className="text-sm text-gray-400">Login:</span>
           <span className="text-sm text-white font-mono">{pool.login_email}</span>
           <button
-            onClick={() => handleCopy(pool.login_email)}
+            onClick={() => handleCopy(pool.login_email, 'login')}
             className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Copy email"
           >
@@ -223,7 +224,7 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
               <Eye className="w-3 h-3" />
             </button>
             <button
-              onClick={() => handleCopy(pool.login_secret || '')}
+              onClick={() => handleCopy(pool.login_secret || '', 'password')}
               className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Copy password"
             >

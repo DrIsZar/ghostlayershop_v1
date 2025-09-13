@@ -141,6 +141,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Toast Container */}
+      <div id="toast-container" />
     </div>
   );
 }

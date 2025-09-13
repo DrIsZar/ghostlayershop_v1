@@ -59,11 +59,11 @@ class ToastManager {
 export const toast = new ToastManager();
 
 // Copy to clipboard utility with fallback
-export async function copyToClipboard(text: string): Promise<boolean> {
+export async function copyToClipboard(text: string, customMessage?: string): Promise<boolean> {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
-      toast.show('Copied to clipboard', { type: 'success' });
+      toast.show(customMessage || 'Copied to clipboard', { type: 'success' });
       return true;
     } else {
       // Fallback for older browsers or non-secure contexts
@@ -80,7 +80,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(textArea);
       
       if (successful) {
-        toast.show('Copied to clipboard', { type: 'success' });
+        toast.show(customMessage || 'Copied to clipboard', { type: 'success' });
         return true;
       } else {
         throw new Error('Copy command failed');

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PlusIcon, MagnifyingGlassIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { Plus, Search, AlertTriangle, Users, TrendingUp, DollarSign, Calendar, Edit, Trash2, Eye } from 'lucide-react';
 import { clientsDb } from '../lib/clients';
 import { supabase } from '../lib/supabase';
 import type { Client, ClientStatistics } from '../types/client';
@@ -161,154 +161,139 @@ export default function Clients() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-3xl font-bold text-white">Clients</h1>
-          <p className="text-gray-400 mt-1">Manage your client relationships</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Clients</h1>
+          <p className="text-gray-400 mt-1 text-sm sm:text-base">Manage your client relationships and track their activity</p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div className="flex-shrink-0">
           <button
-            type="button"
             onClick={() => {
               setSelectedClient(undefined);
               setIsModalOpen(true);
             }}
-            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
           >
-            <PlusIcon className="h-5 w-5 inline-block -ml-1 mr-2" />
-            Add Client
+            <Plus className="h-4 w-4" />
+            <span className="hidden xs:inline">Add Client</span>
+            <span className="xs:hidden">Add</span>
           </button>
         </div>
       </div>
 
-      {/* Search and Filter Controls */}
-      <div className="mt-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+      {/* Filter Toolbar */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[300px]">
+            <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+              <input
+                type="text"
+                placeholder="Search by name, email, telegram, discord, or source..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search clients..."
-              className="block w-full rounded-md border-0 bg-white/5 py-1.5 pl-10 pr-3 text-white placeholder:text-gray-400 focus:bg-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="relative">
+            <SearchableDropdown
+              label="Sort by"
+              options={[
+                { value: 'name', label: 'Name' },
+                { value: 'total_spent', label: 'Total Spent' },
+                { value: 'type', label: 'Type' }
+              ]}
+              value={sortBy}
+              onChange={(value) => setSortBy(value as 'name' | 'total_spent' | 'type')}
+              placeholder="Sort by"
+              className="min-w-[140px]"
+              showSearchThreshold={3}
             />
           </div>
-        </div>
-        <div className="flex gap-2">
-          <SearchableDropdown
-            options={[
-              { value: 'name', label: 'Sort by Name' },
-              { value: 'total_spent', label: 'Sort by Total Spent' },
-              { value: 'type', label: 'Sort by Type' }
-            ]}
-            value={sortBy}
-            onChange={(value) => setSortBy(value as 'name' | 'total_spent' | 'type')}
-            placeholder="Sort by"
-            className="rounded-md border-0 bg-white/5 py-1.5 pl-3 pr-8 text-white focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-            showSearchThreshold={10}
-          />
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="rounded-md bg-white/5 px-3 py-1.5 text-sm text-white hover:bg-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
-          >
-            {sortOrder === 'asc' ? '↑' : '↓'}
-          </button>
+
+          {/* Sort Order Button */}
+          <div className="flex items-end">
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Summary Statistics */}
-      {!loading && !error && clients.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-white/5 overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">👥</span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Total Clients</dt>
-                    <dd className="text-lg font-medium text-white">{clients.length}</dd>
-                  </dl>
-                </div>
-              </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+              <Users className="w-6 h-6 text-blue-500" />
             </div>
-          </div>
-
-          <div className="bg-white/5 overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">🔄</span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Resellers</dt>
-                    <dd className="text-lg font-medium text-white">
-                      {clients.filter(c => c.type === 'reseller').length}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/5 overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">💰</span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Total Revenue</dt>
-                    <dd className="text-lg font-medium text-white">
-                      ${clients.reduce((sum, c) => sum + (c.total_spent || 0), 0).toFixed(2)}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/5 overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">📊</span>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-400 truncate">Avg. per Client</dt>
-                    <dd className="text-lg font-medium text-white">
-                      ${clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length).toFixed(2) : '0.00'}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
+            <div>
+              <p className="text-gray-400 text-sm">Total Clients</p>
+              <p className="text-2xl font-bold text-white">{clients.length}</p>
             </div>
           </div>
         </div>
-      )}
+
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Resellers</p>
+              <p className="text-2xl font-bold text-white">
+                {clients.filter(c => c.type === 'reseller').length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-green-500" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Total Revenue</p>
+              <p className="text-2xl font-bold text-white">
+                ${clients.reduce((sum, c) => sum + (c.total_spent || 0), 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">Avg. per Client</p>
+              <p className="text-2xl font-bold text-white">
+                ${clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length).toFixed(2) : '0.00'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 rounded-md bg-red-900/20 p-4">
+        <div className="bg-red-900/20 border border-red-800/50 rounded-2xl p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <ExclamationTriangleIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
+              <AlertTriangle className="h-5 w-5 text-red-400" />
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-400">Error</h3>
@@ -317,9 +302,8 @@ export default function Clients() {
               </div>
               <div className="mt-4">
                 <button
-                  type="button"
                   onClick={loadClients}
-                  className="rounded-md bg-red-900/50 px-2 py-1.5 text-sm font-medium text-red-300 hover:bg-red-900/75 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-red-900"
+                  className="ghost-button-secondary px-3 py-2 text-sm font-medium"
                 >
                   Try Again
                 </button>
@@ -329,132 +313,141 @@ export default function Clients() {
         </div>
       )}
 
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead>
+      {/* Clients Table */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-gray-700/50 relative z-10">
+              <tr>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Name</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Type</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Contact</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Source</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Total Spent</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Services Bought</th>
+                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700/50">
+              {loading ? (
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-white sm:pl-0">
-                    Name
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">
-                    Type
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">
-                    Contact
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">
-                    Source
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">
-                    Total Spent
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">
-                    Services Bought
-                  </th>
-                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-0">
-                    <span className="sr-only">Edit</span>
-                  </th>
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500 mr-3"></div>
+                      Loading clients...
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-400">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mr-3"></div>
-                        Loading clients...
+              ) : filteredClients.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    {searchTerm ? (
+                      <div>
+                        <p className="text-lg mb-2">No clients found matching "{searchTerm}"</p>
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="ghost-button-secondary mt-2"
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    ) : clients.length === 0 ? (
+                      <div>
+                        <p className="text-lg mb-2">No clients found. Add your first client to get started.</p>
+                        <button
+                          onClick={() => {
+                            setSelectedClient(undefined);
+                            setIsModalOpen(true);
+                          }}
+                          className="ghost-button mt-2"
+                        >
+                          Add your first client
+                        </button>
+                      </div>
+                    ) : (
+                      'No clients match your search criteria.'
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                filteredClients.map((client) => (
+                  <tr key={client.id} className="hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 md:px-6 py-4 text-white font-medium">
+                      <div className="text-sm md:text-base font-semibold">
+                        {client.name}
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                        client.type === 'reseller' 
+                          ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30' 
+                          : 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30'
+                      }`}>
+                        {client.type === 'reseller' ? 'Reseller' : 'Client'}
+                      </span>
+                    </td>
+                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                      <div className="space-y-1">
+                        {client.email && <div className="text-white">{client.email}</div>}
+                        {client.telegram && <div className="text-blue-400">@{client.telegram}</div>}
+                        {client.discord && <div className="text-indigo-400">@{client.discord}</div>}
+                        {!client.email && !client.telegram && !client.discord && (
+                          <span className="text-gray-500">No contact info</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                      {client.source || '-'}
+                    </td>
+                    <td className="px-4 md:px-6 py-4 text-white text-sm font-medium">
+                      ${client.total_spent?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                      <div className="max-w-xs">
+                        {client.services_bought && client.services_bought.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {client.services_bought.slice(0, 2).map((service, index) => (
+                              <span key={index} className="inline-block bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs">
+                                {service}
+                              </span>
+                            ))}
+                            {client.services_bought.length > 2 && (
+                              <span className="inline-block bg-gray-700/50 text-gray-400 px-2 py-1 rounded text-xs">
+                                +{client.services_bought.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="flex gap-1 md:gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setIsModalOpen(true);
+                          }}
+                          className="p-1 md:p-2 text-gray-400 hover:text-green-500 transition-colors rounded"
+                          title="Edit client"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClient(client)}
+                          className="p-1 md:p-2 text-gray-400 hover:text-red-500 transition-colors rounded"
+                          title="Delete client"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ) : filteredClients.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-400">
-                      {searchTerm ? (
-                        <div>
-                          <p>No clients found matching "{searchTerm}"</p>
-                          <button
-                            onClick={() => setSearchTerm('')}
-                            className="mt-2 text-indigo-400 hover:text-indigo-300 text-sm"
-                          >
-                            Clear search
-                          </button>
-                        </div>
-                      ) : clients.length === 0 ? (
-                        <div>
-                          <p>No clients found. Add your first client to get started.</p>
-                          <button
-                            onClick={() => {
-                              setSelectedClient(undefined);
-                              setIsModalOpen(true);
-                            }}
-                            className="mt-2 text-indigo-400 hover:text-indigo-300 text-sm"
-                          >
-                            Add your first client
-                          </button>
-                        </div>
-                      ) : (
-                        'No clients match your search criteria.'
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredClients.map((client) => (
-                    <tr key={client.id}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-white sm:pl-0">
-                        {client.name}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm">
-                        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                          client.type === 'reseller' 
-                            ? 'bg-purple-400/10 text-purple-400 ring-1 ring-inset ring-purple-400/20' 
-                            : 'bg-blue-400/10 text-blue-400 ring-1 ring-inset ring-blue-400/20'
-                        }`}>
-                          {client.type === 'reseller' ? 'Reseller' : 'Client'}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
-                        {client.email && <div>{client.email}</div>}
-                        {client.telegram && <div className="text-blue-400">{client.telegram}</div>}
-                        {client.discord && <div className="text-indigo-400">{client.discord}</div>}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
-                        {client.source || '-'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
-                        ${client.total_spent?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-300">
-                        <div className="max-w-xs overflow-hidden">
-                          {client.services_bought?.join(', ') || 'None'}
-                        </div>
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                        <div className="flex justify-end gap-4">
-                          <button
-                            onClick={() => {
-                              setSelectedClient(client);
-                              setIsModalOpen(true);
-                            }}
-                            className="text-indigo-400 hover:text-indigo-300"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClient(client)}
-                            className="text-red-500 hover:text-red-400"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

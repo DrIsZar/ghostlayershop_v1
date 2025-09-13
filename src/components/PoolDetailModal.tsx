@@ -22,6 +22,7 @@ import {
 import { ResourcePool, ResourcePoolSeat, PoolStats } from '../types/inventory';
 import { getPoolWithSeats, getPoolStats, updateResourcePool, deleteResourcePool, assignSeat, unassignSeat } from '../lib/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { copyToClipboard } from '../lib/toast';
 import SeatAssignmentModal from './SeatAssignmentModal';
 import PoolEditModal from './PoolEditModal';
 
@@ -74,9 +75,9 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
+  const handleCopy = async (text: string, type: 'login' | 'password') => {
+    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
+    await copyToClipboard(text, message);
   };
 
   const getStatusColor = (status: string) => {
@@ -252,8 +253,9 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                     <span className="text-sm text-gray-400 w-16">Email:</span>
                     <span className="text-sm text-white font-mono flex-1">{pool.login_email}</span>
                     <button
-                      onClick={() => copyToClipboard(pool.login_email)}
-                      className="p-1 text-gray-400 hover:text-white transition-colors"
+                      onClick={() => handleCopy(pool.login_email, 'login')}
+                      className="p-1 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Copy email"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
@@ -272,8 +274,9 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                         {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => copyToClipboard(pool.login_secret || '')}
-                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                        onClick={() => handleCopy(pool.login_secret || '', 'password')}
+                        className="p-1 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label="Copy password"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
