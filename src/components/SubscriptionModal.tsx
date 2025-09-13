@@ -446,8 +446,8 @@ export default function SubscriptionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
@@ -455,9 +455,9 @@ export default function SubscriptionModal({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -501,7 +501,7 @@ export default function SubscriptionModal({
 
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-300 mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               When should this subscription begin?
             </label>
@@ -509,7 +509,7 @@ export default function SubscriptionModal({
               type="date"
               value={formData.startDate}
               onChange={(e) => handleInputChange('startDate', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
             {errors.startDate && (
               <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>
@@ -519,11 +519,11 @@ export default function SubscriptionModal({
           {/* Calculated End Date */}
           {calculatedEndDate && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
                 <Calendar className="w-4 h-4 inline mr-2" />
                 Subscription End Date
               </label>
-              <div className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-green-400 font-medium">
+              <div className="px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-green-400 font-semibold">
                 {new Date(calculatedEndDate).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
@@ -531,9 +531,9 @@ export default function SubscriptionModal({
                   day: 'numeric'
                 })}
               </div>
-                             <p className="mt-1 text-sm text-gray-400">
-                 Automatically calculated based on {selectedService?.duration ? parseServiceDuration(selectedService.duration) : 1}-month service duration
-               </p>
+              <p className="mt-2 text-sm text-gray-400">
+                Automatically calculated based on {selectedService?.duration ? parseServiceDuration(selectedService.duration) : 1}-month service duration
+              </p>
             </div>
           )}
 
@@ -557,7 +557,7 @@ export default function SubscriptionModal({
           {/* Interval Days (for EVERY_N_DAYS strategy) */}
           {formData.strategy === 'EVERY_N_DAYS' && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
                 <Clock className="w-4 h-4 inline mr-2" />
                 Renewal Interval (days)
               </label>
@@ -566,36 +566,37 @@ export default function SubscriptionModal({
                 min="1"
                 value={formData.intervalDays}
                 onChange={(e) => handleInputChange('intervalDays', parseInt(e.target.value))}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="30"
               />
-              <p className="mt-1 text-sm text-gray-400">
+              <p className="mt-2 text-sm text-gray-400">
                 How many days between renewals?
               </p>
-                             {selectedService?.duration && formData.strategy === 'EVERY_N_DAYS' && (
-                 <p className="mt-1 text-sm text-blue-400">
-                   Suggested: {parseServiceDuration(selectedService.duration) * 30} days ({parseServiceDuration(selectedService.duration)} months) to match service duration
-                 </p>
-               )}
+              {selectedService?.duration && formData.strategy === 'EVERY_N_DAYS' && (
+                <p className="mt-1 text-sm text-blue-400">
+                  Suggested: {parseServiceDuration(selectedService.duration) * 30} days ({parseServiceDuration(selectedService.duration)} months) to match service duration
+                </p>
+              )}
             </div>
           )}
 
           {/* Auto-renewal */}
-          <div className="flex items-center">
+          <div className="flex items-center p-4 bg-gray-800/30 rounded-lg border border-gray-700">
             <input
               type="checkbox"
               id="isAutoRenew"
               checked={formData.isAutoRenew}
               onChange={(e) => handleInputChange('isAutoRenew', e.target.checked)}
-              className="w-4 h-4 text-green-600 bg-gray-800 border-gray-600 rounded focus:ring-green-500 focus:ring-2"
+              className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
             />
-            <label htmlFor="isAutoRenew" className="ml-2 text-sm text-gray-300">
+            <label htmlFor="isAutoRenew" className="ml-3 text-sm font-medium text-gray-300">
               Auto-renewal enabled
             </label>
           </div>
 
           {/* Login */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-300 mb-2">
               <Mail className="w-4 h-4 inline mr-2" />
               Login
             </label>
@@ -603,10 +604,10 @@ export default function SubscriptionModal({
               type="text"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               placeholder="customer@example.com or customer@example.com:password"
             />
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-gray-400">
               Customer login for this subscription (used for seat assignment)
             </p>
           </div>
@@ -742,21 +743,21 @@ export default function SubscriptionModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6 border-t border-gray-700">
             {isEditing ? (
               <>
                 <button
                   type="button"
                   onClick={handleUpdateSubscription}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
                   {isLoading ? 'Updating...' : 'Update Subscription'}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
                   Cancel
                 </button>
@@ -766,14 +767,14 @@ export default function SubscriptionModal({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
                   {isLoading ? 'Creating...' : 'Create Subscription'}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
                 >
                   Cancel
                 </button>
@@ -782,7 +783,7 @@ export default function SubscriptionModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
               >
                 Close
               </button>

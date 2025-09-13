@@ -407,8 +407,8 @@ export default function SubscriptionDetailModal({
   const statusBadge = getStatusBadge(subscription.status);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
@@ -450,7 +450,7 @@ export default function SubscriptionDetailModal({
             )}
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
             >
               <X className="w-5 h-5" />
             </button>
@@ -562,23 +562,23 @@ export default function SubscriptionDetailModal({
                   <div className="bg-gray-800/50 rounded-lg p-2 text-center">
                     <div className="text-gray-400">Elapsed</div>
                     <div className="font-semibold text-white">
-                                             {(() => {
-                         const now = new Date();
-                         const startDate = new Date(subscription.startedAt);
-                         const elapsedMs = now.getTime() - startDate.getTime();
-                         return formatElapsedTime(elapsedMs);
-                       })()}
+                      {(() => {
+                        const now = new Date();
+                        const startDate = new Date(subscription.startedAt);
+                        const elapsedMs = now.getTime() - startDate.getTime();
+                        return formatElapsedTime(elapsedMs);
+                      })()}
                     </div>
                   </div>
                   <div className="bg-gray-800/50 rounded-lg p-2 text-center">
                     <div className="text-gray-400">Remaining</div>
                     <div className="font-semibold text-white">
-                                             {(() => {
-                         const now = new Date();
-                         const endDate = new Date(subscription.targetEndAt);
-                         const remainingMs = endDate.getTime() - now.getTime();
-                         return formatFullPeriodCountdown(Math.max(0, remainingMs));
-                       })()}
+                      {(() => {
+                        const now = new Date();
+                        const endDate = new Date(subscription.targetEndAt);
+                        const remainingMs = endDate.getTime() - now.getTime();
+                        return formatFullPeriodCountdown(Math.max(0, remainingMs));
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -715,7 +715,7 @@ export default function SubscriptionDetailModal({
                     value={editData.notes || ''}
                     onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
                     placeholder="Add notes about this subscription..."
                   />
                 </div>
@@ -752,7 +752,7 @@ export default function SubscriptionDetailModal({
                         ...prev, 
                         intervalDays: parseInt(e.target.value) || undefined 
                       }))}
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                       placeholder="Enter number of days"
                     />
                   </div>
@@ -770,7 +770,7 @@ export default function SubscriptionDetailModal({
                       ...prev, 
                       targetEndAt: e.target.value || undefined 
                     }))}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                   />
                   <p className="text-xs text-gray-400">
                     Optional end date for the subscription
@@ -789,7 +789,7 @@ export default function SubscriptionDetailModal({
                       ...prev, 
                       customNextRenewalAt: e.target.value || undefined 
                     }))}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                   />
                   <p className="text-xs text-gray-400">
                     Set a custom renewal date or leave empty to use automatic renewal

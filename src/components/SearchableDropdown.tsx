@@ -77,11 +77,44 @@ export default function SearchableDropdown({
   const calculatePosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
-      const position = {
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      };
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Mobile-specific positioning
+      const isMobile = viewportWidth <= 640; // sm breakpoint
+      
+      let top = rect.bottom + window.scrollY + 4;
+      let left = rect.left + window.scrollX;
+      let width = rect.width;
+      
+      if (isMobile) {
+        // On mobile, ensure dropdown doesn't go off-screen
+        const maxHeight = viewportHeight - rect.bottom - 20; // 20px margin from bottom
+        const dropdownHeight = Math.min(256, maxHeight); // max-h-64 = 256px
+        
+        // If dropdown would go off-screen, position it above the input
+        if (maxHeight < 200) {
+          top = rect.top + window.scrollY - dropdownHeight - 4;
+        }
+        
+        // Ensure dropdown doesn't go off the sides
+        const minLeft = 8; // 8px margin from left edge
+        const maxLeft = viewportWidth - width - 8; // 8px margin from right edge
+        
+        if (left < minLeft) {
+          left = minLeft;
+        } else if (left > maxLeft) {
+          left = maxLeft;
+        }
+        
+        // On very small screens, make dropdown full width with margins
+        if (viewportWidth < 400) {
+          left = 8;
+          width = viewportWidth - 16;
+        }
+      }
+      
+      const position = { top, left, width };
       setDropdownPosition(position);
     }
   };
@@ -293,11 +326,12 @@ export default function SearchableDropdown({
       {isOpen && createPortal(
         <div
           data-dropdown-portal
-          className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 max-h-64 overflow-hidden"
+          className="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-[60] max-h-64 overflow-hidden sm:max-h-64"
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
-            width: dropdownPosition.width
+            width: dropdownPosition.width,
+            maxHeight: window.innerWidth <= 640 ? 'min(256px, calc(100vh - 100px))' : '256px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -339,10 +373,11 @@ export default function SearchableDropdown({
                   <div
                     key={option.value}
                     className={`
-                      px-3 py-3 text-base cursor-pointer transition-colors min-h-[44px] flex items-center
+                      px-3 py-3 text-base cursor-pointer transition-colors min-h-[48px] sm:min-h-[44px] flex items-center
                       ${index === highlightedIndex ? 'bg-gray-700' : 'hover:bg-gray-700'}
                       ${option.disabled ? 'text-gray-500 cursor-not-allowed' : 'text-white'}
                       ${option.value === value ? 'bg-green-900/30 text-green-400' : ''}
+                      active:bg-gray-600
                     `}
                     onMouseUp={(e) => {
                       e.preventDefault();
@@ -350,6 +385,7 @@ export default function SearchableDropdown({
                       handleSelect(option, e);
                     }}
                     onMouseEnter={() => setHighlightedIndex(index)}
+                    onTouchStart={() => setHighlightedIndex(index)}
                   >
                     {option.label}
                   </div>

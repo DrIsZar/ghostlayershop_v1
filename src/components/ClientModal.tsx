@@ -1,6 +1,5 @@
-import { Fragment, useState, useEffect } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import type { Client } from '../types/client';
 
 interface ClientModalProps {
@@ -47,181 +46,155 @@ export default function ClientModal({ open, onClose, onSave, initialData }: Clie
         }
     };
 
+    if (!open) return null;
+
     return (
-        <Transition.Root show={open} as={Fragment}>
-            <Dialog as="div" className="relative z-50" onClose={onClose}>
-                <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                >
-                    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-                </Transition.Child>
-
-                <div className="fixed inset-0 z-10 overflow-y-auto">
-                    <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                        <Transition.Child
-                            as={Fragment}
-                            enter="ease-out duration-300"
-                            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            enterTo="opacity-100 translate-y-0 sm:scale-100"
-                            leave="ease-in duration-200"
-                            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        >
-                            <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                                <div className="absolute right-0 top-0 pr-4 pt-4">
-                                    <button
-                                        type="button"
-                                        className="rounded-md bg-gray-800 text-gray-400 hover:text-gray-300"
-                                        onClick={onClose}
-                                    >
-                                        <span className="sr-only">Close</span>
-                                        <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                                    </button>
-                                </div>
-                                <div className="sm:flex sm:items-start">
-                                    <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                                        <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-white">
-                                            {initialData ? 'Edit Client' : 'Add New Client'}
-                                        </Dialog.Title>
-                                        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-white mb-2">
-                                                    Type
-                                                </label>
-                                                <div className="flex gap-4">
-                                                    <label className="inline-flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="type"
-                                                            value="client"
-                                                            checked={formData.type === 'client'}
-                                                            onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
-                                                            className="text-indigo-600 focus:ring-indigo-600 h-4 w-4 bg-white/5 border-0"
-                                                        />
-                                                        <span className="ml-2 text-sm text-gray-300">Normal Client</span>
-                                                    </label>
-                                                    <label className="inline-flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="type"
-                                                            value="reseller"
-                                                            checked={formData.type === 'reseller'}
-                                                            onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
-                                                            className="text-indigo-600 focus:ring-indigo-600 h-4 w-4 bg-white/5 border-0"
-                                                        />
-                                                        <span className="ml-2 text-sm text-gray-300">Reseller</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label htmlFor="name" className="block text-sm font-medium text-white">
-                                                    Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    id="name"
-                                                    required
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.name}
-                                                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="email" className="block text-sm font-medium text-white">
-                                                    Email
-                                                </label>
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    id="email"
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.email}
-                                                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="telegram" className="block text-sm font-medium text-white">
-                                                    Telegram
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="telegram"
-                                                    id="telegram"
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.telegram}
-                                                    onChange={e => setFormData(prev => ({ ...prev, telegram: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="discord" className="block text-sm font-medium text-white">
-                                                    Discord
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="discord"
-                                                    id="discord"
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.discord}
-                                                    onChange={e => setFormData(prev => ({ ...prev, discord: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="source" className="block text-sm font-medium text-white">
-                                                    How did they find you?
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="source"
-                                                    id="source"
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.source}
-                                                    onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label htmlFor="notes" className="block text-sm font-medium text-white">
-                                                    Notes
-                                                </label>
-                                                <textarea
-                                                    name="notes"
-                                                    id="notes"
-                                                    rows={3}
-                                                    className="mt-1 block w-full rounded-md border-0 bg-white/5 px-3 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-                                                    value={formData.notes}
-                                                    onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                                                />
-                                            </div>
-                                            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                                                <button
-                                                    type="submit"
-                                                    className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
-                                                >
-                                                    Save
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/10 hover:bg-white/20 sm:mt-0 sm:w-auto"
-                                                    onClick={onClose}
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </Dialog.Panel>
-                        </Transition.Child>
-                    </div>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                    <h2 className="text-xl font-semibold text-white">
+                        {initialData ? 'Edit Client' : 'Add New Client'}
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
                 </div>
-            </Dialog>
-        </Transition.Root>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-300 mb-3">
+                            Client Type
+                        </label>
+                        <div className="flex gap-6">
+                            <label className="inline-flex items-center">
+                                <input
+                                    type="radio"
+                                    name="type"
+                                    value="client"
+                                    checked={formData.type === 'client'}
+                                    onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
+                                    className="text-blue-600 focus:ring-blue-600 h-4 w-4 bg-gray-800 border-gray-600"
+                                />
+                                <span className="ml-2 text-sm font-medium text-white">Normal Client</span>
+                            </label>
+                            <label className="inline-flex items-center">
+                                <input
+                                    type="radio"
+                                    name="type"
+                                    value="reseller"
+                                    checked={formData.type === 'reseller'}
+                                    onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
+                                    className="text-blue-600 focus:ring-blue-600 h-4 w-4 bg-gray-800 border-gray-600"
+                                />
+                                <span className="ml-2 text-sm font-medium text-white">Reseller</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Name
+                        </label>
+                        <input
+                            type="text"
+                            name="name"
+                            id="name"
+                            required
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            placeholder="Enter client name"
+                            value={formData.name}
+                            onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            placeholder="client@example.com"
+                            value={formData.email}
+                            onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="telegram" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Telegram
+                        </label>
+                        <input
+                            type="text"
+                            name="telegram"
+                            id="telegram"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            placeholder="@username"
+                            value={formData.telegram}
+                            onChange={e => setFormData(prev => ({ ...prev, telegram: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="discord" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Discord
+                        </label>
+                        <input
+                            type="text"
+                            name="discord"
+                            id="discord"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            placeholder="username#1234"
+                            value={formData.discord}
+                            onChange={e => setFormData(prev => ({ ...prev, discord: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="source" className="block text-sm font-semibold text-gray-300 mb-2">
+                            How did they find you?
+                        </label>
+                        <input
+                            type="text"
+                            name="source"
+                            id="source"
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            placeholder="e.g. Google, Referral, Social Media"
+                            value={formData.source}
+                            onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="notes" className="block text-sm font-semibold text-gray-300 mb-2">
+                            Notes
+                        </label>
+                        <textarea
+                            name="notes"
+                            id="notes"
+                            rows={3}
+                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+                            placeholder="Additional notes about this client..."
+                            value={formData.notes}
+                            onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-6 border-t border-gray-700">
+                        <button
+                            type="submit"
+                            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                        >
+                            Save Client
+                        </button>
+                        <button
+                            type="button"
+                            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 }

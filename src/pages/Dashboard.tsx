@@ -381,41 +381,46 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      <div className="mb-4 lg:mb-6">
-        <div className="flex flex-col gap-4">
+      <div className="mb-6 lg:mb-8">
+        <div className="flex flex-col gap-4 sm:gap-6">
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-white">Dashboard Overview</h1>
-            <p className="text-gray-400 mt-1 text-sm lg:text-base">Monitor your business performance</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-white">Dashboard Overview</h1>
+            <p className="text-gray-400 mt-2 text-sm sm:text-base lg:text-base">Monitor your business performance</p>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-4">
             <button
               onClick={() => {
                 setLoading(true);
                 fetchData();
               }}
-              className="ghost-button-secondary w-full sm:w-auto"
+              className="ghost-button-secondary w-full sm:w-auto min-h-[48px] px-6 py-3 text-sm font-medium rounded-lg hover:bg-gray-600/50 transition-colors"
             >
-              Refresh Data
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Data
+              </span>
             </button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">View:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              <span className="text-sm font-medium text-gray-300">View:</span>
               <div className="flex bg-gray-700/50 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setMainDashboardView('daily')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 text-sm font-medium rounded-md transition-colors min-h-[48px] sm:min-h-auto ${
                     mainDashboardView === 'daily'
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
                   }`}
                 >
                   Daily
                 </button>
                 <button
                   onClick={() => setMainDashboardView('monthly')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 text-sm font-medium rounded-md transition-colors min-h-[48px] sm:min-h-auto ${
                     mainDashboardView === 'monthly'
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
                   }`}
                 >
                   Monthly
@@ -428,74 +433,74 @@ export default function Dashboard() {
 
       {/* Stats Cards - Dynamic Daily/Monthly Overview */}
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 lg:mb-8">
         {/* Dynamic Overview */}
-        <div className="ghost-card p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-400">
+        <div className="ghost-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Today\'s Overview' : 'Current Month Overview'}
             </h3>
-            <TrendingUp className="h-5 w-5 text-green-500" />
+            <TrendingUp className="h-5 w-5 text-green-500 flex-shrink-0" />
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-white">
+              <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
                 ${currentStats.profit.toFixed(2)}
               </p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-400">
                 Period Profit
-                <span className={`ml-2 text-xs ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`ml-2 text-sm font-medium ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {profitChange > 0 ? '↑' : '↓'} {Math.abs(profitChange).toFixed(1)}%
                 </span>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div>
-                <p className="text-lg font-semibold text-blue-400">
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-700/50">
+              <div className="text-center sm:text-left">
+                <p className="text-xl sm:text-2xl font-bold text-blue-400">
                   {currentStats.count}
                 </p>
-                <p className="text-xs text-gray-400">Orders</p>
+                <p className="text-xs text-gray-400 mt-1">Orders</p>
               </div>
-              <div>
-                <p className="text-lg font-semibold text-green-400">
+              <div className="text-center sm:text-left">
+                <p className="text-xl sm:text-2xl font-bold text-green-400">
                   ${currentStats.revenue.toFixed(2)}
                 </p>
-                <p className="text-xs text-gray-400">Revenue</p>
+                <p className="text-xs text-gray-400 mt-1">Revenue</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Dynamic Performance Comparison */}
-        <div className="ghost-card p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-400">
+        <div className="ghost-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Daily Performance' : 'Monthly Performance'}
             </h3>
-            <DollarSign className="h-5 w-5 text-green-500" />
+            <DollarSign className="h-5 w-5 text-green-500 flex-shrink-0" />
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm font-medium text-gray-400">
                 {mainDashboardView === 'daily' ? 'Today' : 'This Month'}
               </span>
-              <span className={`text-lg font-semibold ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-xl sm:text-2xl font-bold ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 ${currentStats.profit.toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm font-medium text-gray-400">
                 {mainDashboardView === 'daily' ? 'Yesterday' : 'Last Month'}
               </span>
-              <span className={`text-lg font-semibold ${previousStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-xl sm:text-2xl font-bold ${previousStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 ${previousStats.profit.toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-sm text-gray-400">
+            <div className="flex justify-between items-center pt-3 border-t border-gray-700/50">
+              <span className="text-sm font-medium text-gray-400">
                 {mainDashboardView === 'daily' ? 'Daily Change' : 'Monthly Change'}
               </span>
-              <span className={`text-lg font-semibold ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-xl sm:text-2xl font-bold ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {profitChange >= 0 ? '↑' : '↓'} {Math.abs(profitChange).toFixed(1)}%
               </span>
             </div>
@@ -503,27 +508,27 @@ export default function Dashboard() {
         </div>
 
         {/* Business Health */}
-        <div className="ghost-card p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-400">Business Health</h3>
-            <Package className="h-5 w-5 text-green-500" />
+        <div className="ghost-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-semibold text-gray-300">Business Health</h3>
+            <Package className="h-5 w-5 text-green-500 flex-shrink-0" />
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">Active Services</span>
-              <span className="text-lg font-semibold text-blue-400">{services.length}</span>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm font-medium text-gray-400">Active Services</span>
+              <span className="text-xl sm:text-2xl font-bold text-blue-400">{services.length}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">Avg. Order Value</span>
-              <span className="text-lg font-semibold text-green-400">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm font-medium text-gray-400">Avg. Order Value</span>
+              <span className="text-xl sm:text-2xl font-bold text-green-400">
                 ${transactions.length > 0 
                   ? (transactions.reduce((sum, t) => sum + t.selling_price, 0) / transactions.length).toFixed(2)
                   : '0.00'}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-400">Profit Margin</span>
-              <span className="text-lg font-semibold text-purple-400">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm font-medium text-gray-400">Profit Margin</span>
+              <span className="text-xl sm:text-2xl font-bold text-purple-400">
                 {transactions.length > 0 
                   ? ((transactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0) / 
                      transactions.reduce((sum, t) => sum + t.selling_price, 0)) * 100).toFixed(1)
@@ -537,99 +542,111 @@ export default function Dashboard() {
       {/* Performance Analysis Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Top Services */}
-        <div className="ghost-card p-4 lg:p-6 lg:col-span-2">
-          <div className="flex flex-col gap-4 mb-4">
-            <h2 className="text-lg lg:text-xl font-bold text-white">Top Performing Services</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleTopServicesPeriodChange('prev')}
-                className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Previous period"
-              >
-                ←
-              </button>
-              <SearchableDropdown
-                options={[
-                  { value: 'week', label: formatPeriodRange('week', new Date(), 'current') },
-                  { value: 'month', label: formatPeriodRange('month', new Date(), 'current') },
-                  { value: 'year', label: formatPeriodRange('year', new Date(), 'current') }
-                ]}
-                value={topServicesPeriodState.type}
-                onChange={(value) => {
-                  const type = value as PeriodState['type'];
-                  const now = new Date();
-                  setTopServicesPeriodState({
-                    type,
-                    date: now,
-                    label: formatPeriodRange(type, now, 'current')
-                  });
-                }}
-                placeholder="Select period"
-                className="ghost-select text-sm flex-1"
-                showSearchThreshold={10}
-              />
-              <button
-                onClick={() => handleTopServicesPeriodChange('next')}
-                className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Next period"
-              >
-                →
-              </button>
+        <div className="ghost-card p-5 lg:p-6 lg:col-span-2">
+          <div className="flex flex-col gap-4 mb-5">
+            <h2 className="text-lg sm:text-xl lg:text-xl font-bold text-white">Top Performing Services</h2>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3">
+              <div className="flex items-center gap-3 sm:gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => handleTopServicesPeriodChange('prev')}
+                  className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                  aria-label="Previous period"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex-1 min-w-0">
+                  <SearchableDropdown
+                    options={[
+                      { value: 'week', label: formatPeriodRange('week', new Date(), 'current') },
+                      { value: 'month', label: formatPeriodRange('month', new Date(), 'current') },
+                      { value: 'year', label: formatPeriodRange('year', new Date(), 'current') }
+                    ]}
+                    value={topServicesPeriodState.type}
+                    onChange={(value) => {
+                      const type = value as PeriodState['type'];
+                      const now = new Date();
+                      setTopServicesPeriodState({
+                        type,
+                        date: now,
+                        label: formatPeriodRange(type, now, 'current')
+                      });
+                    }}
+                    placeholder="Select period"
+                    className="w-full min-h-[56px] text-base"
+                    showSearchThreshold={10}
+                  />
+                </div>
+                <button
+                  onClick={() => handleTopServicesPeriodChange('next')}
+                  className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                  aria-label="Next period"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {topServices.length > 0 ? (
               topServices.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <div key={index} className="flex items-center justify-between p-4 sm:p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors min-h-[72px]">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-base font-bold">
                       {index + 1}
                     </div>
-                    <div>
-                      <h3 className="font-medium text-white">{item.service?.product_service}</h3>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-400">{item.count} orders</span>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-gray-400">
-                          {((item.profit / item.count) || 0).toFixed(2)} avg. profit
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-white text-base sm:text-lg truncate">{item.service?.product_service}</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm mt-2">
+                        <span className="text-gray-400 font-medium">{item.count} orders</span>
+                        <span className="hidden sm:inline text-gray-600">•</span>
+                        <span className="text-gray-400 font-medium">
+                          ${((item.profit / item.count) || 0).toFixed(2)} avg. profit
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${item.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <p className={`font-bold text-lg sm:text-xl ${item.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       ${item.profit.toFixed(2)}
                     </p>
-                    <p className="text-xs text-gray-400">total profit</p>
+                    <p className="text-xs text-gray-400 mt-1">total profit</p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-400 text-center py-8">No transactions yet</p>
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 text-lg">No transactions yet</p>
+                <p className="text-gray-500 text-sm mt-2">Start selling services to see analytics</p>
+              </div>
             )}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="ghost-card p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="ghost-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h2>
-            <span className="text-xs text-gray-400">Last 24h</span>
+            <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded-full">Last 24h</span>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentTransactions.length > 0 ? (
               recentTransactions.map((transaction) => {
                 const profit = transaction.selling_price - transaction.cost_at_sale;
                 const time = new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
-                  <div key={transaction.id} className="flex items-center gap-3 p-3">
-                    <div className={`w-2 h-2 rounded-full ${profit >= 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                  <div key={transaction.id} className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors min-h-[64px]">
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-green-400' : 'bg-red-400'}`} />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-white truncate">{transaction.services?.product_service}</h3>
-                      <p className="text-xs text-gray-400">{time}</p>
+                      <h3 className="font-semibold text-white text-base sm:text-lg truncate">{transaction.services?.product_service}</h3>
+                      <p className="text-sm text-gray-400 mt-1 font-medium">{time}</p>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-medium ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`font-bold text-lg sm:text-xl ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         ${profit.toFixed(2)}
                       </p>
                     </div>
@@ -637,161 +654,178 @@ export default function Dashboard() {
                 );
               })
             ) : (
-              <p className="text-gray-400 text-center py-8">No recent activity</p>
+              <div className="text-center py-12">
+                <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 text-lg">No recent activity</p>
+                <p className="text-gray-500 text-sm mt-2">Transactions will appear here</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
       {/* Analytics Summary */}
-      <div className="ghost-card p-4 lg:p-6">
-        <div className="flex flex-col gap-4 mb-4 lg:mb-6">
+      <div className="ghost-card p-5 lg:p-6">
+        <div className="flex flex-col gap-4 mb-5 lg:mb-6">
           <h2 className="text-lg lg:text-xl font-bold text-white">Analytics Summary</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const newDate = new Date(analyticsPeriodState.date);
-                switch (analyticsPeriodState.type) {
-                  case 'month':
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    break;
-                  case 'quarter':
-                    newDate.setMonth(newDate.getMonth() - 3);
-                    break;
-                  case 'year':
-                    newDate.setFullYear(newDate.getFullYear() - 1);
-                    break;
-                }
-                
-                const now = new Date();
-                const isCurrentPeriod = (
-                  analyticsPeriodState.type === 'month' ?
-                    newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
-                  analyticsPeriodState.type === 'quarter' ?
-                    newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
-                  newDate.getFullYear() === now.getFullYear()
-                );
+          
+          {/* Mobile-optimized date controls */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3">
+            {/* Navigation buttons - mobile: full width, desktop: fixed width */}
+            <div className="flex items-center gap-3 sm:gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  const newDate = new Date(analyticsPeriodState.date);
+                  switch (analyticsPeriodState.type) {
+                    case 'month':
+                      newDate.setMonth(newDate.getMonth() - 1);
+                      break;
+                    case 'quarter':
+                      newDate.setMonth(newDate.getMonth() - 3);
+                      break;
+                    case 'year':
+                      newDate.setFullYear(newDate.getFullYear() - 1);
+                      break;
+                  }
+                  
+                  const now = new Date();
+                  const isCurrentPeriod = (
+                    analyticsPeriodState.type === 'month' ?
+                      newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
+                    analyticsPeriodState.type === 'quarter' ?
+                      newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
+                    newDate.getFullYear() === now.getFullYear()
+                  );
 
-                const position = isCurrentPeriod ? 'current' : 'prev';
-                const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
-                
-                setAnalyticsPeriodState({
-                  type: analyticsPeriodState.type,
-                  date: newDate,
-                  label
-                });
-              }}
-              className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Previous period"
-            >
-              ←
-            </button>
-            <SearchableDropdown
-              options={[
-                { value: 'month', label: formatAnalyticsPeriod('month', new Date(), 'current') },
-                { value: 'quarter', label: formatAnalyticsPeriod('quarter', new Date(), 'current') },
-                { value: 'year', label: formatAnalyticsPeriod('year', new Date(), 'current') }
-              ]}
-              value={analyticsPeriodState.type}
-              onChange={(value) => {
-                const type = value as AnalyticsPeriodState['type'];
-                const now = new Date();
-                setAnalyticsPeriodState({
-                  type,
-                  date: now,
-                  label: formatAnalyticsPeriod(type, now, 'current')
-                });
-              }}
-              placeholder="Select period"
-              className="ghost-select text-sm flex-1"
-              showSearchThreshold={10}
-            />
-            <button
-              onClick={() => {
-                const newDate = new Date(analyticsPeriodState.date);
-                switch (analyticsPeriodState.type) {
-                  case 'month':
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    break;
-                  case 'quarter':
-                    newDate.setMonth(newDate.getMonth() + 3);
-                    break;
-                  case 'year':
-                    newDate.setFullYear(newDate.getFullYear() + 1);
-                    break;
-                }
+                  const position = isCurrentPeriod ? 'current' : 'prev';
+                  const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
+                  
+                  setAnalyticsPeriodState({
+                    type: analyticsPeriodState.type,
+                    date: newDate,
+                    label
+                  });
+                }}
+                className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                aria-label="Previous period"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <div className="flex-1 min-w-0">
+                <SearchableDropdown
+                  options={[
+                    { value: 'month', label: formatAnalyticsPeriod('month', new Date(), 'current') },
+                    { value: 'quarter', label: formatAnalyticsPeriod('quarter', new Date(), 'current') },
+                    { value: 'year', label: formatAnalyticsPeriod('year', new Date(), 'current') }
+                  ]}
+                  value={analyticsPeriodState.type}
+                  onChange={(value) => {
+                    const type = value as AnalyticsPeriodState['type'];
+                    const now = new Date();
+                    setAnalyticsPeriodState({
+                      type,
+                      date: now,
+                      label: formatAnalyticsPeriod(type, now, 'current')
+                    });
+                  }}
+                  placeholder="Select period"
+                  className="w-full min-h-[56px] text-base"
+                  showSearchThreshold={10}
+                />
+              </div>
+              
+              <button
+                onClick={() => {
+                  const newDate = new Date(analyticsPeriodState.date);
+                  switch (analyticsPeriodState.type) {
+                    case 'month':
+                      newDate.setMonth(newDate.getMonth() + 1);
+                      break;
+                    case 'quarter':
+                      newDate.setMonth(newDate.getMonth() + 3);
+                      break;
+                    case 'year':
+                      newDate.setFullYear(newDate.getFullYear() + 1);
+                      break;
+                  }
 
-                const now = new Date();
-                const isCurrentPeriod = (
-                  analyticsPeriodState.type === 'month' ?
-                    newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
-                  analyticsPeriodState.type === 'quarter' ?
-                    newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
-                  newDate.getFullYear() === now.getFullYear()
-                );
+                  const now = new Date();
+                  const isCurrentPeriod = (
+                    analyticsPeriodState.type === 'month' ?
+                      newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
+                    analyticsPeriodState.type === 'quarter' ?
+                      newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
+                    newDate.getFullYear() === now.getFullYear()
+                  );
 
-                const position = isCurrentPeriod ? 'current' : 'next';
-                const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
-                
-                setAnalyticsPeriodState({
-                  type: analyticsPeriodState.type,
-                  date: newDate,
-                  label
-                });
-              }}
-              className="ghost-button-secondary p-2 text-sm min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Next period"
-            >
-              →
-            </button>
+                  const position = isCurrentPeriod ? 'current' : 'next';
+                  const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
+                  
+                  setAnalyticsPeriodState({
+                    type: analyticsPeriodState.type,
+                    date: newDate,
+                    label
+                  });
+                }}
+                className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                aria-label="Next period"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <div className="p-4 bg-gray-700/50 rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-6">
+          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
-              <p className="text-sm text-gray-400 mb-1">Total Orders</p>
-              <p className="text-2xl font-bold text-white">{currentAnalyticsStats.count}</p>
-              <p className="text-xs text-gray-400 mt-2">
-                <span className={`${analyticsOrdersChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className="text-sm font-medium text-gray-400 mb-2">Total Orders</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">{currentAnalyticsStats.count}</p>
+              <p className="text-sm text-gray-400">
+                <span className={`font-semibold ${analyticsOrdersChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {analyticsOrdersChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsOrdersChange).toFixed(1)}%
                 </span> vs last period
               </p>
             </div>
           </div>
-          <div className="p-4 bg-gray-700/50 rounded-lg">
+          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
-              <p className="text-sm text-gray-400 mb-1">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm font-medium text-gray-400 mb-2">Total Revenue</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
                 ${currentAnalyticsStats.revenue.toFixed(2)}
               </p>
-              <p className="text-xs text-gray-400 mt-2">
-                <span className={`${analyticsRevenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className="text-sm text-gray-400">
+                <span className={`font-semibold ${analyticsRevenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {analyticsRevenueChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsRevenueChange).toFixed(1)}%
                 </span> vs last period
               </p>
             </div>
           </div>
-          <div className="p-4 bg-gray-700/50 rounded-lg">
+          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
-              <p className="text-sm text-gray-400 mb-1">Net Profit</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm font-medium text-gray-400 mb-2">Net Profit</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
                 ${currentAnalyticsStats.profit.toFixed(2)}
               </p>
-              <p className="text-xs text-gray-400 mt-2">
-                <span className={`${analyticsProfitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className="text-sm text-gray-400">
+                <span className={`font-semibold ${analyticsProfitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {analyticsProfitChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsProfitChange).toFixed(1)}%
                 </span> vs last period
               </p>
             </div>
           </div>
-          <div className="p-4 bg-gray-700/50 rounded-lg">
+          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
-              <p className="text-sm text-gray-400 mb-1">Profit Margin</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm font-medium text-gray-400 mb-2">Profit Margin</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
                 {currentProfitMargin.toFixed(1)}%
               </p>
-              <p className="text-xs text-gray-400 mt-2">
-                <span className={`${analyticsMarginChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className="text-sm text-gray-400">
+                <span className={`font-semibold ${analyticsMarginChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {analyticsMarginChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsMarginChange).toFixed(1)}%
                 </span> vs last period
               </p>

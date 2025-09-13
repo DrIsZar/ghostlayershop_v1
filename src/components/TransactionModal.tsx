@@ -90,23 +90,23 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   const selectedService = services.find(s => s.id === formData.service_id);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="ghost-card p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">
             {transaction ? 'Edit Transaction' : 'Add New Transaction'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
           >
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Client</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Client</label>
             <div className="flex gap-2">
               <SearchableDropdown
                 options={[
@@ -127,16 +127,16 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
               <button
                 type="button"
                 onClick={() => setIsClientModalOpen(true)}
-                className="ghost-button-secondary px-3 flex items-center gap-1"
+                className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="w-4 h-4" />
                 New
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Service</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Service</label>
             <SearchableDropdown
               options={[
                 { value: '', label: 'Select a service' },
@@ -156,77 +156,83 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Date</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Date</label>
             <input
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="ghost-input w-full"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Cost at Sale ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost at Sale ($)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.cost_at_sale}
                 onChange={(e) => setFormData({ ...formData, cost_at_sale: parseFloat(e.target.value) || 0 })}
-                className="ghost-input w-full"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="0.00"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Selling Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ($)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.selling_price}
                 onChange={(e) => setFormData({ ...formData, selling_price: parseFloat(e.target.value) || 0 })}
-                className="ghost-input w-full"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="0.00"
                 required
               />
             </div>
           </div>
 
           {selectedService && (
-            <div className="p-3 bg-gray-700 rounded-lg">
-              <div className="text-sm text-gray-300">Service Info:</div>
+            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+              <div className="text-sm font-medium text-gray-300 mb-1">Service Info:</div>
               <div className="text-sm text-white">{selectedService.category} • {selectedService.info_needed}</div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">Notes (Optional)</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Notes (Optional)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="ghost-input w-full h-20 resize-none"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+              rows={3}
               placeholder="Additional notes about this transaction..."
             />
           </div>
 
-          <div className="p-3 bg-gray-700 rounded-lg">
-            <div className="text-sm text-gray-300">Profit:</div>
-            <div className={`text-lg font-bold ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="text-sm font-medium text-gray-300 mb-1">Profit:</div>
+            <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               ${profit.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {profit >= 0 ? 'Positive profit' : 'Negative profit - check pricing'}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6 border-t border-gray-700">
             <button
               type="submit"
-              className="ghost-button flex-1"
+              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
             >
               {transaction ? 'Update Transaction' : 'Add Transaction'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="ghost-button-secondary px-6"
+              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
             >
               Cancel
             </button>

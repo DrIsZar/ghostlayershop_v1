@@ -181,24 +181,24 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
   const profit = formData.selling_price - formData.cost;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="ghost-card p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">
             {service ? 'Edit Service' : 'Add New Service'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Logo Upload Section - Enhanced styling */}
           <div>
-            <label className="block text-sm font-medium mb-2">Service Logo</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-3">Service Logo</label>
             <div className="space-y-3">
               {/* Logo Preview - Improved styling */}
               {logoPreview && (
@@ -213,7 +213,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                   <button
                     type="button"
                     onClick={handleRemoveLogo}
-                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow-lg hover:scale-110"
+                    className="absolute -top-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow-lg hover:scale-110 z-10"
                     title="Remove logo"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -312,12 +312,13 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Product/Service</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Product/Service</label>
             <input
               type="text"
               value={formData.product_service}
               onChange={(e) => setFormData({ ...formData, product_service: e.target.value })}
-              className="ghost-input w-full"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              placeholder="Enter service name"
               required
             />
           </div>
@@ -338,24 +339,24 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Duration</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Duration</label>
             <input
               type="text"
               value={formData.duration}
               onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-              className="ghost-input w-full"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               placeholder="e.g. 1 month, 12 months"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Info Needed</label>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Info Needed</label>
             <input
               type="text"
               value={formData.info_needed}
               onChange={(e) => setFormData({ ...formData, info_needed: e.target.value })}
-              className="ghost-input w-full"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               placeholder="e.g. Email, Email+Password"
               required
             />
@@ -363,7 +364,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Cost ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -375,14 +376,15 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                     setFormData({ ...formData, cost: parsedValue });
                   }
                 }}
-                className="ghost-input w-full"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="0.00"
                 required
                 min="0"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Selling Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -394,24 +396,28 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                     setFormData({ ...formData, selling_price: parsedValue });
                   }
                 }}
-                className="ghost-input w-full"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="0.00"
                 required
                 min="0"
               />
             </div>
           </div>
 
-          <div className="p-3 bg-gray-700 rounded-lg">
-            <div className="text-sm text-gray-300">Profit Preview:</div>
-            <div className={`text-lg font-bold ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="text-sm font-medium text-gray-300 mb-1">Profit Preview:</div>
+            <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               ${profit.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {profit >= 0 ? 'Positive profit margin' : 'Negative profit - adjust pricing'}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6 border-t border-gray-700">
             <button
               type="submit"
-              className="ghost-button flex-1 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
               disabled={isUploading}
             >
               {isUploading ? (
@@ -428,7 +434,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
             <button
               type="button"
               onClick={onClose}
-              className="ghost-button-secondary px-6"
+              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
               disabled={isUploading}
             >
               Cancel

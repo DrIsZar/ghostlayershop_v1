@@ -204,8 +204,8 @@ export default function SeatAssignmentModal({
   if (!isOpen || !seat) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
@@ -213,13 +213,13 @@ export default function SeatAssignmentModal({
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Seat Info */}
           <div className="bg-gray-800/50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-300 mb-2">Seat Information</h3>
@@ -242,7 +242,7 @@ export default function SeatAssignmentModal({
               type="text"
               value={formData.assigned_email}
               onChange={(e) => handleInputChange('assigned_email', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               placeholder="customer@example.com or customer@example.com:password"
             />
             {errors.assigned_email && (
@@ -260,7 +260,7 @@ export default function SeatAssignmentModal({
               type="date"
               value={formData.assigned_at}
               onChange={(e) => handleInputChange('assigned_at', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
             {errors.assigned_at && (
               <p className="mt-1 text-sm text-red-400">{errors.assigned_at}</p>
@@ -276,7 +276,7 @@ export default function SeatAssignmentModal({
             <select
               value={formData.assigned_client_id}
               onChange={(e) => handleInputChange('assigned_client_id', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             >
               <option value="">Select a client...</option>
               {clients.map(client => (
@@ -296,7 +296,7 @@ export default function SeatAssignmentModal({
             <select
               value={formData.assigned_subscription_id}
               onChange={(e) => handleInputChange('assigned_subscription_id', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             >
               <option value="">Select a subscription...</option>
               {(() => {
@@ -332,13 +332,13 @@ export default function SeatAssignmentModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
+          <div className="flex gap-3 pt-6 border-t border-gray-700">
             {seat.seat_status === 'assigned' && (
               <button
                 type="button"
                 onClick={handleUnassign}
                 disabled={loading}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
               >
                 Unassign Seat
               </button>
@@ -347,10 +347,19 @@ export default function SeatAssignmentModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 ml-auto"
+              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
-              <Save className="w-4 h-4" />
-              {loading ? 'Saving...' : (seat.seat_status === 'assigned' ? 'Update Assignment' : 'Assign Seat')}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {seat.seat_status === 'assigned' ? 'Update Assignment' : 'Assign Seat'}
+                </>
+              )}
             </button>
           </div>
         </form>
