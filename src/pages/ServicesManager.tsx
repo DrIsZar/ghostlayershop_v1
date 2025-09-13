@@ -341,7 +341,7 @@ export default function ServicesManager() {
       {/* Search */}
       <div className="ghost-card p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
           <input
             type="text"
             placeholder="Search services..."

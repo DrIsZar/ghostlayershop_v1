@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, Filter, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import TransactionModal from '../components/TransactionModal';
 import SearchableDropdown from '../components/SearchableDropdown';
@@ -246,17 +246,18 @@ export default function Transactions() {
       <div className="ghost-card p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
             <input
               type="text"
               placeholder="Search transactions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="ghost-input pl-10 w-full"
+              className="ghost-input pl-12 w-full text-center"
             />
           </div>
           
           <SearchableDropdown
+            label="Service"
             options={[
               { value: '', label: 'All Services' },
               ...services.map(service => ({
@@ -269,7 +270,9 @@ export default function Transactions() {
             placeholder="All Services"
             searchPlaceholder="Search services..."
             className="w-full"
-            showSearchThreshold={5}
+            showSearchThreshold={3}
+            allowClear={true}
+            onClear={() => setSelectedService('')}
           />
 
           <div className="flex items-center gap-4">
@@ -282,6 +285,7 @@ export default function Transactions() {
               </button>
 
               <SearchableDropdown
+                label="Period"
                 options={[
                   { value: 'day', label: 'Today' },
                   { value: 'week', label: 'This Week' },
@@ -291,7 +295,7 @@ export default function Transactions() {
                 onChange={(value) => handlePeriodChange(value as 'day' | 'week' | 'month')}
                 placeholder="Select period"
                 className="flex-1"
-                showSearchThreshold={10}
+                showSearchThreshold={3}
               />
 
               <button
@@ -312,10 +316,10 @@ export default function Transactions() {
       </div>
 
       {/* Transactions Table */}
-      <div className="ghost-card overflow-hidden">
+      <div className="ghost-card overflow-hidden relative">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-700">
+            <thead className="bg-gray-700 relative z-10">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Date</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-300">Service</th>

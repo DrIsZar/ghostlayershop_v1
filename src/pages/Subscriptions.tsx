@@ -466,13 +466,13 @@ export default function Subscriptions() {
           <div className="relative flex-1 min-w-[300px]">
             <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
               <input
                 type="text"
                 placeholder="Search by service, client, or notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
               />
               {searchTerm && (
                 <button
@@ -502,7 +502,7 @@ export default function Subscriptions() {
               onChange={(value) => setViewMode(value as ViewMode)}
               placeholder="Select view"
               className="min-w-[140px]"
-              showSearchThreshold={10}
+              showSearchThreshold={3}
               data-testid="view-dropdown"
             />
           </div>
@@ -520,7 +520,7 @@ export default function Subscriptions() {
               onChange={(value) => setGroupBy(value as GroupByMode)}
               placeholder="Select grouping"
               className="min-w-[120px]"
-              showSearchThreshold={10}
+              showSearchThreshold={3}
             />
           </div>
 

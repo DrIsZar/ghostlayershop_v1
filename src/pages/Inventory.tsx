@@ -319,7 +319,7 @@ export default function Inventory() {
               <div className="relative flex-1 min-w-[300px]">
                 <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
                     type="text"
                     placeholder="Search by provider, email, or notes..."
@@ -355,6 +355,7 @@ export default function Inventory() {
                   className="min-w-[160px]"
                   allowClear={true}
                   onClear={() => setFilters(prev => ({ ...prev, provider: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
@@ -375,6 +376,7 @@ export default function Inventory() {
                   className="min-w-[140px]"
                   allowClear={true}
                   onClear={() => setFilters(prev => ({ ...prev, status: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
@@ -395,6 +397,7 @@ export default function Inventory() {
                   className="min-w-[140px]"
                   allowClear={true}
                   onClear={() => setFilters(prev => ({ ...prev, pool_type: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
@@ -415,6 +418,7 @@ export default function Inventory() {
                   className="min-w-[140px]"
                   allowClear={true}
                   onClear={() => setFilters(prev => ({ ...prev, time_bucket: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
@@ -547,6 +551,7 @@ export default function Inventory() {
                   className="min-w-[160px]"
                   allowClear={true}
                   onClear={() => setAssignmentFilters(prev => ({ ...prev, provider: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
@@ -567,6 +572,7 @@ export default function Inventory() {
                   className="min-w-[200px]"
                   allowClear={true}
                   onClear={() => setAssignmentFilters(prev => ({ ...prev, pool_id: undefined }))}
+                  showSearchThreshold={3}
                 />
               </div>
 
