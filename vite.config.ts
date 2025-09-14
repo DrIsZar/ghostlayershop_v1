@@ -15,6 +15,6 @@ export default defineConfig({
     sourcemap: false,
   },
   define: {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__: '({ isDisabled: true })',
+    __REACT_DEVTOOLS_GLOBAL_HOOK__: '{"isDisabled": true}',
   },
 });
