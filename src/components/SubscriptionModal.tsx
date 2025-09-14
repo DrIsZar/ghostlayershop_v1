@@ -81,6 +81,7 @@ export default function SubscriptionModal({
   // Populate form data when editing existing subscription
   useEffect(() => {
     if (editingSubscription) {
+      console.log('📝 Editing subscription:', editingSubscription.id);
       setIsEditing(true);
       setFormData({
         serviceId: editingSubscription.serviceId,
@@ -93,9 +94,19 @@ export default function SubscriptionModal({
       });
       setCreatedSubscriptionId(editingSubscription.id);
     } else {
+      console.log('🆕 Creating new subscription');
       setIsEditing(false);
+      setCreatedSubscriptionId(null);
     }
   }, [editingSubscription]);
+
+  // Reset form when modal opens for new subscription
+  useEffect(() => {
+    if (isOpen && !editingSubscription) {
+      console.log('🔄 Modal opened for new subscription, resetting form');
+      resetForm();
+    }
+  }, [isOpen, editingSubscription]);
 
   // Ensure start date is valid
   useEffect(() => {
@@ -255,7 +266,7 @@ export default function SubscriptionModal({
     
     if (!validateForm()) return;
     
-    
+    console.log('🚀 Creating subscription with data:', formData);
     setIsLoading(true);
     try {
       let subscription: Subscription;
@@ -289,11 +300,12 @@ export default function SubscriptionModal({
         );
       }
 
+      console.log('✅ Subscription created:', subscription);
       onSubscriptionCreated(subscription);
       setCreatedSubscriptionId(subscription.id);
       // Don't close immediately if we need to link resources
     } catch (error) {
-      console.error('Error creating subscription:', error);
+      console.error('❌ Error creating subscription:', error);
       alert('Failed to create subscription');
     } finally {
       setIsLoading(false);
@@ -301,6 +313,7 @@ export default function SubscriptionModal({
   };
 
   const resetForm = () => {
+    console.log('🔄 Resetting form');
     setFormData({
       serviceId: initialServiceId || '',
       clientId: initialClientId || '',
@@ -313,6 +326,7 @@ export default function SubscriptionModal({
     setErrors({});
     setSelectedService(null);
     setCreatedSubscriptionId(null);
+    setIsEditing(false);
   };
 
   const handleResourceLinked = () => {
@@ -391,9 +405,10 @@ export default function SubscriptionModal({
     
     if (!validateForm()) return;
     
+    console.log('🔄 Updating subscription:', editingSubscription.id, 'with data:', formData);
     setIsLoading(true);
     try {
-      const updatedSubscription = await subscriptionService.update(editingSubscription.id, {
+      const updatedSubscription = await subscriptionService.updateSubscription(editingSubscription.id, {
         serviceId: formData.serviceId,
         clientId: formData.clientId,
         strategy: formData.strategy,
@@ -404,11 +419,12 @@ export default function SubscriptionModal({
         isAutoRenew: formData.isAutoRenew
       });
       
+      console.log('✅ Subscription updated successfully:', updatedSubscription);
       onSubscriptionUpdated(updatedSubscription);
       onClose();
     } catch (error) {
-      console.error('Error updating subscription:', error);
-      alert('Failed to update subscription');
+      console.error('❌ Error updating subscription:', error);
+      alert('Failed to update subscription: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -744,50 +760,67 @@ export default function SubscriptionModal({
 
           {/* Actions */}
           <div className="flex gap-3 pt-6 border-t border-gray-700">
-            {isEditing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={handleUpdateSubscription}
-                  disabled={isLoading}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
-                >
-                  {isLoading ? 'Updating...' : 'Update Subscription'}
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : !createdSubscriptionId ? (
-              <>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
-                >
-                  {isLoading ? 'Creating...' : 'Create Subscription'}
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-              >
-                Close
-              </button>
-            )}
+            {(() => {
+              console.log('🔍 Button rendering state:', {
+                isEditing,
+                createdSubscriptionId,
+                isLoading,
+                saleId,
+                initialServiceId,
+                initialClientId
+              });
+              
+              if (isEditing) {
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleUpdateSubscription}
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                    >
+                      {isLoading ? 'Updating...' : 'Update Subscription'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                );
+              } else if (!createdSubscriptionId) {
+                return (
+                  <>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                    >
+                      {isLoading ? 'Creating...' : 'Create Subscription'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                );
+              } else {
+                return (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                  >
+                    Close
+                  </button>
+                );
+              }
+            })()}
           </div>
         </form>
       </div>

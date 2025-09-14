@@ -226,6 +226,7 @@ export default function Subscriptions() {
     // Apply search filter
     if (debouncedSearchTerm) {
       const searchLower = debouncedSearchTerm.toLowerCase();
+      
       filtered = filtered.filter(sub => {
         // Search in service name
         const service = services.find(s => s.id === sub.serviceId);
@@ -417,15 +418,39 @@ export default function Subscriptions() {
   };
 
   const getTotalActive = () => {
-    return subscriptions.filter(sub => sub.status === 'active').length;
+    return filteredSubscriptions.filter(sub => sub.status === 'active').length;
   };
 
   const getTotalCompleted = () => {
-    return subscriptions.filter(sub => sub.status === 'completed').length;
+    return filteredSubscriptions.filter(sub => sub.status === 'completed').length;
   };
 
   const getTotalArchived = () => {
-    return subscriptions.filter(sub => sub.status === 'archived').length;
+    return filteredSubscriptions.filter(sub => sub.status === 'archived').length;
+  };
+
+  const getFilteredDueBuckets = () => {
+    const now = new Date();
+    const today = now.toDateString();
+    
+    return filteredSubscriptions.reduce((buckets, sub) => {
+      if (!sub.nextRenewalAt || sub.status === 'completed') return buckets;
+      
+      const renewalDate = new Date(sub.nextRenewalAt);
+      const renewalDateString = renewalDate.toDateString();
+      const diffTime = renewalDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (renewalDateString === today) {
+        buckets.dueToday++;
+      } else if (diffDays > 0 && diffDays <= 3) {
+        buckets.dueIn3Days++;
+      } else if (renewalDate < now) {
+        buckets.overdue++;
+      }
+      
+      return buckets;
+    }, { dueToday: 0, dueIn3Days: 0, overdue: 0 });
   };
 
 
@@ -586,53 +611,60 @@ export default function Subscriptions() {
 
       {/* KPIs Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
-              <Clock className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Due Today</p>
-              <p className="text-2xl font-bold text-white">{dueBuckets.dueToday}</p>
-            </div>
-          </div>
-        </div>
+        {(() => {
+          const filteredBuckets = getFilteredDueBuckets();
+          return (
+            <>
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Due Today</p>
+                    <p className="text-2xl font-bold text-white">{filteredBuckets.dueToday}</p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Due in 3 Days</p>
-              <p className="text-2xl font-bold text-white">{dueBuckets.dueIn3Days}</p>
-            </div>
-          </div>
-        </div>
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Due in 3 Days</p>
+                    <p className="text-2xl font-bold text-white">{filteredBuckets.dueIn3Days}</p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-red-500" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Overdue</p>
-              <p className="text-2xl font-bold text-white">{dueBuckets.overdue}</p>
-            </div>
-          </div>
-        </div>
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Overdue</p>
+                    <p className="text-2xl font-bold text-white">{filteredBuckets.overdue}</p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-500" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Active</p>
-              <p className="text-2xl font-bold text-white">{getTotalActive()}</p>
-            </div>
-          </div>
-        </div>
+              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm">Total Active</p>
+                    <p className="text-2xl font-bold text-white">{getTotalActive()}</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Status Summary */}

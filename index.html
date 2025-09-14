@@ -18,7 +18,7 @@
     <meta name="apple-mobile-web-app-title" content="GhostLayer">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-    <link rel="manifest" href="/manifest.webmanifest?v=1">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -28,5 +28,31 @@
     <div id="root"></div>
     <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register service worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+
+      // Add error handling for resource loading
+      window.addEventListener('error', (event) => {
+        if (event.target !== window) {
+          console.warn('Resource loading error:', event.target.src || event.target.href, event.type);
+        }
+      });
+
+      // Add unhandled promise rejection handling
+      window.addEventListener('unhandledrejection', (event) => {
+        console.warn('Unhandled promise rejection:', event.reason);
+      });
+    </script>
   </body>
 </html>

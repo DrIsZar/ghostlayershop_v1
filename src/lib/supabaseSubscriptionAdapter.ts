@@ -108,6 +108,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
   }
 
   async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription> {
+    console.log('Supabase adapter: Updating subscription', id, 'with updates:', updates);
+    
     // Map our interface fields to database fields
     const dbUpdates: any = {};
     
@@ -129,6 +131,8 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
     if (updates.resourcePoolId !== undefined) dbUpdates.resource_pool_id = updates.resourcePoolId;
     if (updates.resourcePoolSeatId !== undefined) dbUpdates.resource_pool_seat_id = updates.resourcePoolSeatId;
 
+    console.log('Supabase adapter: Mapped to database fields:', dbUpdates);
+
     const { data, error } = await supabase
       .from('subscriptions')
       .update(dbUpdates)
@@ -137,9 +141,11 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       .single();
 
     if (error) {
-      console.error('Error updating subscription:', error);
+      console.error('Supabase adapter: Error updating subscription:', error);
       throw new Error(`Failed to update subscription: ${error.message}`);
     }
+
+    console.log('Supabase adapter: Successfully updated subscription:', data);
 
     // Map back to our interface
     const updatedSubscription: Subscription = {
