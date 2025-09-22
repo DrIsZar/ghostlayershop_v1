@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { X, Edit, Save, Clock, Calendar, Package, User, DollarSign, Play, CheckCircle, XCircle, RefreshCw, Trash2, Image, Archive, Mail } from 'lucide-react';
-import { Subscription, SubscriptionEvent, RenewalStrategyKey } from '../types/subscription';
+import { useState, useEffect } from 'react';
+import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Archive, Mail, Copy, Eye, EyeOff } from 'lucide-react';
+import { Subscription, SubscriptionEvent } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, getStatusBadge, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { computeCycleProgress, computeRenewalProgress } from '../lib/subscriptionStrategies';
 import { supabase } from '../lib/supabase';
 import { getServiceLogo } from '../lib/fileUtils';
-import SearchableDropdown from './SearchableDropdown';
 import { getResourcePool, getPoolSeats } from '../lib/inventory';
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
-import { LinkResourceSection } from './LinkResourceSection';
+import { copyToClipboard } from '../lib/toast';
 
 interface SubscriptionDetailModalProps {
   isOpen: boolean;
@@ -18,6 +17,7 @@ interface SubscriptionDetailModalProps {
   subscription: Subscription | null;
   onUpdate: (subscription: Subscription) => void;
   onDelete: (subscriptionId: string) => void;
+  onEdit?: (subscription: Subscription) => void;
 }
 
 export default function SubscriptionDetailModal({ 
@@ -25,9 +25,10 @@ export default function SubscriptionDetailModal({
   onClose, 
   subscription,
   onUpdate,
-  onDelete
+  onDelete,
+  onEdit
 }: SubscriptionDetailModalProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  // Remove edit state - this modal is now read-only
   const [isLoading, setIsLoading] = useState(false);
   const [events, setEvents] = useState<SubscriptionEvent[]>([]);
   const [serviceName, setServiceName] = useState('');
@@ -36,23 +37,14 @@ export default function SubscriptionDetailModal({
   const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
   const [serviceLogo, setServiceLogo] = useState<string | null>(null);
   const [serviceDuration, setServiceDuration] = useState<string>('');
-  const [editData, setEditData] = useState<Partial<Subscription>>({});
+  // Remove edit data - editing is handled by SubscriptionEditModal
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
+  const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
     if (isOpen && subscription) {
       fetchSubscriptionData();
-      setEditData({
-        notes: subscription.notes || '',
-        isAutoRenew: subscription.isAutoRenew,
-        customNextRenewalAt: subscription.customNextRenewalAt ? 
-          subscription.customNextRenewalAt.split('T')[0] : undefined,
-        strategy: subscription.strategy,
-        intervalDays: subscription.intervalDays,
-        targetEndAt: subscription.targetEndAt ? 
-          subscription.targetEndAt.split('T')[0] : undefined
-      });
     }
   }, [isOpen, subscription]);
 
@@ -80,7 +72,12 @@ export default function SubscriptionDetailModal({
     return () => clearInterval(interval);
   }, [subscription]);
 
-  const fetchSubscriptionData = async () => {
+  const handleCopy = async (text: string, type: 'login' | 'password') => {
+    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
+    await copyToClipboard(text, message);
+  };
+
+const fetchSubscriptionData = async () => {
     if (!subscription) return;
 
     try {
@@ -162,50 +159,7 @@ export default function SubscriptionDetailModal({
     }
   };
 
-  const handleSave = async () => {
-    if (!subscription) return;
-
-    setIsLoading(true);
-    try {
-      let updated: Subscription;
-
-      // Prepare the update data
-      const updateData: Partial<Subscription> = {
-        notes: editData.notes,
-        isAutoRenew: editData.isAutoRenew,
-        strategy: editData.strategy,
-        intervalDays: editData.intervalDays,
-        targetEndAt: editData.targetEndAt ? new Date(editData.targetEndAt).toISOString() : undefined
-      };
-
-      // Handle custom renewal date separately
-      if (editData.customNextRenewalAt && editData.customNextRenewalAt !== subscription.customNextRenewalAt?.split('T')[0]) {
-        updated = await subscriptionService.setCustomRenewalDate(subscription.id, editData.customNextRenewalAt);
-        // Also update other fields
-        if (Object.keys(updateData).some(key => updateData[key as keyof typeof updateData] !== undefined)) {
-          updated = await subscriptionService.updateSubscription(subscription.id, updateData);
-        }
-      } else if (editData.customNextRenewalAt === '' && subscription.customNextRenewalAt) {
-        // If custom date is being cleared, use the clear method
-        updated = await subscriptionService.clearCustomRenewalDate(subscription.id);
-        // Also update other fields
-        if (Object.keys(updateData).some(key => updateData[key as keyof typeof updateData] !== undefined)) {
-          updated = await subscriptionService.updateSubscription(subscription.id, updateData);
-        }
-      } else {
-        // Otherwise use regular update
-        updated = await subscriptionService.updateSubscription(subscription.id, updateData);
-      }
-
-      onUpdate(updated);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating subscription:', error);
-      alert('Failed to update subscription');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // handleSave removed - editing is now handled by SubscriptionEditModal
 
   const handleRenew = async () => {
     if (!subscription) return;
@@ -300,107 +254,30 @@ export default function SubscriptionDetailModal({
 
     if (!confirm('Delete this subscription? This action cannot be undone and will remove all subscription history.')) return;
 
+    console.log('Starting subscription deletion process from detail modal:', subscription.id);
     setIsLoading(true);
     try {
+      // Call the service to delete the subscription
       await subscriptionService.delete(subscription.id);
+      console.log('Subscription service delete completed for:', subscription.id);
+      
+      // Notify parent component
       onDelete(subscription.id);
+      console.log('Parent component notified of deletion:', subscription.id);
+      
+      // Close the modal
       onClose();
     } catch (error) {
-      console.error('Error deleting subscription:', error);
-      alert('Failed to delete subscription');
+      console.error('Error deleting subscription:', subscription.id, error);
+      alert(`Failed to delete subscription: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Calculate suggested target end date based on strategy
-  const getSuggestedTargetEndDate = () => {
-    if (!subscription) return '';
-    
-    const startDate = new Date(subscription.startedAt);
-    let suggestedDate: Date;
-    
-    if (subscription.strategy === 'MONTHLY') {
-      // Suggest 12 months from start
-      suggestedDate = new Date(startDate);
-      suggestedDate.setMonth(suggestedDate.getMonth() + 12);
-    } else if (subscription.strategy === 'EVERY_N_DAYS') {
-      // Suggest 365 days from start
-      const intervalDays = subscription.intervalDays || 30;
-      const cycles = Math.ceil(365 / intervalDays);
-      suggestedDate = new Date(startDate);
-      suggestedDate.setDate(suggestedDate.getDate() + (cycles * intervalDays));
-    } else {
-      // Default to 1 year
-      suggestedDate = new Date(startDate);
-      suggestedDate.setFullYear(suggestedDate.getFullYear() + 1);
-    }
-    
-    return suggestedDate.toISOString().split('T')[0];
-  };
+  // Removed unused functions - editing is now handled by SubscriptionEditModal
 
-  const handleSetSuggestedEndDate = async () => {
-    if (!subscription) return;
-    
-    const suggestedDate = getSuggestedTargetEndDate();
-    setEditData(prev => ({ ...prev, targetEndAt: suggestedDate }));
-    
-    // Auto-save the suggested date
-    setIsLoading(true);
-    try {
-      const updated = await subscriptionService.updateSubscription(subscription.id, {
-        targetEndAt: new Date(suggestedDate).toISOString()
-      });
-      onUpdate(updated);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error setting target end date:', error);
-      alert('Failed to set target end date');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getServiceProvider = () => {
-    if (!serviceName) return '';
-    // Map service name to provider key
-    const serviceNameLower = serviceName.toLowerCase();
-    const providerMap: Record<string, string> = {
-      'adobe': 'adobe',
-      'acrobat': 'acrobat',
-      'apple one': 'apple_one',
-      'apple music': 'apple_music',
-      'icloud': 'icloud',
-      'netflix': 'netflix',
-      'spotify': 'spotify',
-    };
-    
-    for (const [key, provider] of Object.entries(providerMap)) {
-      if (serviceNameLower.includes(key)) {
-        return provider;
-      }
-    }
-    return '';
-  };
-
-  const handleResourceLinked = async (poolId: string, seatId: string) => {
-    if (!subscription) return;
-    
-    try {
-      // Update the subscription with the new resource pool and seat IDs
-      const updated = await subscriptionService.updateSubscription(subscription.id, {
-        resourcePoolId: poolId,
-        resourcePoolSeatId: seatId
-      });
-      
-      onUpdate(updated);
-      // Refresh the subscription data to show the linked resource
-      await fetchSubscriptionData();
-    } catch (error) {
-      console.error('Error linking resource:', error);
-      alert('Failed to link resource to subscription');
-    }
-  };
+  // handleResourceLinked removed - resource linking is now handled by SubscriptionEditModal
 
   if (!isOpen || !subscription) return null;
 
@@ -431,7 +308,7 @@ export default function SubscriptionDetailModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">
-                {isEditing ? 'Edit Subscription' : 'Subscription Details'}
+                Subscription Details
               </h2>
               <p className="text-gray-400 text-sm">
                 {serviceName && serviceDuration ? formatServiceTitleWithDuration(serviceName, serviceDuration) : serviceName} • {clientName}
@@ -439,9 +316,9 @@ export default function SubscriptionDetailModal({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!isEditing && (
+            {onEdit && subscription && (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => onEdit(subscription)}
                 className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
                 title="Edit subscription"
               >
@@ -599,16 +476,9 @@ export default function SubscriptionDetailModal({
                   <Calendar className="w-4 h-4 text-yellow-500" />
                   <span className="text-sm font-medium text-yellow-400">No Target End Date Set</span>
                 </div>
-                <p className="text-xs text-yellow-300 mb-3">
-                  This subscription doesn't have a target end date. Set one to see the full period timeline.
+                <p className="text-xs text-yellow-300">
+                  This subscription doesn't have a target end date. Use the Edit button to set one and see the full period timeline.
                 </p>
-                <button
-                  onClick={handleSetSuggestedEndDate}
-                  disabled={isLoading}
-                  className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-xs rounded-lg transition-colors"
-                >
-                  Set Suggested End Date ({getSuggestedTargetEndDate()})
-                </button>
               </div>
             )}
 
@@ -700,253 +570,173 @@ export default function SubscriptionDetailModal({
               </div>
             </div>
 
-          {/* Notes Section */}
+          {/* Subscription Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Notes</h3>
+            <h3 className="text-lg font-semibold text-white">Subscription Information</h3>
             
-            {isEditing ? (
-              <div className="space-y-4">
-                {/* Notes */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Notes
-                  </label>
-                  <textarea
-                    value={editData.notes || ''}
-                    onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
-                    placeholder="Add notes about this subscription..."
-                  />
-                </div>
-
-                {/* Strategy */}
-                <div className="space-y-2">
-                  <SearchableDropdown
-                    label="Renewal Strategy"
-                    options={[
-                      { value: 'MONTHLY', label: 'Monthly' },
-                      { value: 'EVERY_N_DAYS', label: 'Every N Days' }
-                    ]}
-                    value={editData.strategy || subscription.strategy}
-                    onChange={(value) => setEditData(prev => ({ 
-                      ...prev, 
-                      strategy: value as RenewalStrategyKey 
-                    }))}
-                    placeholder="Select strategy"
-                    showSearchThreshold={10}
-                  />
-                </div>
-
-                {/* Interval Days (for EVERY_N_DAYS strategy) */}
-                {(editData.strategy === 'EVERY_N_DAYS' || subscription.strategy === 'EVERY_N_DAYS') && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-300">
-                      Interval (Days)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={editData.intervalDays || subscription.intervalDays || ''}
-                      onChange={(e) => setEditData(prev => ({ 
-                        ...prev, 
-                        intervalDays: parseInt(e.target.value) || undefined 
-                      }))}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                      placeholder="Enter number of days"
-                    />
-                  </div>
-                )}
-
-                {/* Target End Date */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Target End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={editData.targetEndAt || ''}
-                    onChange={(e) => setEditData(prev => ({ 
-                      ...prev, 
-                      targetEndAt: e.target.value || undefined 
-                    }))}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Optional end date for the subscription
-                  </p>
-                </div>
-                
-                {/* Custom Renewal Date */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Custom Next Renewal Date
-                  </label>
-                  <input
-                    type="date"
-                    value={editData.customNextRenewalAt || ''}
-                    onChange={(e) => setEditData(prev => ({ 
-                      ...prev, 
-                      customNextRenewalAt: e.target.value || undefined 
-                    }))}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Set a custom renewal date or leave empty to use automatic renewal
-                  </p>
-                </div>
-                
-                {/* Auto Renew */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="autoRenew"
-                    checked={editData.isAutoRenew || false}
-                    onChange={(e) => setEditData(prev => ({ ...prev, isAutoRenew: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <label htmlFor="autoRenew" className="text-sm text-gray-300">
-                    Auto-renew subscription
-                  </label>
-                </div>
-
-                {/* Resource Pool Linking */}
-                {getServiceProvider() && (
-                  <LinkResourceSection
-                    serviceProvider={getServiceProvider()}
-                    subscriptionId={subscription.id}
-                    customerEmail={subscription.notes || `customer-${subscription.id.slice(0, 8)}`}
-                    onResourceLinked={handleResourceLinked}
-                  />
-                )}
+            <div className="space-y-4">
+              {/* Login Email */}
+              <div className="p-4 bg-gray-800/50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Login Email
+                </h4>
+                <p className="text-white">
+                  {subscription.notes || 'No login email provided.'}
+                </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Login Email */}
+
+              {/* Resource Pool Information */}
+              {resourcePool && (
                 <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Login Email
+                  <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                    <Archive className="w-4 h-4" />
+                    Linked Resource Pool
                   </h4>
-                  <p className="text-white">
-                    {subscription.notes || 'No login email provided.'}
-                  </p>
-                </div>
-
-                {/* Resource Pool Information */}
-                {resourcePool && (
-                  <div className="p-4 bg-gray-800/50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-                      <Archive className="w-4 h-4" />
-                      Linked Resource Pool
-                    </h4>
-                    <div className="space-y-3">
-                      {/* Pool Info */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center text-lg">
-                          {PROVIDER_ICONS[resourcePool.provider] || '📦'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">
-                              {resourcePool.provider.replace('_', ' ').toUpperCase()}
-                            </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
-                              resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
-                              'bg-red-900/30 text-red-400'
-                            }`}>
-                              {STATUS_LABELS[resourcePool.status] || resourcePool.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-400">
-                            {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} • 
-                            {resourcePool.login_email}
-                          </p>
-                        </div>
+                  <div className="space-y-3">
+                    {/* Pool Info */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center text-lg">
+                        {PROVIDER_ICONS[resourcePool.provider] || '📦'}
                       </div>
-
-                      {/* Seat Assignment */}
-                      {assignedSeat && (
-                        <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
-                          <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
-                          <div className="flex items-center justify-between">
-                            <span className="text-white font-medium">
-                              Seat #{assignedSeat.seat_index}
-                            </span>
-                            <span className="text-sm text-gray-400">
-                              Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
-                            </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">
+                            {resourcePool.provider.replace('_', ' ').toUpperCase()}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
+                            resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
+                            'bg-red-900/30 text-red-400'
+                          }`}>
+                            {STATUS_LABELS[resourcePool.status] || resourcePool.status}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-400">
+                            {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type}
+                          </p>
+                          
+                          {/* Login Email */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400">Login:</span>
+                            <span className="text-sm text-white font-mono">{resourcePool.login_email}</span>
+                            <button
+                              onClick={() => handleCopy(resourcePool.login_email, 'login')}
+                              className="p-1 text-gray-400 hover:text-white transition-colors"
+                              title="Copy login email"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
                           </div>
-                          {assignedSeat.assigned_email && (
-                            <p className="text-sm text-gray-400 mt-1">
-                              Email: {assignedSeat.assigned_email}
-                            </p>
+
+                          {/* Login Password */}
+                          {resourcePool.login_secret && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-400">Password:</span>
+                              <span className="text-sm text-white font-mono">
+                                {showSecret ? resourcePool.login_secret : '••••••••'}
+                              </span>
+                              <button
+                                onClick={() => setShowSecret(!showSecret)}
+                                className="p-1 text-gray-400 hover:text-white transition-colors"
+                                title={showSecret ? "Hide password" : "Show password"}
+                              >
+                                {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </button>
+                              <button
+                                onClick={() => handleCopy(resourcePool.login_secret || '', 'password')}
+                                className="p-1 text-gray-400 hover:text-white transition-colors"
+                                title="Copy password"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
                           )}
                         </div>
-                      )}
-
-                      {/* Pool Stats */}
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">Seats:</span>
-                          <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">Expires:</span>
-                          <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">Status:</span>
-                          <div className={`w-2 h-2 rounded-full ${
-                            resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
-                          }`} />
-                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {/* Subscription Details */}
-                <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <h4 className="text-sm font-medium text-gray-300 mb-3">Subscription Details</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Strategy:</span>
-                      <span className="text-white">{getStrategyDisplayName(subscription.strategy)}</span>
-                    </div>
-                    {subscription.intervalDays && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Interval:</span>
-                        <span className="text-white">{subscription.intervalDays} days</span>
+                    {/* Seat Assignment */}
+                    {assignedSeat && (
+                      <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
+                        <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white font-medium">
+                            Seat #{assignedSeat.seat_index}
+                          </span>
+                          <span className="text-sm text-gray-400">
+                            Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
+                          </span>
+                        </div>
+                        {assignedSeat.assigned_email && (
+                          <p className="text-sm text-gray-400 mt-1">
+                            Email: {assignedSeat.assigned_email}
+                          </p>
+                        )}
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Auto-renew:</span>
-                      <span className="text-white">{subscription.isAutoRenew ? 'Yes' : 'No'}</span>
-                    </div>
-                    {subscription.targetEndAt && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Target End:</span>
-                        <span className="text-white">{formatDate(subscription.targetEndAt)}</span>
+
+                    {/* Pool Stats */}
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">Seats:</span>
+                        <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">Expires:</span>
+                        <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">Status:</span>
+                        <div className={`w-2 h-2 rounded-full ${
+                          resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
+                        }`} />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Show Custom Renewal Date if set */}
-                {subscription.customNextRenewalAt && (
-                  <div className="p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-yellow-400 font-medium">📅 Custom Renewal Date Set</span>
-                      <span className="text-yellow-300">
-                        {formatDate(subscription.customNextRenewalAt)}
-                      </span>
-                    </div>
+              )}
+
+              {/* Subscription Details */}
+              <div className="p-4 bg-gray-800/50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-300 mb-3">Subscription Details</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Strategy:</span>
+                    <span className="text-white">{getStrategyDisplayName(subscription.strategy)}</span>
                   </div>
-                )}
+                  {subscription.intervalDays && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Interval:</span>
+                      <span className="text-white">{subscription.intervalDays} days</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Auto-renew:</span>
+                    <span className="text-white">{subscription.isAutoRenew ? 'Yes' : 'No'}</span>
+                  </div>
+                  {subscription.targetEndAt && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Target End:</span>
+                      <span className="text-white">{formatDate(subscription.targetEndAt)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+              
+              {/* Show Custom Renewal Date if set */}
+              {subscription.customNextRenewalAt && (
+                <div className="p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-yellow-400 font-medium">📅 Custom Renewal Date Set</span>
+                    <span className="text-yellow-300">
+                      {formatDate(subscription.customNextRenewalAt)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Events Timeline */}
@@ -959,8 +749,8 @@ export default function SubscriptionDetailModal({
                   <div className={`w-3 h-3 rounded-full mt-1 ${
                     event.type === 'renewed' ? 'bg-green-500' :
                     event.type === 'created' ? 'bg-blue-500' :
-                    event.type === 'canceled' ? 'bg-red-500' :
-                    event.type === 'paused' ? 'bg-yellow-500' :
+                    event.type === 'completed' ? 'bg-blue-500' :
+                    event.type === 'overdue' ? 'bg-red-500' :
                     event.type === 'custom_date_set' ? 'bg-purple-500' :
                     event.type === 'archived' ? 'bg-gray-500' :
                     event.type === 'reverted' ? 'bg-orange-500' :
@@ -1056,50 +846,20 @@ export default function SubscriptionDetailModal({
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={handleDelete}
-                  disabled={isLoading}
-                  className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
-                <button
-                  onClick={onClose}
-                  className="ml-auto px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
-                >
-                  Close
-                </button>
-              </>
-            )}
+            <button
+              onClick={handleDelete}
+              disabled={isLoading}
+              className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+            <button
+              onClick={onClose}
+              className="ml-auto px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>

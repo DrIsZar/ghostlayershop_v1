@@ -269,14 +269,58 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
   }
 
   async deleteSubscription(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('subscriptions')
-      .delete()
-      .eq('id', id);
+    console.log('Supabase adapter: Starting deletion process for subscription:', id);
+    
+    try {
+      // Step 1: Delete all subscription events (foreign key constraint)
+      console.log('Step 1: Deleting subscription events for subscription:', id);
+      const { error: eventsError } = await supabase
+        .from('subscription_events')
+        .delete()
+        .eq('subscription_id', id);
 
-    if (error) {
-      console.error('Error deleting subscription:', error);
-      throw new Error(`Failed to delete subscription: ${error.message}`);
+      if (eventsError) {
+        console.error('Error deleting subscription events:', eventsError);
+        throw new Error(`Failed to delete subscription events: ${eventsError.message}`);
+      }
+      console.log('Successfully deleted subscription events');
+
+      // Step 2: Unassign any resource pool seats
+      console.log('Step 2: Unassigning resource pool seats for subscription:', id);
+      const { error: unassignError } = await supabase
+        .from('resource_pool_seats')
+        .update({ 
+          assigned_subscription_id: null,
+          seat_status: 'available',
+          unassigned_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('assigned_subscription_id', id);
+
+      if (unassignError) {
+        console.warn('Warning: Could not unassign resource pool seats:', unassignError);
+        // Don't throw here, as this is not critical for deletion
+      } else {
+        console.log('Successfully unassigned resource pool seats');
+      }
+
+      // Step 3: Delete the subscription itself
+      console.log('Step 3: Deleting subscription record:', id);
+      const { error: deleteError } = await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        console.error('Error deleting subscription:', deleteError);
+        throw new Error(`Failed to delete subscription: ${deleteError.message}`);
+      }
+
+      console.log('✅ DELETION SUCCESSFUL: Subscription removed from database:', id);
+
+    } catch (error) {
+      console.error('❌ DELETION FAILED for subscription:', id, error);
+      throw error;
     }
   }
 }

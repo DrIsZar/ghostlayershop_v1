@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Eye, Trash2 } from 'lucide-react';
+import { Edit, Eye, Trash2, Copy, EyeOff } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, formatDate, getStatusBadge, getStrategyDisplayName, getStrategyPillColor, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { computeCycleProgress, computeRenewalProgress } from '../lib/subscriptionStrategies';
 import { supabase } from '../lib/supabase';
 import { getServiceLogo } from '../lib/fileUtils';
+import { getResourcePool } from '../lib/inventory';
+import { ResourcePool } from '../types/inventory';
+import { copyToClipboard } from '../lib/toast';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ status: Subscription['status'] }> = ({ status }) => {
@@ -37,6 +40,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const [clientName, setClientName] = useState<string>('');
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
+  const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
 
 
   // Fetch service and client names
@@ -65,13 +70,24 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         if (clientData) {
           setClientName(clientData.name);
         }
+
+        // Fetch resource pool information if linked
+        if (subscription.resourcePoolId) {
+          try {
+            const { data: pool, error: poolError } = await getResourcePool(subscription.resourcePoolId);
+            if (poolError) throw poolError;
+            setResourcePool(pool);
+          } catch (error) {
+            console.error('Error fetching resource pool:', error);
+          }
+        }
       } catch (error) {
         console.error('Error fetching names:', error);
       }
     };
 
     fetchNames();
-  }, [subscription.serviceId, subscription.clientId]);
+  }, [subscription.serviceId, subscription.clientId, subscription.resourcePoolId]);
 
   // Live countdown
   useEffect(() => {
@@ -94,6 +110,11 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, [subscription.nextRenewalAt, subscription.targetEndAt]);
+
+  const handleCopy = async (text: string, type: 'login' | 'password') => {
+    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
+    await copyToClipboard(text, message);
+  };
 
   const cycleProgress = computeCycleProgress(subscription);
   const renewalProgress = computeRenewalProgress(subscription);
@@ -273,16 +294,81 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         </div>
       )}
 
-      {/* Login Email Section */}
-      {subscription.notes && (
+      {/* Login Credentials Section */}
+      {resourcePool && (
         <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
           <div className="flex items-start gap-2">
             <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
             </svg>
             <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Login Email</h4>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Login Credentials</h4>
+              
+              {/* Login Email */}
+              <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Email:</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 font-mono flex-1">
+                  {resourcePool.login_email}
+                </span>
+                <button
+                  onClick={() => handleCopy(resourcePool.login_email, 'login')}
+                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  title="Copy login email"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Login Password */}
+              {resourcePool.login_secret && (
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Password:</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 font-mono flex-1">
+                    {showSecret ? resourcePool.login_secret : '••••••••'}
+                  </span>
+                  <button
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    title={showSecret ? "Hide password" : "Show password"}
+                  >
+                    {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  </button>
+                  <button
+                    onClick={() => handleCopy(resourcePool.login_secret || '', 'password')}
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    title="Copy password"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes Section (if no resource pool but has notes) */}
+      {!resourcePool && subscription.notes && (
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400">Notes</h4>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopy(subscription.notes || '', 'login');
+                  }}
+                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  title="Copy notes"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-mono">
                 {subscription.notes}
               </p>
             </div>
@@ -364,10 +450,20 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             Edit
           </button>
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
               if (confirm('Are you sure you want to delete this subscription?')) {
-                onDelete(subscription.id);
+                console.log('🗑️ Card delete button clicked for subscription:', subscription.id);
+                try {
+                  // Actually delete from database
+                  await subscriptionService.delete(subscription.id);
+                  console.log('✅ Subscription deleted from database via card button');
+                  // Then update UI
+                  onDelete(subscription.id);
+                } catch (error) {
+                  console.error('❌ Error deleting subscription from card:', error);
+                  alert(`Failed to delete subscription: ${(error as Error).message}`);
+                }
               }
             }}
             className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"

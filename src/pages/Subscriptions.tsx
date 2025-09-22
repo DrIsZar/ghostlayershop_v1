@@ -18,6 +18,7 @@ import { subscriptionService } from '../lib/subscriptionService';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import SubscriptionModal from '../components/SubscriptionModal';
 import SubscriptionDetailModal from '../components/SubscriptionDetailModal';
+import SubscriptionEditModal from '../components/SubscriptionEditModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
@@ -55,6 +56,7 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [dueBuckets, setDueBuckets] = useState({ dueToday: 0, dueIn3Days: 0, overdue: 0 });
@@ -79,6 +81,13 @@ export default function Subscriptions() {
     fetchDueBuckets();
     loadFiltersFromURL();
   }, []);
+
+  // Add a manual refresh function for debugging
+  const handleManualRefresh = async () => {
+    console.log('Manual refresh triggered');
+    await fetchSubscriptions(true);
+    await fetchDueBuckets();
+  };
 
   useEffect(() => {
     if (subscriptions.length > 0) {
@@ -174,10 +183,14 @@ export default function Subscriptions() {
     localStorage.setItem('subscription-service-id', selectedServiceId);
   };
 
-  const fetchSubscriptions = async () => {
+  const fetchSubscriptions = async (forceRefresh = false) => {
     try {
       setLoading(true);
+      if (forceRefresh) {
+        console.log('Force refreshing subscriptions from database...');
+      }
       const data = await subscriptionService.listSubscriptions();
+      console.log('Fetched subscriptions:', data.length, 'records');
       setSubscriptions(data);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
@@ -402,7 +415,7 @@ export default function Subscriptions() {
 
   const handleSubscriptionEdit = (subscription: Subscription) => {
     setEditingSubscription(subscription);
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const handleSubscriptionUpdate = (updatedSubscription: Subscription) => {
@@ -412,8 +425,44 @@ export default function Subscriptions() {
     fetchDueBuckets();
   };
 
-  const handleSubscriptionDelete = (subscriptionId: string) => {
-    setSubscriptions(prev => prev.filter(sub => sub.id !== subscriptionId));
+  const handleSubscriptionDelete = async (subscriptionId: string) => {
+    console.log('🗑️ Handling subscription deletion:', subscriptionId);
+    
+    // Immediately remove from local state for responsive UI
+    setSubscriptions(prev => {
+      const filtered = prev.filter(sub => sub.id !== subscriptionId);
+      console.log('Local state updated - removed subscription, remaining count:', filtered.length);
+      return filtered;
+    });
+    
+    // Close any open modals
+    setIsDetailModalOpen(false);
+    setIsEditModalOpen(false);
+    setSelectedSubscription(null);
+    setEditingSubscription(null);
+    
+    // Force refresh from database to ensure consistency
+    setTimeout(async () => {
+      console.log('🔄 Force refreshing subscriptions after deletion...');
+      try {
+        const data = await subscriptionService.listSubscriptions();
+        console.log('📊 Database refresh complete - subscription count:', data.length);
+        
+        // Check if the deleted subscription still exists in the fresh data
+        const stillExists = data.find(sub => sub.id === subscriptionId);
+        if (stillExists) {
+          console.error('⚠️ CRITICAL: Deleted subscription still exists in database!', stillExists);
+          // Don't show alert anymore since we fixed the card deletion
+        } else {
+          console.log('✅ Confirmed: Subscription successfully removed from database');
+        }
+        
+        setSubscriptions(data);
+      } catch (error) {
+        console.error('❌ Error refreshing subscriptions after deletion:', error);
+      }
+    }, 1000); // Increased delay to ensure database operations are complete
+    
     fetchDueBuckets();
   };
 
@@ -597,13 +646,22 @@ export default function Subscriptions() {
           </div>
 
           {/* Reset Button */}
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <button
               onClick={resetFilters}
               className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
               title="Reset all filters"
             >
               <RotateCcw className="w-4 h-4" />
+            </button>
+            
+            {/* Debug Refresh Button */}
+            <button
+              onClick={handleManualRefresh}
+              className="px-3 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Force refresh from database"
+            >
+              🔄
             </button>
           </div>
         </div>
@@ -799,18 +857,31 @@ export default function Subscriptions() {
         editingSubscription={editingSubscription}
       />
 
-             {/* Subscription Detail Modal */}
-       <SubscriptionDetailModal
-         isOpen={isDetailModalOpen}
-         onClose={() => {
-           setIsDetailModalOpen(false);
-           setSelectedSubscription(null);
-         }}
-         subscription={selectedSubscription}
-         onUpdate={handleSubscriptionUpdate}
-         onDelete={handleSubscriptionDelete}
-       />
+      {/* Subscription Detail Modal */}
+      <SubscriptionDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedSubscription(null);
+        }}
+        subscription={selectedSubscription}
+        onUpdate={handleSubscriptionUpdate}
+        onDelete={handleSubscriptionDelete}
+        onEdit={handleSubscriptionEdit}
+      />
 
-     </div>
+      {/* Unified Subscription Edit Modal */}
+      <SubscriptionEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingSubscription(null);
+        }}
+        subscription={editingSubscription}
+        onUpdate={handleSubscriptionUpdate}
+        onDelete={handleSubscriptionDelete}
+      />
+
+    </div>
    );
  }
