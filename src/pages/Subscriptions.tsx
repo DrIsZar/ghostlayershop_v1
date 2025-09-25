@@ -741,10 +741,10 @@ export default function Subscriptions() {
         </div>
       </div>
 
-      {/* Subscriptions List */}
-      <div className="space-y-4">
+      {/* Subscriptions List - Mobile Viewport Optimized */}
+      <div className="w-full max-w-full overflow-hidden">
         {filteredSubscriptions.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 px-4">
             <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <Package className="w-8 h-8 text-gray-400" />
             </div>
@@ -810,37 +810,43 @@ export default function Subscriptions() {
                   </div>
                 </div>
                 
-                {/* Group Content */}
+                {/* Group Content - Mobile viewport optimized */}
                 {!collapsedGroups.has(group.key) && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 pl-4">
-                    {group.subscriptions.map(subscription => (
-                      <SubscriptionCard
-                        key={subscription.id}
-                        subscription={subscription}
-                        onUpdate={handleSubscriptionUpdate}
-                        onDelete={handleSubscriptionDelete}
-                        onView={handleSubscriptionView}
-                        onEdit={handleSubscriptionEdit}
-                      />
-                    ))}
+                  <div className="w-full px-2 sm:px-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                      {group.subscriptions.map(subscription => (
+                        <div key={subscription.id} className="w-full min-w-0">
+                          <SubscriptionCard
+                            subscription={subscription}
+                            onUpdate={handleSubscriptionUpdate}
+                            onDelete={handleSubscriptionDelete}
+                            onView={handleSubscriptionView}
+                            onEdit={handleSubscriptionEdit}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          // Ungrouped view
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredSubscriptions.map(subscription => (
-              <SubscriptionCard
-                key={subscription.id}
-                subscription={subscription}
-                onUpdate={handleSubscriptionUpdate}
-                onDelete={handleSubscriptionDelete}
-                onView={handleSubscriptionView}
-                onEdit={handleSubscriptionEdit}
-              />
-            ))}
+          // Ungrouped view - Mobile viewport optimized
+          <div className="w-full px-2 sm:px-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+              {filteredSubscriptions.map(subscription => (
+                <div key={subscription.id} className="w-full min-w-0">
+                  <SubscriptionCard
+                    subscription={subscription}
+                    onUpdate={handleSubscriptionUpdate}
+                    onDelete={handleSubscriptionDelete}
+                    onView={handleSubscriptionView}
+                    onEdit={handleSubscriptionEdit}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

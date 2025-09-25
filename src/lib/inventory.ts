@@ -67,12 +67,104 @@ export async function createResourcePool(data: CreatePoolData) {
 }
 
 export async function updateResourcePool(id: string, data: UpdatePoolData) {
-  return supabase
+  // First get the current pool to check if max_seats changed
+  const { data: currentPool, error: fetchError } = await getResourcePool(id);
+  if (fetchError) return { data: null, error: fetchError };
+
+  // Update the pool
+  const result = await supabase
     .from('resource_pools')
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select('*')
     .single();
+
+  if (result.error) return result;
+
+  // If max_seats changed, ensure we have exactly the right number of seats
+  if (data.max_seats !== undefined && data.max_seats !== currentPool.max_seats) {
+    await ensureCorrectSeatCount(id, data.max_seats);
+  }
+
+  return result;
+}
+
+// Helper function to ensure we have exactly the right number of seats
+async function ensureCorrectSeatCount(poolId: string, targetSeatCount: number) {
+  console.log(`Ensuring pool ${poolId} has exactly ${targetSeatCount} seats`);
+  
+  // Get all existing seats
+  const { data: existingSeats, error: seatsError } = await supabase
+    .from('resource_pool_seats')
+    .select('id, seat_index, seat_status')
+    .eq('pool_id', poolId)
+    .order('seat_index', { ascending: true });
+  
+  if (seatsError) {
+    console.error('Error fetching existing seats:', seatsError);
+    return;
+  }
+  
+  const currentSeatCount = existingSeats?.length || 0;
+  console.log(`Current seat count: ${currentSeatCount}, Target: ${targetSeatCount}`);
+  
+  if (currentSeatCount < targetSeatCount) {
+    // Need to add seats
+    const seatsToAdd = targetSeatCount - currentSeatCount;
+    console.log(`Adding ${seatsToAdd} seats`);
+    
+    const newSeats = Array.from({ length: seatsToAdd }, (_, i) => ({
+      pool_id: poolId,
+      seat_index: currentSeatCount + i + 1,
+      seat_status: 'available' as const,
+    }));
+    
+    const { data: insertedSeats, error: insertError } = await supabase
+      .from('resource_pool_seats')
+      .insert(newSeats)
+      .select('*');
+    
+    if (insertError) {
+      console.error('Error inserting seats:', insertError);
+    } else {
+      console.log('Successfully inserted seats:', insertedSeats);
+    }
+  } else if (currentSeatCount > targetSeatCount) {
+    // Need to remove seats (only unassigned ones)
+    const seatsToRemove = currentSeatCount - targetSeatCount;
+    console.log(`Removing ${seatsToRemove} seats`);
+    
+    // Get unassigned seats sorted by seat_index descending (remove highest indices first)
+    const unassignedSeats = existingSeats
+      ?.filter(seat => seat.seat_status === 'available')
+      ?.sort((a, b) => b.seat_index - a.seat_index)
+      ?.slice(0, seatsToRemove) || [];
+    
+    if (unassignedSeats.length > 0) {
+      const seatIdsToDelete = unassignedSeats.map(seat => seat.id);
+      
+      const { error: deleteError } = await supabase
+        .from('resource_pool_seats')
+        .delete()
+        .in('id', seatIdsToDelete);
+        
+      if (deleteError) {
+        console.error('Error deleting seats:', deleteError);
+      } else {
+        console.log('Successfully deleted excess seats');
+      }
+    }
+  }
+  
+  // Verify final count
+  const { data: finalSeats, error: finalError } = await supabase
+    .from('resource_pool_seats')
+    .select('id')
+    .eq('pool_id', poolId);
+  
+  if (!finalError) {
+    console.log(`Final seat count: ${finalSeats?.length || 0}`);
+  }
 }
 
 export async function deleteResourcePool(id: string) {
@@ -106,7 +198,9 @@ export async function getPoolSeats(poolId: string, filter?: SeatFilter) {
     query = query.eq('assigned_subscription_id', filter.assigned_subscription_id);
   }
   
-  return query.order('seat_index');
+  const result = await query.order('seat_index');
+  console.log(`getPoolSeats for pool ${poolId}:`, result);
+  return result;
 }
 
 export async function getPoolWithSeats(poolId: string) {

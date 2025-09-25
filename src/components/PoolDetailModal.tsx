@@ -52,17 +52,33 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
     }
   }, [isOpen, pool]);
 
+  // Also refresh when the pool prop changes (e.g., after editing)
+  useEffect(() => {
+    if (isOpen && pool && poolWithSeats) {
+      // Only refresh if the max_seats has changed
+      if (pool.max_seats !== poolWithSeats.max_seats) {
+        console.log('Pool max_seats changed, refreshing details...');
+        fetchPoolDetails();
+      }
+    }
+  }, [pool?.max_seats]);
+
   const fetchPoolDetails = async () => {
     if (!pool) return;
     
     setLoading(true);
     try {
+      console.log('Fetching pool details for pool:', pool.id);
       const [poolResult, statsResult] = await Promise.all([
         getPoolWithSeats(pool.id),
         getPoolStats(pool.id)
       ]);
       
+      console.log('Pool result:', poolResult);
+      console.log('Stats result:', statsResult);
+      
       if (poolResult.data) {
+        console.log('Setting pool with seats:', poolResult.data);
         setPoolWithSeats(poolResult.data);
       }
       if (statsResult.data) {
@@ -298,12 +314,12 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                       <span className="text-sm text-white font-medium">{stats.total_seats}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Used Seats:</span>
+                      <span className="text-sm text-gray-400">Assigned Seats:</span>
                       <span className="text-sm text-white font-medium">{stats.used_seats}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Available:</span>
-                      <span className="text-sm text-white font-medium">{stats.available_seats}</span>
+                      <span className="text-sm text-gray-400">Available Seats:</span>
+                      <span className="text-sm text-white font-medium">{stats.total_seats - stats.used_seats}</span>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
                       <div 
@@ -437,6 +453,11 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
         onPoolUpdated={(updatedPool) => {
           onUpdate(updatedPool);
           setEditModalOpen(false);
+          // Force refresh pool details to show updated seat count
+          console.log('Pool updated, forcing refresh...');
+          setTimeout(() => {
+            fetchPoolDetails();
+          }, 100); // Small delay to ensure database is updated
         }}
       />
     </div>

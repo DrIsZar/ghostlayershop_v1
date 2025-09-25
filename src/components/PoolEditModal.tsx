@@ -25,7 +25,7 @@ export default function PoolEditModal({
     notes: '',
     start_at: '',
     end_at: '',
-    max_seats: 1,
+    max_seats: 1 as number | string,
     is_alive: true,
   });
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,7 @@ export default function PoolEditModal({
     setErrors({});
   }, [pool]);
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.provider) {
@@ -72,8 +72,14 @@ export default function PoolEditModal({
     } else if (new Date(formData.end_at) <= new Date(formData.start_at)) {
       newErrors.end_at = 'End date must be after start date';
     }
-    if (!formData.max_seats || formData.max_seats < 1) {
-      newErrors.max_seats = 'Max seats must be at least 1';
+    if (!formData.max_seats || formData.max_seats === '' || formData.max_seats < 1) {
+      newErrors.max_seats = 'Number of seats must be at least 1';
+    } else if (pool) {
+      // Check if we're reducing seats below assigned seats
+      const newSeatCount = typeof formData.max_seats === 'string' ? parseInt(formData.max_seats) : formData.max_seats;
+      if (newSeatCount < pool.used_seats) {
+        newErrors.max_seats = `Cannot reduce seats below ${pool.used_seats} (currently assigned seats)`;
+      }
     }
 
     setErrors(newErrors);
@@ -83,12 +89,13 @@ export default function PoolEditModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm() || !pool) return;
+    if (!(await validateForm()) || !pool) return;
 
     setLoading(true);
     try {
       const { data, error } = await updateResourcePool(pool.id, {
         ...formData,
+        max_seats: typeof formData.max_seats === 'string' ? parseInt(formData.max_seats) || 1 : formData.max_seats,
         start_at: new Date(formData.start_at).toISOString(),
         end_at: new Date(formData.end_at).toISOString(),
       });
@@ -238,20 +245,30 @@ export default function PoolEditModal({
           <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">
               <Users className="w-4 h-4 inline mr-2" />
-              Maximum Seats *
+              Number of Seats *
             </label>
             <input
               type="number"
               min="1"
-              value={isNaN(formData.max_seats) ? 1 : formData.max_seats}
-              onChange={(e) => handleInputChange('max_seats', parseInt(e.target.value) || 1)}
+              value={formData.max_seats}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  handleInputChange('max_seats', '');
+                } else {
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue >= 1) {
+                    handleInputChange('max_seats', numValue);
+                  }
+                }
+              }}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
             {errors.max_seats && (
               <p className="mt-1 text-sm text-red-400">{errors.max_seats}</p>
             )}
             <p className="mt-1 text-sm text-gray-400">
-              Number of seats/licenses available in this pool
+              Total number of seats in this pool (cannot be less than currently assigned seats)
             </p>
           </div>
 

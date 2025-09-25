@@ -516,7 +516,7 @@ export default function Inventory() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {filteredPools.map(pool => (
                   <PoolCard
                     key={pool.id}
@@ -669,7 +669,7 @@ export default function Inventory() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {filteredAssignments.map(assignment => (
                   <AssignmentCard
                     key={assignment.id}

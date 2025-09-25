@@ -51,48 +51,50 @@ export function AssignmentCard({ assignment }: AssignmentCardProps) {
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 hover:border-gray-600/50 transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center text-lg">
-            {PROVIDER_ICONS[assignment.resource_pools.provider] || '📦'}
+    <div className="w-full max-w-full bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl hover:border-gray-600/50 transition-all duration-200">
+      {/* Header - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 border-b border-gray-700/30">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg flex items-center justify-center text-sm sm:text-lg flex-shrink-0">
+              {PROVIDER_ICONS[assignment.resource_pools.provider] || '📦'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white">
+                Seat #{assignment.seat_index}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 truncate">
+                {assignment.resource_pools.provider.replace('_', ' ').toUpperCase()}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">
-              Seat #{assignment.seat_index}
-            </h3>
-            <p className="text-sm text-gray-400">
-              {assignment.resource_pools.provider.replace('_', ' ').toUpperCase()}
-            </p>
-          </div>
-        </div>
-        
-        <div className="text-right">
-          <div className={`text-sm font-medium ${getPoolStatusColor(assignment.resource_pools.status)}`}>
-            {STATUS_LABELS[assignment.resource_pools.status] || assignment.resource_pools.status}
-          </div>
-          <div className="text-xs text-gray-400">
-            {POOL_TYPE_LABELS[assignment.resource_pools.pool_type] || assignment.resource_pools.pool_type}
+          
+          <div className="text-right flex-shrink-0 ml-2">
+            <div className={`text-xs sm:text-sm font-medium ${getPoolStatusColor(assignment.resource_pools.status)}`}>
+              {STATUS_LABELS[assignment.resource_pools.status] || assignment.resource_pools.status}
+            </div>
+            <div className="text-xs text-gray-400">
+              {POOL_TYPE_LABELS[assignment.resource_pools.pool_type] || assignment.resource_pools.pool_type}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Assignment Details */}
-      <div className="space-y-3 mb-4">
+      {/* Assignment Details - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30 space-y-2 sm:space-y-3">
         {/* Assigned Email */}
         {assignment.assigned_email && (
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-300">{assignment.assigned_email}</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-300 truncate">{assignment.assigned_email}</span>
           </div>
         )}
 
         {/* Client Information */}
         {assignment.clients && (
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-300">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-300 truncate">
               {assignment.clients.name} ({assignment.clients.email})
             </span>
           </div>
@@ -100,12 +102,12 @@ export function AssignmentCard({ assignment }: AssignmentCardProps) {
 
         {/* Subscription Information */}
         {assignment.subscriptions && (
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-300">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Package className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-300 truncate">
               Subscription #{assignment.subscriptions.id.slice(0, 8)}
             </span>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex-shrink-0 ${
               assignment.subscriptions.status === 'active' ? 'bg-green-900/30 text-green-400' :
               assignment.subscriptions.status === 'paused' ? 'bg-yellow-900/30 text-yellow-400' :
               'bg-red-900/30 text-red-400'
@@ -116,40 +118,44 @@ export function AssignmentCard({ assignment }: AssignmentCardProps) {
         )}
 
         {/* Pool Information */}
-        <div className="flex items-center gap-2">
-          <Package className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-300">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Package className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+          <span className="text-xs sm:text-sm text-gray-300 truncate">
             {assignment.resource_pools.login_email}
           </span>
         </div>
       </div>
 
-      {/* Assignment Time */}
+      {/* Assignment Time - Mobile Viewport Optimized */}
       {assignment.assigned_at && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-400">Assigned</span>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-white">
-              {formatDate(assignment.assigned_at)}
+        <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-gray-400">Assigned</span>
             </div>
-            <div className="text-xs text-gray-400">
-              {getTimeSinceAssignment(assignment.assigned_at)}
+            <div className="text-right">
+              <div className="text-xs sm:text-sm text-white">
+                {formatDate(assignment.assigned_at)}
+              </div>
+              <div className="text-xs text-gray-400">
+                {getTimeSinceAssignment(assignment.assigned_at)}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Pool Expiry */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-400" />
-          <span className="text-sm text-gray-400">Pool Expires</span>
-        </div>
-        <div className="text-sm text-gray-300">
-          {formatDate(assignment.resource_pools.end_at)}
+      {/* Pool Expiry - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-400">Pool Expires</span>
+          </div>
+          <div className="text-xs sm:text-sm text-gray-300">
+            {formatDate(assignment.resource_pools.end_at)}
+          </div>
         </div>
       </div>
 

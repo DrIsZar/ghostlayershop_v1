@@ -90,121 +90,127 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
   };
 
   return (
-    <div className="ghost-card p-4 lg:p-6 hover:bg-gray-800/70 transition-all duration-200 group">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-700 rounded-xl flex items-center justify-center text-xl lg:text-2xl flex-shrink-0">
-            {PROVIDER_ICONS[pool.provider] || '📦'}
+    <div className="w-full max-w-full rounded-2xl border border-gray-700/50 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 group">
+      {/* Header - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 border-b border-gray-700/30">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg flex items-center justify-center text-sm sm:text-lg lg:text-xl flex-shrink-0">
+              {PROVIDER_ICONS[pool.provider] || '📦'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white capitalize truncate">
+                {pool.provider.replace('_', ' ')}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 truncate">
+                {POOL_TYPE_LABELS[pool.pool_type] || pool.pool_type}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-base lg:text-lg font-semibold text-white capitalize truncate">
-              {pool.provider.replace('_', ' ')}
-            </h3>
-            <p className="text-xs lg:text-sm text-gray-400 truncate">
-              {POOL_TYPE_LABELS[pool.pool_type] || pool.pool_type}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Status Badge */}
-          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(pool.status)} hidden sm:inline-block`}>
-            {pool.status}
-          </span>
           
-          {/* Alive Indicator */}
-          <div className={`w-2 h-2 rounded-full ${pool.is_alive ? 'bg-green-500' : 'bg-red-500'}`} />
-          
-          {/* Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="More options"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {/* Status Badge */}
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium border ${getStatusColor(pool.status)}`}>
+              {pool.status}
+            </span>
             
-            {showMenu && (
-              <div className="absolute right-0 top-8 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[160px]">
-                <button
-                  onClick={() => {
-                    onView(pool);
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  View Details
-                </button>
-                <button
-                  onClick={() => {
-                    // Handle edit
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    handleCopy(pool.login_email, 'login');
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2 min-h-[44px]"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy Email
-                </button>
-                <button
-                  onClick={() => {
-                    handleToggleStatus();
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
-                >
-                  {pool.status === 'paused' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                  {pool.status === 'paused' ? 'Resume' : 'Pause'}
-                </button>
-                <button
-                  onClick={() => {
-                    handleToggleAlive();
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
-                >
-                  {pool.is_alive ? <HeartOff className="w-4 h-4" /> : <Heart className="w-4 h-4" />}
-                  {pool.is_alive ? 'Mark Dead' : 'Mark Alive'}
-                </button>
-                <div className="border-t border-gray-700 my-1" />
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this pool?')) {
-                      onDelete(pool.id);
-                    }
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-900/20 flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
-              </div>
-            )}
+            {/* Alive Indicator */}
+            <div className={`w-2 h-2 rounded-full ${pool.is_alive ? 'bg-green-500' : 'bg-red-500'}`} />
+            
+            {/* Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
+            
+              {showMenu && (
+                <div className="absolute right-0 top-6 sm:top-8 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[140px] sm:min-w-[160px]">
+                  <button
+                    onClick={() => {
+                      onView(pool);
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden xs:inline">View Details</span>
+                    <span className="xs:hidden">View</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onView(pool); // Open the detail modal which has the edit functionality
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleCopy(pool.login_email, 'login');
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden xs:inline">Copy Email</span>
+                    <span className="xs:hidden">Copy</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleToggleStatus();
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    {pool.status === 'paused' ? <Play className="w-3 h-3 sm:w-4 sm:h-4" /> : <Pause className="w-3 h-3 sm:w-4 sm:h-4" />}
+                    <span className="hidden xs:inline">{pool.status === 'paused' ? 'Resume' : 'Pause'}</span>
+                    <span className="xs:hidden">{pool.status === 'paused' ? 'Resume' : 'Pause'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleToggleAlive();
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    {pool.is_alive ? <HeartOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Heart className="w-3 h-3 sm:w-4 sm:h-4" />}
+                    <span className="hidden xs:inline">{pool.is_alive ? 'Mark Dead' : 'Mark Alive'}</span>
+                    <span className="xs:hidden">{pool.is_alive ? 'Dead' : 'Alive'}</span>
+                  </button>
+                  <div className="border-t border-gray-700 my-1" />
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this pool?')) {
+                        onDelete(pool.id);
+                      }
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-red-400 hover:bg-red-900/20 flex items-center gap-1.5 sm:gap-2"
+                  >
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Login Info */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm text-gray-400">Login:</span>
-          <span className="text-sm text-white font-mono">{pool.login_email}</span>
+      {/* Login Info - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+          <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Login:</span>
+          <span className="text-xs sm:text-sm text-white font-mono flex-1 truncate">{pool.login_email}</span>
           <button
             onClick={() => handleCopy(pool.login_email, 'login')}
-            className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-0.5 sm:p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
             aria-label="Copy email"
           >
             <Copy className="w-3 h-3" />
@@ -212,20 +218,20 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
         </div>
         
         {pool.login_secret && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Password:</span>
-            <span className="text-sm text-white font-mono">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Password:</span>
+            <span className="text-xs sm:text-sm text-white font-mono flex-1 truncate">
               {showSecret ? pool.login_secret : '••••••••'}
             </span>
             <button
               onClick={() => setShowSecret(!showSecret)}
-              className="p-1 text-gray-400 hover:text-white transition-colors"
+              className="p-0.5 sm:p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
             >
               <Eye className="w-3 h-3" />
             </button>
             <button
               onClick={() => handleCopy(pool.login_secret || '', 'password')}
-              className="p-2 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-0.5 sm:p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
               aria-label="Copy password"
             >
               <Copy className="w-3 h-3" />
@@ -234,52 +240,58 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
         )}
       </div>
 
-      {/* Time Info */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Clock className="w-4 h-4 text-gray-400" />
-          <span className={`text-sm font-medium ${getTimeColor()}`}>
+      {/* Time Info - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+        <div className="flex items-center gap-1 sm:gap-2 mb-1">
+          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+          <span className={`text-xs sm:text-sm font-medium ${getTimeColor()}`}>
             {getTimeUntilExpiry()}
           </span>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-400">
           {new Date(pool.start_at).toLocaleDateString()} - {new Date(pool.end_at).toLocaleDateString()}
         </div>
       </div>
 
-      {/* Seat Usage */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-400">Seats</span>
+      {/* Seat Usage - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+        <div className="flex items-center justify-between mb-1 sm:mb-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+            <span className="text-xs sm:text-sm text-gray-400">Seats</span>
           </div>
-          <span className="text-sm text-white font-medium">
+          <span className="text-xs sm:text-sm text-white font-medium">
             {pool.used_seats}/{pool.max_seats}
           </span>
         </div>
-        <div className="w-full bg-gray-700 rounded-full h-2">
+        <div className="w-full bg-gray-700 rounded-full h-1 sm:h-2">
           <div 
-            className={`h-2 rounded-full transition-all duration-300 ${getSeatUsageColor()}`}
+            className={`h-full rounded-full transition-all duration-300 ${getSeatUsageColor()}`}
             style={{ width: `${(pool.used_seats / pool.max_seats) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Notes */}
+      {/* Notes - Mobile Viewport Optimized */}
       {pool.notes && (
-        <div className="text-sm text-gray-400 italic">
-          {pool.notes}
+        <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+          <div className="text-xs sm:text-sm text-gray-400 italic break-words">
+            {pool.notes}
+          </div>
         </div>
       )}
 
-      {/* Click to view */}
-      <button
-        onClick={() => onView(pool)}
-        className="w-full mt-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
-      >
-        View Details →
-      </button>
+      {/* Action Button - Mobile Viewport Optimized */}
+      <div className="p-3 sm:p-4">
+        <button
+          onClick={() => onView(pool)}
+          className="w-full py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
+        >
+          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline">View Details</span>
+          <span className="xs:hidden">View</span>
+        </button>
+      </div>
     </div>
   );
 }
