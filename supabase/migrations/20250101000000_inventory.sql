@@ -89,7 +89,7 @@ CREATE TRIGGER trg_sync_used_seats_del
   AFTER DELETE ON public.resource_pool_seats
   FOR EACH ROW EXECUTE PROCEDURE public.fn_sync_used_seats();
 
--- Function to refresh pool status (overdue/expired)
+-- Function to refresh pool status (overdue/expired) and auto-archive expired pools
 CREATE OR REPLACE FUNCTION public.fn_refresh_pool_status() 
 RETURNS void AS $$
 BEGIN
@@ -98,6 +98,10 @@ BEGIN
     WHEN now() >= end_at THEN 'expired'
     WHEN now() >= end_at - interval '1 day' THEN 'overdue'
     ELSE 'active'
+  END,
+  is_alive = CASE
+    WHEN now() >= end_at THEN false  -- Auto-archive expired pools
+    ELSE is_alive
   END,
   updated_at = now()
   WHERE status IN ('active', 'overdue');

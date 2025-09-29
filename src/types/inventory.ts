@@ -83,7 +83,14 @@ export interface PoolFilter {
   status?: PoolStatus;
   pool_type?: PoolType;
   alive?: boolean;
-  time_bucket?: 'today' | '3days' | 'overdue' | 'expired';
+  has_available_seats?: boolean;
+  utilization_rate?: 'low' | 'medium' | 'high' | 'full';
+  start_date_after?: string;
+  start_date_before?: string;
+  end_date_after?: string;
+  end_date_before?: string;
+  min_seats?: number;
+  max_seats?: number;
 }
 
 export interface SeatFilter {

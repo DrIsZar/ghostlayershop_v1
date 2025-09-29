@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
-  Filter, 
   Package, 
   Users, 
   Clock, 
@@ -13,42 +12,55 @@ import {
   RotateCcw,
   Archive
 } from 'lucide-react';
-import { ResourcePool, PoolFilter, AssignmentWithDetails, AssignmentFilter } from '../types/inventory';
-import { listResourcePools, refreshPoolStatus, getAllAssignedSeats } from '../lib/inventory';
+import { ResourcePool, PoolFilter } from '../types/inventory';
+import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool } from '../lib/inventory';
 import { PoolCard } from '../components/PoolCard';
 import { PoolFormModal } from '../components/PoolFormModal';
 import { PoolDetailModal } from '../components/PoolDetailModal';
-import { AssignmentCard } from '../components/AssignmentCard';
+import PoolEditModal from '../components/PoolEditModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 
-type ViewMode = 'pools' | 'assignments';
-type TimeBucket = 'today' | '3days' | 'overdue' | 'expired';
+type ViewMode = 'pools' | 'archive';
 
 export default function Inventory() {
   const [viewMode, setViewMode] = useState<ViewMode>('pools');
   const [pools, setPools] = useState<ResourcePool[]>([]);
   const [filteredPools, setFilteredPools] = useState<ResourcePool[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
-  const [filteredAssignments, setFilteredAssignments] = useState<AssignmentWithDetails[]>([]);
+  const [archivedPools, setArchivedPools] = useState<ResourcePool[]>([]);
+  const [filteredArchivedPools, setFilteredArchivedPools] = useState<ResourcePool[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPool, setSelectedPool] = useState<ResourcePool | null>(null);
   
   // Filter state
   const [filters, setFilters] = useState<PoolFilter>({});
-  const [assignmentFilters, setAssignmentFilters] = useState<AssignmentFilter>({});
+  const [archiveFilters, setArchiveFilters] = useState<PoolFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   
-  // UI state
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchPools();
-    fetchAssignments();
-    refreshPoolStatus(); // Refresh status on load
+    const initializeData = async () => {
+      // First refresh pool status to auto-archive expired pools
+      await refreshPoolStatus();
+      // Then fetch the updated data
+      await fetchPools();
+      await fetchArchivedPools();
+    };
+    
+    initializeData();
+    
+    // Set up periodic refresh every 5 minutes to auto-archive expired pools
+    const interval = setInterval(async () => {
+      await refreshPoolStatus();
+      await fetchPools();
+      await fetchArchivedPools();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -63,15 +75,17 @@ export default function Inventory() {
   }, [pools, filters, debouncedSearchTerm]);
 
   useEffect(() => {
-    applyAssignmentFilters();
-  }, [assignments, assignmentFilters]);
+    applyArchiveFilters();
+  }, [archivedPools, archiveFilters]);
 
   const fetchPools = async () => {
     try {
       setLoading(true);
       const { data, error } = await listResourcePools();
       if (error) throw error;
-      setPools(data || []);
+      // Filter out archived pools from main pools list (expired pools that are not alive are considered archived)
+      const activePools = (data || []).filter(pool => !(pool.status === 'expired' && !pool.is_alive));
+      setPools(activePools);
     } catch (error) {
       console.error('Error fetching pools:', error);
     } finally {
@@ -79,13 +93,15 @@ export default function Inventory() {
     }
   };
 
-  const fetchAssignments = async () => {
+  const fetchArchivedPools = async () => {
     try {
-      const { data, error } = await getAllAssignedSeats();
+      const { data, error } = await listResourcePools();
       if (error) throw error;
-      setAssignments(data || []);
+      // Filter to only show archived pools (expired and not alive)
+      const archived = (data || []).filter(pool => pool.status === 'expired' && !pool.is_alive);
+      setArchivedPools(archived);
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      console.error('Error fetching archived pools:', error);
     }
   };
 
@@ -117,33 +133,17 @@ export default function Inventory() {
       filtered = filtered.filter(pool => pool.is_alive === filters.alive);
     }
 
-    // Apply time bucket filter
-    if (filters.time_bucket) {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-      
-      filtered = filtered.filter(pool => {
-        const endDate = new Date(pool.end_at);
-        switch (filters.time_bucket) {
-          case 'today':
-            return endDate >= today && endDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
-          case '3days':
-            return endDate >= today && endDate < threeDaysFromNow;
-          case 'overdue':
-            return endDate < today && ['active', 'overdue'].includes(pool.status);
-          case 'expired':
-            return pool.status === 'expired';
-          default:
-            return true;
-        }
-      });
+
+    // Apply available seats filter
+    if (filters.has_available_seats) {
+      filtered = filtered.filter(pool => pool.used_seats < pool.max_seats);
     }
+
 
     // Sort pools
     filtered.sort((a, b) => {
       // Sort by status priority, then by end date
-      const statusPriority = { active: 0, overdue: 1, paused: 2, completed: 3, expired: 4 };
+      const statusPriority = { active: 0, paused: 1, completed: 2, expired: 3 };
       const statusDiff = statusPriority[a.status] - statusPriority[b.status];
       if (statusDiff !== 0) return statusDiff;
       
@@ -153,34 +153,34 @@ export default function Inventory() {
     setFilteredPools(filtered);
   };
 
-  const applyAssignmentFilters = () => {
-    let filtered = [...assignments];
+  const applyArchiveFilters = () => {
+    let filtered = [...archivedPools];
 
-    // Apply filters
-    if (assignmentFilters.pool_id) {
-      filtered = filtered.filter(assignment => assignment.pool_id === assignmentFilters.pool_id);
-    }
-    if (assignmentFilters.provider) {
-      filtered = filtered.filter(assignment => assignment.resource_pools.provider === assignmentFilters.provider);
-    }
-    if (assignmentFilters.client_id) {
-      filtered = filtered.filter(assignment => assignment.assigned_client_id === assignmentFilters.client_id);
-    }
-    if (assignmentFilters.subscription_id) {
-      filtered = filtered.filter(assignment => assignment.assigned_subscription_id === assignmentFilters.subscription_id);
-    }
-    if (assignmentFilters.assigned_after) {
-      filtered = filtered.filter(assignment => 
-        assignment.assigned_at && new Date(assignment.assigned_at) >= new Date(assignmentFilters.assigned_after!)
-      );
-    }
-    if (assignmentFilters.assigned_before) {
-      filtered = filtered.filter(assignment => 
-        assignment.assigned_at && new Date(assignment.assigned_at) <= new Date(assignmentFilters.assigned_before!)
-      );
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(pool => {
+        const providerMatch = pool.provider.toLowerCase().includes(searchLower);
+        const emailMatch = pool.login_email.toLowerCase().includes(searchLower);
+        const notesMatch = pool.notes?.toLowerCase().includes(searchLower) || false;
+        return providerMatch || emailMatch || notesMatch;
+      });
     }
 
-    setFilteredAssignments(filtered);
+    // Apply other filters
+    if (archiveFilters.provider) {
+      filtered = filtered.filter(pool => pool.provider === archiveFilters.provider);
+    }
+    if (archiveFilters.pool_type) {
+      filtered = filtered.filter(pool => pool.pool_type === archiveFilters.pool_type);
+    }
+
+    // Sort archived pools by archive date (most recent first)
+    filtered.sort((a, b) => {
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    setFilteredArchivedPools(filtered);
   };
 
   const resetFilters = () => {
@@ -188,8 +188,8 @@ export default function Inventory() {
     setSearchTerm('');
   };
 
-  const resetAssignmentFilters = () => {
-    setAssignmentFilters({});
+  const resetArchiveFilters = () => {
+    setArchiveFilters({});
   };
 
   const toggleSection = (sectionKey: string) => {
@@ -211,44 +211,92 @@ export default function Inventory() {
     setIsDetailModalOpen(true);
   };
 
+  const handlePoolEdit = (pool: ResourcePool) => {
+    setSelectedPool(pool);
+    setIsEditModalOpen(true);
+  };
+
+  const handlePoolDelete = async (poolId: string) => {
+    try {
+      const { error } = await deleteResourcePool(poolId);
+      if (error) throw error;
+      
+      // Remove from both active and archived pools
+      setPools(prev => prev.filter(pool => pool.id !== poolId));
+      setArchivedPools(prev => prev.filter(pool => pool.id !== poolId));
+      
+      console.log('Pool deleted successfully');
+    } catch (error) {
+      console.error('Error deleting pool:', error);
+    }
+  };
+
   const handlePoolUpdate = (updatedPool: ResourcePool) => {
     setPools(prev => prev.map(pool => 
       pool.id === updatedPool.id ? updatedPool : pool
     ));
   };
 
-  const handlePoolDelete = (poolId: string) => {
-    setPools(prev => prev.filter(pool => pool.id !== poolId));
+  const handlePoolArchive = async (poolId: string) => {
+    try {
+      const { data, error } = await archiveResourcePool(poolId);
+      if (error) throw error;
+      
+      // Refresh both pools and archived pools to ensure consistency
+      await fetchPools();
+      await fetchArchivedPools();
+      
+      console.log('Pool archived successfully');
+    } catch (error) {
+      console.error('Error archiving pool:', error);
+    }
   };
+
+  const handlePoolRestore = async (poolId: string) => {
+    try {
+      // Restore pool by setting it back to active and alive
+      const { data, error } = await updateResourcePool(poolId, {
+        status: 'active',
+        is_alive: true
+      });
+      if (error) throw error;
+      
+      // Refresh both pools and archived pools to ensure consistency
+      await fetchPools();
+      await fetchArchivedPools();
+      
+      console.log('Pool restored successfully');
+    } catch (error) {
+      console.error('Error restoring pool:', error);
+    }
+  };
+
 
 
   const getStats = () => {
     const total = pools.length;
     const active = pools.filter(p => p.status === 'active').length;
-    const overdue = pools.filter(p => p.status === 'overdue').length;
     const expired = pools.filter(p => p.status === 'expired').length;
     const totalSeats = pools.reduce((sum, p) => sum + p.max_seats, 0);
     const usedSeats = pools.reduce((sum, p) => sum + p.used_seats, 0);
     
-    // Assignment stats
-    const totalAssignments = assignments.length;
-    const recentAssignments = assignments.filter(a => {
-      if (!a.assigned_at) return false;
-      const assignedDate = new Date(a.assigned_at);
+    // Archive stats
+    const totalArchived = archivedPools.length;
+    const recentlyArchived = archivedPools.filter(p => {
+      const archiveDate = new Date(p.updated_at);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return assignedDate >= weekAgo;
+      return archiveDate >= weekAgo;
     }).length;
     
     return { 
       total, 
       active, 
-      overdue, 
       expired, 
       totalSeats, 
       usedSeats, 
-      totalAssignments, 
-      recentAssignments 
+      totalArchived, 
+      recentlyArchived 
     };
   };
 
@@ -301,15 +349,15 @@ export default function Inventory() {
           Pools
         </button>
         <button
-          onClick={() => setViewMode('assignments')}
+          onClick={() => setViewMode('archive')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'assignments'
+            viewMode === 'archive'
               ? 'bg-green-600 text-white'
               : 'text-gray-400 hover:text-white hover:bg-gray-700'
           }`}
         >
-          <Users className="w-4 h-4 inline mr-2" />
-          Assignments
+          <Archive className="w-4 h-4 inline mr-2" />
+          Archive
         </button>
       </div>
 
@@ -404,26 +452,33 @@ export default function Inventory() {
                 />
               </div>
 
-              {/* Time Bucket Filter */}
+              {/* Available Seats Filter */}
               <div className="relative">
                 <SearchableDropdown
-                  label="Time"
+                  label="Seats"
                   options={[
-                    { value: '', label: 'All time' },
-                    { value: 'today', label: 'Due Today' },
-                    { value: '3days', label: 'Due in 3 Days' },
-                    { value: 'overdue', label: 'Overdue' },
-                    { value: 'expired', label: 'Expired' }
+                    { value: '', label: 'All pools' },
+                    { value: 'available', label: 'Has Available Seats' },
+                    { value: 'full', label: 'Fully Utilized' }
                   ]}
-                  value={filters.time_bucket || ''}
-                  onChange={(value) => setFilters(prev => ({ ...prev, time_bucket: value as any || undefined }))}
-                  placeholder="All time"
-                  className="min-w-[140px]"
+                  value={filters.has_available_seats ? 'available' : filters.utilization_rate === 'full' ? 'full' : ''}
+                  onChange={(value) => {
+                    if (value === 'available') {
+                      setFilters(prev => ({ ...prev, has_available_seats: true, utilization_rate: undefined }));
+                    } else if (value === 'full') {
+                      setFilters(prev => ({ ...prev, has_available_seats: undefined, utilization_rate: 'full' }));
+                    } else {
+                      setFilters(prev => ({ ...prev, has_available_seats: undefined, utilization_rate: undefined }));
+                    }
+                  }}
+                  placeholder="All pools"
+                  className="min-w-[160px]"
                   allowClear={true}
-                  onClear={() => setFilters(prev => ({ ...prev, time_bucket: undefined }))}
+                  onClear={() => setFilters(prev => ({ ...prev, has_available_seats: undefined, utilization_rate: undefined }))}
                   showSearchThreshold={3}
                 />
               </div>
+
 
               {/* Reset Button */}
               <div className="flex items-end">
@@ -436,10 +491,11 @@ export default function Inventory() {
                 </button>
               </div>
             </div>
+
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
@@ -464,17 +520,6 @@ export default function Inventory() {
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Overdue</p>
-                  <p className="text-2xl font-bold text-white">{stats.overdue}</p>
-                </div>
-              </div>
-            </div>
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
@@ -488,6 +533,7 @@ export default function Inventory() {
               </div>
             </div>
           </div>
+
 
           {/* Pools List */}
           <div className="space-y-4">
@@ -522,8 +568,10 @@ export default function Inventory() {
                     key={pool.id}
                     pool={pool}
                     onUpdate={handlePoolUpdate}
-                    onDelete={handlePoolDelete}
+                    onArchive={handlePoolArchive}
                     onView={handlePoolView}
+                    onEdit={handlePoolEdit}
+                    onDelete={handlePoolDelete}
                   />
                 ))}
               </div>
@@ -532,11 +580,34 @@ export default function Inventory() {
         </>
       )}
 
-      {viewMode === 'assignments' && (
+      {viewMode === 'archive' && (
         <>
-          {/* Assignment Filter Toolbar */}
+          {/* Archive Filter Toolbar */}
           <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
             <div className="flex flex-wrap gap-4 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[300px]">
+                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <input
+                    type="text"
+                    placeholder="Search archived pools..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Provider Filter */}
               <div className="relative">
                 <SearchableDropdown
@@ -548,33 +619,33 @@ export default function Inventory() {
                       label: `${PROVIDER_ICONS[provider] || '📦'} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
                     }))
                   ]}
-                  value={assignmentFilters.provider || ''}
-                  onChange={(value) => setAssignmentFilters(prev => ({ ...prev, provider: value || undefined }))}
+                  value={archiveFilters.provider || ''}
+                  onChange={(value) => setArchiveFilters(prev => ({ ...prev, provider: value || undefined }))}
                   placeholder="All providers"
                   className="min-w-[160px]"
                   allowClear={true}
-                  onClear={() => setAssignmentFilters(prev => ({ ...prev, provider: undefined }))}
+                  onClear={() => setArchiveFilters(prev => ({ ...prev, provider: undefined }))}
                   showSearchThreshold={3}
                 />
               </div>
 
-              {/* Pool Filter */}
+              {/* Pool Type Filter */}
               <div className="relative">
                 <SearchableDropdown
-                  label="Pool"
+                  label="Type"
                   options={[
-                    { value: '', label: 'All pools' },
-                    ...pools.map(pool => ({
-                      value: pool.id,
-                      label: `${PROVIDER_ICONS[pool.provider] || '📦'} ${pool.login_email} (${pool.provider})`
+                    { value: '', label: 'All types' },
+                    ...Object.entries(POOL_TYPE_LABELS).map(([key, label]) => ({
+                      value: key,
+                      label
                     }))
                   ]}
-                  value={assignmentFilters.pool_id || ''}
-                  onChange={(value) => setAssignmentFilters(prev => ({ ...prev, pool_id: value || undefined }))}
-                  placeholder="All pools"
-                  className="min-w-[200px]"
+                  value={archiveFilters.pool_type || ''}
+                  onChange={(value) => setArchiveFilters(prev => ({ ...prev, pool_type: value as any || undefined }))}
+                  placeholder="All types"
+                  className="min-w-[140px]"
                   allowClear={true}
-                  onClear={() => setAssignmentFilters(prev => ({ ...prev, pool_id: undefined }))}
+                  onClear={() => setArchiveFilters(prev => ({ ...prev, pool_type: undefined }))}
                   showSearchThreshold={3}
                 />
               </div>
@@ -582,7 +653,7 @@ export default function Inventory() {
               {/* Reset Button */}
               <div className="flex items-end">
                 <button
-                  onClick={resetAssignmentFilters}
+                  onClick={resetArchiveFilters}
                   className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
                   title="Reset all filters"
                 >
@@ -592,16 +663,16 @@ export default function Inventory() {
             </div>
           </div>
 
-          {/* Assignment Stats */}
+          {/* Archive Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-green-500" />
+                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                  <Archive className="w-6 h-6 text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Total Assignments</p>
-                  <p className="text-2xl font-bold text-white">{stats.totalAssignments}</p>
+                  <p className="text-gray-400 text-sm">Total Archived</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalArchived}</p>
                 </div>
               </div>
             </div>
@@ -613,15 +684,15 @@ export default function Inventory() {
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Recent (7 days)</p>
-                  <p className="text-2xl font-bold text-white">{stats.recentAssignments}</p>
+                  <p className="text-2xl font-bold text-white">{stats.recentlyArchived}</p>
                 </div>
               </div>
             </div>
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-purple-500" />
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-green-500" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Active Pools</p>
@@ -632,36 +703,34 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-500" />
+                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Utilization</p>
-                  <p className="text-2xl font-bold text-white">
-                    {stats.totalSeats > 0 ? Math.round((stats.usedSeats / stats.totalSeats) * 100) : 0}%
-                  </p>
+                  <p className="text-gray-400 text-sm">Total Seats</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalSeats}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Assignments List */}
+          {/* Archived Pools List */}
           <div className="space-y-4">
-            {filteredAssignments.length === 0 ? (
+            {filteredArchivedPools.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-gray-400" />
+                  <Archive className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-medium text-white mb-2">No assignments found</h3>
+                <h3 className="text-lg font-medium text-white mb-2">No archived pools found</h3>
                 <p className="text-gray-400 mb-4">
-                  {assignments.length === 0 
-                    ? "No seats have been assigned yet." 
-                    : "No assignments match your current filters."
+                  {archivedPools.length === 0 
+                    ? "No pools have been archived yet." 
+                    : "No archived pools match your current filters."
                   }
                 </p>
-                {assignments.length > 0 && (
+                {archivedPools.length > 0 && (
                   <button
-                    onClick={resetAssignmentFilters}
+                    onClick={resetArchiveFilters}
                     className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
                   >
                     Reset Filters
@@ -670,10 +739,16 @@ export default function Inventory() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {filteredAssignments.map(assignment => (
-                  <AssignmentCard
-                    key={assignment.id}
-                    assignment={assignment}
+                {filteredArchivedPools.map(pool => (
+                  <PoolCard
+                    key={pool.id}
+                    pool={pool}
+                    onUpdate={handlePoolUpdate}
+                    onArchive={handlePoolRestore}
+                    onView={handlePoolView}
+                    onEdit={handlePoolEdit}
+                    onDelete={handlePoolDelete}
+                    isArchived={true}
                   />
                 ))}
               </div>
@@ -697,7 +772,21 @@ export default function Inventory() {
         }}
         pool={selectedPool}
         onUpdate={handlePoolUpdate}
-        onDelete={handlePoolDelete}
+        onDelete={handlePoolArchive}
+      />
+
+      <PoolEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedPool(null);
+        }}
+        pool={selectedPool}
+        onPoolUpdated={(updatedPool) => {
+          handlePoolUpdate(updatedPool);
+          setIsEditModalOpen(false);
+          setSelectedPool(null);
+        }}
       />
     </div>
   );

@@ -3,7 +3,7 @@ import {
   MoreVertical, 
   Eye, 
   Edit, 
-  Trash2, 
+  Archive, 
   Copy, 
   Pause, 
   Play, 
@@ -13,7 +13,9 @@ import {
   Users,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 import { ResourcePool } from '../types/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS } from '../constants/provisioning';
@@ -22,11 +24,14 @@ import { copyToClipboard } from '../lib/toast';
 interface PoolCardProps {
   pool: ResourcePool;
   onUpdate: (pool: ResourcePool) => void;
-  onDelete: (poolId: string) => void;
+  onArchive: (poolId: string) => void;
   onView: (pool: ResourcePool) => void;
+  onEdit: (pool: ResourcePool) => void;
+  onDelete: (poolId: string) => void;
+  isArchived?: boolean;
 }
 
-export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
+export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, isArchived = false }: PoolCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
 
@@ -142,7 +147,7 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
                   </button>
                   <button
                     onClick={() => {
-                      onView(pool); // Open the detail modal which has the edit functionality
+                      onEdit(pool);
                       setShowMenu(false);
                     }}
                     className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-1.5 sm:gap-2"
@@ -183,10 +188,26 @@ export function PoolCard({ pool, onUpdate, onDelete, onView }: PoolCardProps) {
                     <span className="hidden xs:inline">{pool.is_alive ? 'Mark Dead' : 'Mark Alive'}</span>
                     <span className="xs:hidden">{pool.is_alive ? 'Dead' : 'Alive'}</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(isArchived ? 'Are you sure you want to restore this pool?' : 'Are you sure you want to archive this pool?')) {
+                        onArchive(pool.id);
+                      }
+                      setShowMenu(false);
+                    }}
+                    className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${
+                      isArchived 
+                        ? 'text-green-400 hover:bg-green-900/20' 
+                        : 'text-amber-400 hover:bg-amber-900/20'
+                    }`}
+                  >
+                    {isArchived ? <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" /> : <Archive className="w-3 h-3 sm:w-4 sm:h-4" />}
+                    {isArchived ? 'Restore' : 'Archive'}
+                  </button>
                   <div className="border-t border-gray-700 my-1" />
                   <button
                     onClick={() => {
-                      if (confirm('Are you sure you want to delete this pool?')) {
+                      if (confirm('Are you sure you want to delete this pool? This action cannot be undone.')) {
                         onDelete(pool.id);
                       }
                       setShowMenu(false);

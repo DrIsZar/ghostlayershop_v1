@@ -48,6 +48,28 @@ export async function listResourcePools(filter?: PoolFilter) {
     }
   }
   
+  // Date range filters
+  if (filter?.start_date_after) {
+    query = query.gte('start_at', filter.start_date_after);
+  }
+  if (filter?.start_date_before) {
+    query = query.lte('start_at', filter.start_date_before);
+  }
+  if (filter?.end_date_after) {
+    query = query.gte('end_at', filter.end_date_after);
+  }
+  if (filter?.end_date_before) {
+    query = query.lte('end_at', filter.end_date_before);
+  }
+  
+  // Seat count filters
+  if (filter?.min_seats !== undefined) {
+    query = query.gte('max_seats', filter.min_seats);
+  }
+  if (filter?.max_seats !== undefined) {
+    query = query.lte('max_seats', filter.max_seats);
+  }
+  
   return query.order('end_at', { ascending: true });
 }
 
@@ -169,6 +191,45 @@ async function ensureCorrectSeatCount(poolId: string, targetSeatCount: number) {
 
 export async function deleteResourcePool(id: string) {
   return supabase.from('resource_pools').delete().eq('id', id);
+}
+
+export async function archiveResourcePool(id: string) {
+  return supabase
+    .from('resource_pools')
+    .update({ 
+      status: 'expired',
+      is_alive: false,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select('*')
+    .single();
+}
+
+export async function archiveExpiredPools() {
+  const now = new Date();
+  return supabase
+    .from('resource_pools')
+    .update({ 
+      status: 'expired',
+      is_alive: false,
+      updated_at: new Date().toISOString()
+    })
+    .lt('end_at', now.toISOString())
+    .in('status', ['active', 'overdue'])
+    .select('*');
+}
+
+export async function bulkArchivePools(poolIds: string[]) {
+  return supabase
+    .from('resource_pools')
+    .update({ 
+      status: 'expired',
+      is_alive: false,
+      updated_at: new Date().toISOString()
+    })
+    .in('id', poolIds)
+    .select('*');
 }
 
 // Seat management
