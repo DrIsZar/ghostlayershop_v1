@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Eye, Trash2, Copy, EyeOff } from 'lucide-react';
+import { Edit, Trash2, Copy, Eye } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, formatDate, getStatusBadge, getStrategyDisplayName, getStrategyPillColor, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
@@ -41,7 +41,6 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
-  const [showSecret, setShowSecret] = useState(false);
 
 
   // Fetch service and client names
@@ -111,9 +110,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     return () => clearInterval(interval);
   }, [subscription.nextRenewalAt, subscription.targetEndAt]);
 
-  const handleCopy = async (text: string, type: 'login' | 'password') => {
-    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
-    await copyToClipboard(text, message);
+  const handleCopy = async (text: string) => {
+    await copyToClipboard(text, 'Notes copied to clipboard');
   };
 
   const cycleProgress = computeCycleProgress(subscription);
@@ -290,61 +288,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         </div>
       )}
 
-      {/* Login Credentials Section - Mobile Viewport Optimized */}
-      {resourcePool && (
-        <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
-          <div className="flex items-start gap-2">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-            </svg>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-medium text-gray-400 mb-1 sm:mb-2">Login Credentials</h4>
-              
-              {/* Login Email */}
-              <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs text-gray-400 flex-shrink-0">Email:</span>
-                <span className="text-xs sm:text-sm text-gray-300 font-mono flex-1 truncate">
-                  {resourcePool.login_email}
-                </span>
-                <button
-                  onClick={() => handleCopy(resourcePool.login_email, 'login')}
-                  className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
-                  title="Copy login email"
-                >
-                  <Copy className="w-3 h-3" />
-                </button>
-              </div>
-
-              {/* Login Password */}
-              {resourcePool.login_secret && (
-                <div className="flex items-center gap-1 sm:gap-2" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-xs text-gray-400 flex-shrink-0">Password:</span>
-                  <span className="text-xs sm:text-sm text-gray-300 font-mono flex-1 truncate">
-                    {showSecret ? resourcePool.login_secret : '••••••••'}
-                  </span>
-                  <button
-                    onClick={() => setShowSecret(!showSecret)}
-                    className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
-                    title={showSecret ? "Hide password" : "Show password"}
-                  >
-                    {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                  </button>
-                  <button
-                    onClick={() => handleCopy(resourcePool.login_secret || '', 'password')}
-                    className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
-                    title="Copy password"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Notes Section - Mobile Viewport Optimized */}
-      {!resourcePool && subscription.notes && (
+      {subscription.notes && (
         <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
           <div className="flex items-start gap-2">
             <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +301,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCopy(subscription.notes || '', 'login');
+                    handleCopy(subscription.notes || '');
                   }}
                   className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-200 transition-colors flex-shrink-0"
                   title="Copy notes"

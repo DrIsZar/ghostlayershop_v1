@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Archive, Mail, Copy, Eye, EyeOff } from 'lucide-react';
+import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Mail } from 'lucide-react';
 import { Subscription, SubscriptionEvent } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, getStatusBadge, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { computeCycleProgress, computeRenewalProgress } from '../lib/subscriptionStrategies';
 import { supabase } from '../lib/supabase';
 import { getServiceLogo } from '../lib/fileUtils';
-import { getResourcePool, getPoolSeats } from '../lib/inventory';
-import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
-import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
-import { copyToClipboard } from '../lib/toast';
 
 interface SubscriptionDetailModalProps {
   isOpen: boolean;
@@ -33,14 +29,11 @@ export default function SubscriptionDetailModal({
   const [events, setEvents] = useState<SubscriptionEvent[]>([]);
   const [serviceName, setServiceName] = useState('');
   const [clientName, setClientName] = useState('');
-  const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
-  const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
   const [serviceLogo, setServiceLogo] = useState<string | null>(null);
   const [serviceDuration, setServiceDuration] = useState<string>('');
   // Remove edit data - editing is handled by SubscriptionEditModal
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
-  const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
     if (isOpen && subscription) {
@@ -72,10 +65,6 @@ export default function SubscriptionDetailModal({
     return () => clearInterval(interval);
   }, [subscription]);
 
-  const handleCopy = async (text: string, type: 'login' | 'password') => {
-    const message = type === 'login' ? 'Login copied to clipboard' : 'Password copied to clipboard';
-    await copyToClipboard(text, message);
-  };
 
 const fetchSubscriptionData = async () => {
     if (!subscription) return;
@@ -107,30 +96,6 @@ const fetchSubscriptionData = async () => {
         setClientName(client.name);
       }
 
-      // Fetch resource pool information if linked
-      if (subscription.resourcePoolId) {
-        try {
-          const { data: pool, error: poolError } = await getResourcePool(subscription.resourcePoolId);
-          if (poolError) throw poolError;
-          setResourcePool(pool);
-        } catch (error) {
-          console.error('Error fetching resource pool:', error);
-        }
-      }
-
-      // Fetch assigned seat information if linked
-      if (subscription.resourcePoolSeatId) {
-        try {
-          const { data: seats, error: seatsError } = await getPoolSeats(subscription.resourcePoolId || '');
-          if (seatsError) throw seatsError;
-          const seat = seats?.find(s => s.id === subscription.resourcePoolSeatId);
-          if (seat) {
-            setAssignedSeat(seat);
-          }
-        } catch (error) {
-          console.error('Error fetching assigned seat:', error);
-        }
-      }
 
       // Fetch real events from the service
       try {
@@ -575,128 +540,17 @@ const fetchSubscriptionData = async () => {
             <h3 className="text-lg font-semibold text-white">Subscription Information</h3>
             
             <div className="space-y-4">
-              {/* Login Email */}
+              {/* Notes */}
               <div className="p-4 bg-gray-800/50 rounded-lg">
                 <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  Login Email
+                  Notes
                 </h4>
                 <p className="text-white">
-                  {subscription.notes || 'No login email provided.'}
+                  {subscription.notes || 'No notes provided.'}
                 </p>
               </div>
 
-              {/* Resource Pool Information */}
-              {resourcePool && (
-                <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-                    <Archive className="w-4 h-4" />
-                    Linked Resource Pool
-                  </h4>
-                  <div className="space-y-3">
-                    {/* Pool Info */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center text-lg">
-                        {PROVIDER_ICONS[resourcePool.provider] || '📦'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">
-                            {resourcePool.provider.replace('_', ' ').toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
-                            resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
-                            'bg-red-900/30 text-red-400'
-                          }`}>
-                            {STATUS_LABELS[resourcePool.status] || resourcePool.status}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm text-gray-400">
-                            {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type}
-                          </p>
-                          
-                          {/* Login Email */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-400">Login:</span>
-                            <span className="text-sm text-white font-mono">{resourcePool.login_email}</span>
-                            <button
-                              onClick={() => handleCopy(resourcePool.login_email, 'login')}
-                              className="p-1 text-gray-400 hover:text-white transition-colors"
-                              title="Copy login email"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          {/* Login Password */}
-                          {resourcePool.login_secret && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-400">Password:</span>
-                              <span className="text-sm text-white font-mono">
-                                {showSecret ? resourcePool.login_secret : '••••••••'}
-                              </span>
-                              <button
-                                onClick={() => setShowSecret(!showSecret)}
-                                className="p-1 text-gray-400 hover:text-white transition-colors"
-                                title={showSecret ? "Hide password" : "Show password"}
-                              >
-                                {showSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                              </button>
-                              <button
-                                onClick={() => handleCopy(resourcePool.login_secret || '', 'password')}
-                                className="p-1 text-gray-400 hover:text-white transition-colors"
-                                title="Copy password"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Seat Assignment */}
-                    {assignedSeat && (
-                      <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
-                        <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
-                        <div className="flex items-center justify-between">
-                          <span className="text-white font-medium">
-                            Seat #{assignedSeat.seat_index}
-                          </span>
-                          <span className="text-sm text-gray-400">
-                            Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
-                          </span>
-                        </div>
-                        {assignedSeat.assigned_email && (
-                          <p className="text-sm text-gray-400 mt-1">
-                            Email: {assignedSeat.assigned_email}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Pool Stats */}
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400">Seats:</span>
-                        <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400">Expires:</span>
-                        <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400">Status:</span>
-                        <div className={`w-2 h-2 rounded-full ${
-                          resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Subscription Details */}
               <div className="p-4 bg-gray-800/50 rounded-lg">
