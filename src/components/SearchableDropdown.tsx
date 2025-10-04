@@ -72,18 +72,22 @@ export default function SearchableDropdown({
   // Determine if search should be shown
   const showSearch = options.length > showSearchThreshold;
 
-  // Calculate dropdown position with improved mobile handling
+  // Calculate dropdown position with improved modal and mobile handling
   const calculatePosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       
+      // Check if we're inside a modal
+      const modalElement = inputRef.current.closest('[role="dialog"], .modal, [data-modal]');
+      const isInModal = !!modalElement;
+      
       // Mobile-specific positioning
       const isMobile = viewportWidth <= 768; // md breakpoint
       
-      let top = rect.bottom + window.scrollY + 8; // Increased gap
-      let left = rect.left + window.scrollX;
+      let top = rect.bottom + 8; // Use viewport coordinates for better modal support
+      let left = rect.left;
       let width = rect.width;
       
       if (isMobile) {
@@ -97,7 +101,7 @@ export default function SearchableDropdown({
         
         // If dropdown would go off-screen, position it above the input
         if (maxHeight < 200) {
-          top = rect.top + window.scrollY - dropdownHeight - 8;
+          top = rect.top - dropdownHeight - 8;
         }
       } else {
         // Desktop: ensure dropdown doesn't go off the sides
@@ -108,6 +112,17 @@ export default function SearchableDropdown({
           left = minLeft;
         } else if (left > maxLeft) {
           left = maxLeft;
+        }
+        
+        // For modals, check if dropdown would go off-screen vertically
+        if (isInModal) {
+          const dropdownHeight = 320; // Max dropdown height
+          const maxHeight = viewportHeight - rect.bottom - 40; // 40px margin from bottom
+          
+          // If dropdown would go off-screen, position it above the input
+          if (maxHeight < 200) {
+            top = rect.top - dropdownHeight - 8;
+          }
         }
       }
       
@@ -223,6 +238,19 @@ export default function SearchableDropdown({
       setHighlightedIndex(-1);
     }
   }, [filteredOptions.length, highlightedIndex]);
+
+  // Auto-scroll to highlighted option
+  useEffect(() => {
+    if (isOpen && highlightedIndex >= 0) {
+      const optionElement = document.querySelector(`[data-dropdown-portal] [role="option"]:nth-child(${highlightedIndex + 1})`);
+      if (optionElement) {
+        optionElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
+    }
+  }, [highlightedIndex, isOpen]);
 
   // Focus search input when dropdown opens
   useEffect(() => {
@@ -354,7 +382,7 @@ export default function SearchableDropdown({
         <div
           data-dropdown-portal
           className={`
-            fixed bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-[99999] backdrop-blur-sm
+            fixed bg-gray-800 border border-gray-600 rounded-xl shadow-2xl backdrop-blur-sm
             transition-all duration-200 ease-out
             ${window.innerWidth <= 768 ? 'max-h-[60vh]' : 'max-h-[320px]'}
           `}
@@ -362,7 +390,7 @@ export default function SearchableDropdown({
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            zIndex: 99999,
+            zIndex: 999999, // Higher z-index to ensure it appears above modals
           }}
           onClick={(e) => e.stopPropagation()}
           role="listbox"
@@ -399,9 +427,12 @@ export default function SearchableDropdown({
           )}
 
           {/* Enhanced Options list */}
-          <div className="overflow-y-auto" style={{
-            maxHeight: window.innerWidth <= 768 ? 'calc(60vh - 80px)' : '240px'
-          }}>
+          <div 
+            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800" 
+            style={{
+              maxHeight: window.innerWidth <= 768 ? 'calc(60vh - 80px)' : '240px'
+            }}
+          >
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-6 text-center">
                 <div className="text-gray-400 text-sm mb-2">
@@ -435,6 +466,11 @@ export default function SearchableDropdown({
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   onTouchStart={() => setHighlightedIndex(index)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(option, e);
+                  }}
                   tabIndex={-1}
                 >
                   <span className="flex-1 truncate">{option.label}</span>

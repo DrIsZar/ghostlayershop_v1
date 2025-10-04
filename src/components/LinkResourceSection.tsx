@@ -219,7 +219,7 @@ export function LinkResourceSection({ serviceProvider, subscriptionId, customerE
             placeholder="Select a resource pool"
             searchPlaceholder="Search pools..."
             disabled={loading}
-            showSearchThreshold={5}
+            showSearchThreshold={1}
           />
           {selectedPoolId && (
             <div className="mt-2 text-sm text-gray-400">

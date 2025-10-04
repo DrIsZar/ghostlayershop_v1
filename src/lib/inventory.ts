@@ -278,7 +278,19 @@ export async function getPoolWithSeats(poolId: string) {
 }
 
 export async function assignSeat(seatId: string, assignment: SeatAssignment) {
-  return supabase
+  // First, get the seat to find its pool_id
+  const { data: seat, error: seatError } = await supabase
+    .from('resource_pool_seats')
+    .select('pool_id')
+    .eq('id', seatId)
+    .single();
+
+  if (seatError || !seat) {
+    return { data: null, error: seatError || new Error('Seat not found') };
+  }
+
+  // Update the seat
+  const seatUpdate = supabase
     .from('resource_pool_seats')
     .update({
       assigned_email: assignment.email || null,
@@ -292,10 +304,47 @@ export async function assignSeat(seatId: string, assignment: SeatAssignment) {
     .eq('id', seatId)
     .select('*')
     .single();
+
+  // If a subscription is being assigned, also update the subscription to link it to this pool and seat
+  let subscriptionUpdate = null;
+  if (assignment.subscriptionId) {
+    subscriptionUpdate = supabase
+      .from('subscriptions')
+      .update({
+        resource_pool_id: seat.pool_id,
+        resource_pool_seat_id: seatId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', assignment.subscriptionId);
+  }
+
+  // Execute updates
+  if (subscriptionUpdate) {
+    const [seatResult, subResult] = await Promise.all([seatUpdate, subscriptionUpdate]);
+    
+    if (seatResult.error) return { data: null, error: seatResult.error };
+    if (subResult.error) return { data: null, error: subResult.error };
+    
+    return seatResult;
+  } else {
+    return await seatUpdate;
+  }
 }
 
 export async function unassignSeat(seatId: string) {
-  return supabase
+  // First, get the current seat assignment to find the subscription
+  const { data: seat, error: seatError } = await supabase
+    .from('resource_pool_seats')
+    .select('assigned_subscription_id')
+    .eq('id', seatId)
+    .single();
+
+  if (seatError) {
+    return { data: null, error: seatError };
+  }
+
+  // Update the seat
+  const seatUpdate = supabase
     .from('resource_pool_seats')
     .update({
       assigned_email: null,
@@ -306,6 +355,31 @@ export async function unassignSeat(seatId: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', seatId);
+
+  // If there was a subscription assigned, also unlink it from the pool and seat
+  let subscriptionUpdate = null;
+  if (seat?.assigned_subscription_id) {
+    subscriptionUpdate = supabase
+      .from('subscriptions')
+      .update({
+        resource_pool_id: null,
+        resource_pool_seat_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', seat.assigned_subscription_id);
+  }
+
+  // Execute updates
+  if (subscriptionUpdate) {
+    const [seatResult, subResult] = await Promise.all([seatUpdate, subscriptionUpdate]);
+    
+    if (seatResult.error) return { data: null, error: seatResult.error };
+    if (subResult.error) return { data: null, error: subResult.error };
+    
+    return seatResult;
+  } else {
+    return await seatUpdate;
+  }
 }
 
 // RPC functions
@@ -457,13 +531,15 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
       })
       .eq('id', subscriptionId);
 
-    // Also update the seat to mark it as assigned
+    // Also update the seat to mark it as assigned with assignment details
     const seatUpdate = supabase
       .from('resource_pool_seats')
       .update({
         seat_status: 'assigned',
         assigned_subscription_id: subscriptionId,
-        assigned_at: new Date().toISOString(),
+        assigned_email: assignment?.email || null,
+        assigned_client_id: assignment?.clientId || null,
+        assigned_at: assignment?.assignedAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', seatId);

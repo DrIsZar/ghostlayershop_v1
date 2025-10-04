@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Calendar, User, Package, Info, Clock, Mail, Archive, Edit, Unlink, Save, Trash2 } from 'lucide-react';
 import { Subscription, RenewalStrategyKey } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -61,6 +61,7 @@ export default function SubscriptionEditModal({
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
   const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
   const [showResourceLinking, setShowResourceLinking] = useState(false);
+  const linkResourceSectionRef = useRef<HTMLDivElement>(null);
 
   // Populate form data when subscription changes
   useEffect(() => {
@@ -277,7 +278,10 @@ export default function SubscriptionEditModal({
   const handleUnlinkPool = async () => {
     if (!subscription?.resourcePoolId) return;
     
-    if (!confirm('Are you sure you want to unlink this subscription from the resource pool? This will free up the assigned seat.')) {
+    const poolInfo = resourcePool ? `${resourcePool.provider.replace('_', ' ').toUpperCase()} (${resourcePool.login_email})` : 'the resource pool';
+    const seatInfo = assignedSeat ? ` and free up seat #${assignedSeat.seat_index}` : '';
+    
+    if (!confirm(`Are you sure you want to unlink this subscription from ${poolInfo}?${seatInfo}\n\nThis action will:\n• Remove the pool assignment from this subscription\n• Free up the assigned seat for other subscriptions\n• Cannot be undone automatically`)) {
       return;
     }
 
@@ -310,6 +314,19 @@ export default function SubscriptionEditModal({
     // Refresh resource pool info after linking
     await fetchResourcePoolInfo();
     setShowResourceLinking(false);
+  };
+
+  const handleSwitchPool = () => {
+    setShowResourceLinking(true);
+    // Scroll to the Link Resource Pool section after a short delay to ensure it's rendered
+    setTimeout(() => {
+      if (linkResourceSectionRef.current) {
+        linkResourceSectionRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, 100);
   };
 
   const getServiceProvider = () => {
@@ -345,10 +362,15 @@ export default function SubscriptionEditModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">
+      <div 
+        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-subscription-title"
+      >
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-700 flex-shrink-0">
+          <h2 id="edit-subscription-title" className="text-xl font-semibold text-white">
             Edit Subscription
           </h2>
           <button
@@ -359,7 +381,9 @@ export default function SubscriptionEditModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
           {/* Service Selection */}
           <div>
             <SearchableDropdown
@@ -519,7 +543,7 @@ export default function SubscriptionEditModal({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowResourceLinking(true)}
+                    onClick={handleSwitchPool}
                     disabled={isLoading}
                     className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
                   >
@@ -607,12 +631,17 @@ export default function SubscriptionEditModal({
 
           {/* Resource Pool Linking */}
           {showResourceLinking && subscription && selectedService && (
-            <LinkResourceSection
-              serviceProvider={getServiceProvider()}
-              subscriptionId={subscription.id}
-              customerEmail={formData.notes || `customer-${subscription.id.slice(0, 8)}`}
-              onResourceLinked={handleResourceLinked}
-            />
+            <div 
+              ref={linkResourceSectionRef}
+              className="border-2 border-blue-500 rounded-xl p-1 -m-1 animate-pulse"
+            >
+              <LinkResourceSection
+                serviceProvider={getServiceProvider()}
+                subscriptionId={subscription.id}
+                customerEmail={formData.notes || `customer-${subscription.id.slice(0, 8)}`}
+                onResourceLinked={handleResourceLinked}
+              />
+            </div>
           )}
 
           {/* Link Resource Pool Button (if no pool linked) */}
@@ -626,7 +655,7 @@ export default function SubscriptionEditModal({
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowResourceLinking(true)}
+                  onClick={handleSwitchPool}
                   className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
                 >
                   Link Pool
@@ -635,40 +664,42 @@ export default function SubscriptionEditModal({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
-            <button
-              onClick={handleSave}
-              disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isLoading}
-              className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-            >
-              Cancel
-            </button>
           </div>
+        </div>
+
+        {/* Actions - Fixed Footer */}
+        <div className="flex gap-3 p-6 border-t border-gray-700 flex-shrink-0 bg-gray-900">
+          <button
+            onClick={handleSave}
+            disabled={isLoading}
+            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save Changes
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isLoading}
+            className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>

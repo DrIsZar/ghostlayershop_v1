@@ -3,6 +3,7 @@ import { X, Save, Calendar, Users, Mail, Lock, FileText } from 'lucide-react';
 import { ResourcePool } from '../types/inventory';
 import { updateResourcePool } from '../lib/inventory';
 import { SERVICE_PROVISIONING, POOL_TYPE_LABELS } from '../constants/provisioning';
+import SearchableDropdown from './SearchableDropdown';
 
 interface PoolEditModalProps {
   isOpen: boolean;
@@ -159,20 +160,16 @@ export default function PoolEditModal({
 
           {/* Pool Type */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              Pool Type
-            </label>
-            <select
+            <SearchableDropdown
+              label="Pool Type"
+              icon={<Users className="w-4 h-4" />}
+              options={poolTypeOptions}
               value={formData.pool_type}
-              onChange={(e) => handleInputChange('pool_type', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              {poolTypeOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleInputChange('pool_type', value)}
+              placeholder="Select pool type"
+              searchPlaceholder="Search pool types..."
+              showSearchThreshold={1}
+            />
           </div>
 
           {/* Login Email */}

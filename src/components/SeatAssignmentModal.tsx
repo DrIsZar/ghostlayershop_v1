@@ -7,6 +7,7 @@ import { subscriptionService } from '../lib/subscriptionService';
 import { supabase } from '../lib/supabase';
 import { Client } from '../types/client';
 import { Subscription } from '../types/subscription';
+import SearchableDropdown from './SearchableDropdown';
 
 interface SeatAssignmentModalProps {
   isOpen: boolean;
@@ -269,56 +270,59 @@ export default function SeatAssignmentModal({
 
           {/* Client Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              <User className="w-4 h-4 inline mr-2" />
-              Link to Client (Optional)
-            </label>
-            <select
+            <SearchableDropdown
+              label="Link to Client (Optional)"
+              icon={<User className="w-4 h-4" />}
+              options={[
+                { value: '', label: 'Select a client...' },
+                ...clients.map(client => ({
+                  value: client.id,
+                  label: `${client.name} (${client.email})`
+                }))
+              ]}
               value={formData.assigned_client_id}
-              onChange={(e) => handleInputChange('assigned_client_id', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              <option value="">Select a client...</option>
-              {clients.map(client => (
-                <option key={client.id} value={client.id}>
-                  {client.name} ({client.email})
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleInputChange('assigned_client_id', value)}
+              placeholder="Select a client..."
+              searchPlaceholder="Search clients..."
+              showSearchThreshold={1}
+            />
           </div>
 
           {/* Subscription Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              <Link className="w-4 h-4 inline mr-2" />
-              Link to Subscription (Optional)
-            </label>
-            <select
-              value={formData.assigned_subscription_id}
-              onChange={(e) => handleInputChange('assigned_subscription_id', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            >
-              <option value="">Select a subscription...</option>
-              {(() => {
+            <SearchableDropdown
+              label="Link to Subscription (Optional)"
+              icon={<Link className="w-4 h-4" />}
+              options={(() => {
                 const filteredSubscriptions = subscriptions.filter(subscription => 
                   !formData.assigned_client_id || subscription.clientId === formData.assigned_client_id
                 );
                 
+                const options = [
+                  { value: '', label: 'Select a subscription...' }
+                ];
+                
                 if (filteredSubscriptions.length === 0 && formData.assigned_client_id) {
-                  return (
-                    <option value="" disabled>
-                      No subscriptions found for selected client
-                    </option>
-                  );
+                  options.push({
+                    value: '',
+                    label: 'No subscriptions found for selected client',
+                    disabled: true
+                  });
+                } else {
+                  options.push(...filteredSubscriptions.map(subscription => ({
+                    value: subscription.id,
+                    label: `${subscription.service_name} (${subscription.customer_login})`
+                  })));
                 }
                 
-                return filteredSubscriptions.map(subscription => (
-                  <option key={subscription.id} value={subscription.id}>
-                    {subscription.service_name} ({subscription.customer_login})
-                  </option>
-                ));
+                return options;
               })()}
-            </select>
+              value={formData.assigned_subscription_id}
+              onChange={(value) => handleInputChange('assigned_subscription_id', value)}
+              placeholder="Select a subscription..."
+              searchPlaceholder="Search subscriptions..."
+              showSearchThreshold={1}
+            />
             {formData.assigned_client_id && subscriptions.filter(s => s.clientId === formData.assigned_client_id).length === 0 && (
               <p className="mt-1 text-sm text-amber-400">
                 No subscriptions found for the selected client
