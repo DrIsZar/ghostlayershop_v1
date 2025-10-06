@@ -11,7 +11,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
-  RotateCcw
+  RotateCcw,
+  Archive
 } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -24,6 +25,7 @@ import { formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
 
 type ViewMode = 'all' | 'active' | 'completed' | 'archived' | 'dueToday' | 'dueIn3Days' | 'overdue';
+type ArchiveViewMode = 'subscriptions' | 'archive';
 type GroupByMode = 'none' | 'client' | 'service';
 
 interface Client {
@@ -51,7 +53,9 @@ interface GroupedSubscriptions {
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [archivedSubscriptions, setArchivedSubscriptions] = useState<Subscription[]>([]);
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
+  const [filteredArchivedSubscriptions, setFilteredArchivedSubscriptions] = useState<Subscription[]>([]);
   const [groupedSubscriptions, setGroupedSubscriptions] = useState<GroupedSubscriptions[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,6 +64,9 @@ export default function Subscriptions() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [dueBuckets, setDueBuckets] = useState({ dueToday: 0, dueIn3Days: 0, overdue: 0 });
+  
+  // Archive view state
+  const [archiveViewMode, setArchiveViewMode] = useState<ArchiveViewMode>('subscriptions');
   
   // Filter state
   const [viewMode, setViewMode] = useState<ViewMode>('all');
@@ -78,6 +85,7 @@ export default function Subscriptions() {
 
   useEffect(() => {
     fetchSubscriptions();
+    fetchArchivedSubscriptions();
     fetchDueBuckets();
     loadFiltersFromURL();
   }, []);
@@ -86,6 +94,7 @@ export default function Subscriptions() {
   const handleManualRefresh = async () => {
     console.log('Manual refresh triggered');
     await fetchSubscriptions(true);
+    await fetchArchivedSubscriptions(true);
     await fetchDueBuckets();
   };
 
@@ -104,9 +113,13 @@ export default function Subscriptions() {
   }, [searchTerm]);
 
   useEffect(() => {
-    applyFilters();
+    if (archiveViewMode === 'subscriptions') {
+      applyFilters();
+    } else {
+      applyArchiveFilters();
+    }
     saveFiltersToURL();
-  }, [subscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, debouncedSearchTerm]);
+  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, debouncedSearchTerm, archiveViewMode]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -131,6 +144,17 @@ export default function Subscriptions() {
     const group = urlParams.get('groupBy') as GroupByMode;
     const clientId = urlParams.get('clientId') || '';
     const serviceId = urlParams.get('serviceId') || '';
+    const archiveView = urlParams.get('archiveView') as ArchiveViewMode;
+
+    // Load archive view mode
+    if (archiveView && ['subscriptions', 'archive'].includes(archiveView)) {
+      setArchiveViewMode(archiveView);
+    } else {
+      const savedArchiveView = localStorage.getItem('subscription-archive-view-mode') as ArchiveViewMode;
+      if (savedArchiveView && ['subscriptions', 'archive'].includes(savedArchiveView)) {
+        setArchiveViewMode(savedArchiveView);
+      }
+    }
 
     // Load from URL first, then fallback to localStorage
     if (view && ['all', 'active', 'completed', 'archived', 'dueToday', 'dueIn3Days', 'overdue'].includes(view)) {
@@ -168,6 +192,7 @@ export default function Subscriptions() {
 
   const saveFiltersToURL = () => {
     const urlParams = new URLSearchParams();
+    if (archiveViewMode !== 'subscriptions') urlParams.set('archiveView', archiveViewMode);
     if (viewMode !== 'all') urlParams.set('view', viewMode);
     if (groupBy !== 'none') urlParams.set('groupBy', groupBy);
     if (selectedClientId) urlParams.set('clientId', selectedClientId);
@@ -177,6 +202,7 @@ export default function Subscriptions() {
     window.history.replaceState({}, '', newURL);
 
     // Also save to localStorage
+    localStorage.setItem('subscription-archive-view-mode', archiveViewMode);
     localStorage.setItem('subscription-view-mode', viewMode);
     localStorage.setItem('subscription-group-by', groupBy);
     localStorage.setItem('subscription-client-id', selectedClientId);
@@ -191,11 +217,28 @@ export default function Subscriptions() {
       }
       const data = await subscriptionService.listSubscriptions();
       console.log('Fetched subscriptions:', data.length, 'records');
-      setSubscriptions(data);
+      // Filter out archived subscriptions
+      const activeSubscriptions = data.filter(sub => sub.status !== 'archived');
+      setSubscriptions(activeSubscriptions);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchArchivedSubscriptions = async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) {
+        console.log('Force refreshing archived subscriptions from database...');
+      }
+      const data = await subscriptionService.listSubscriptions();
+      console.log('Fetched archived subscriptions:', data.length, 'records');
+      // Filter only archived subscriptions
+      const archivedSubs = data.filter(sub => sub.status === 'archived');
+      setArchivedSubscriptions(archivedSubs);
+    } catch (error) {
+      console.error('Error fetching archived subscriptions:', error);
     }
   };
 
@@ -341,6 +384,49 @@ export default function Subscriptions() {
     }
   };
 
+  const applyArchiveFilters = () => {
+    let filtered = [...archivedSubscriptions];
+
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      
+      filtered = filtered.filter(sub => {
+        // Search in service name
+        const service = services.find(s => s.id === sub.serviceId);
+        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
+        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
+        
+        // Search in client name
+        const client = clients.find(c => c.id === sub.clientId);
+        const clientName = client ? client.name : '';
+        const clientMatch = clientName.toLowerCase().includes(searchLower);
+        
+        // Search in notes
+        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
+        
+        return serviceMatch || clientMatch || notesMatch;
+      });
+    }
+
+    // Apply client filter
+    if (selectedClientId) {
+      filtered = filtered.filter(sub => sub.clientId === selectedClientId);
+    }
+
+    // Apply service filter
+    if (selectedServiceId) {
+      filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
+    }
+
+    // Sort archived subscriptions by archive date (most recent first)
+    filtered.sort((a, b) => {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+
+    setFilteredArchivedSubscriptions(filtered);
+  };
+
   const groupSubscriptions = (subs: Subscription[], groupMode: 'client' | 'service'): GroupedSubscriptions[] => {
     const groups = new Map<string, GroupedSubscriptions>();
 
@@ -384,12 +470,14 @@ export default function Subscriptions() {
     setSelectedClientId('');
     setSelectedServiceId('');
     setSearchTerm('');
+    setArchiveViewMode('subscriptions');
     
     // Clear localStorage
     localStorage.removeItem('subscription-view-mode');
     localStorage.removeItem('subscription-group-by');
     localStorage.removeItem('subscription-client-id');
     localStorage.removeItem('subscription-service-id');
+    localStorage.removeItem('subscription-archive-view-mode');
   };
 
   const toggleGroup = (groupKey: string) => {
@@ -422,6 +510,9 @@ export default function Subscriptions() {
     setSubscriptions(prev => prev.map(sub => 
       sub.id === updatedSubscription.id ? updatedSubscription : sub
     ));
+    setArchivedSubscriptions(prev => prev.map(sub => 
+      sub.id === updatedSubscription.id ? updatedSubscription : sub
+    ));
     fetchDueBuckets();
   };
 
@@ -432,6 +523,10 @@ export default function Subscriptions() {
     setSubscriptions(prev => {
       const filtered = prev.filter(sub => sub.id !== subscriptionId);
       console.log('Local state updated - removed subscription, remaining count:', filtered.length);
+      return filtered;
+    });
+    setArchivedSubscriptions(prev => {
+      const filtered = prev.filter(sub => sub.id !== subscriptionId);
       return filtered;
     });
     
@@ -457,7 +552,11 @@ export default function Subscriptions() {
           console.log('✅ Confirmed: Subscription successfully removed from database');
         }
         
-        setSubscriptions(data);
+        // Filter active and archived subscriptions
+        const activeSubscriptions = data.filter(sub => sub.status !== 'archived');
+        const archivedSubs = data.filter(sub => sub.status === 'archived');
+        setSubscriptions(activeSubscriptions);
+        setArchivedSubscriptions(archivedSubs);
       } catch (error) {
         console.error('❌ Error refreshing subscriptions after deletion:', error);
       }
@@ -475,7 +574,7 @@ export default function Subscriptions() {
   };
 
   const getTotalArchived = () => {
-    return filteredSubscriptions.filter(sub => sub.status === 'archived').length;
+    return archiveViewMode === 'archive' ? filteredArchivedSubscriptions.length : archivedSubscriptions.length;
   };
 
   const getFilteredDueBuckets = () => {
@@ -536,7 +635,35 @@ export default function Subscriptions() {
         </div>
       </div>
 
-      {/* Filter Toolbar */}
+      {/* View Tabs */}
+      <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+        <button
+          onClick={() => setArchiveViewMode('subscriptions')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            archiveViewMode === 'subscriptions'
+              ? 'bg-green-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <Package className="w-4 h-4 inline mr-2" />
+          Subscriptions
+        </button>
+        <button
+          onClick={() => setArchiveViewMode('archive')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            archiveViewMode === 'archive'
+              ? 'bg-green-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <Archive className="w-4 h-4 inline mr-2" />
+          Archive
+        </button>
+      </div>
+
+      {archiveViewMode === 'subscriptions' && (
+        <>
+          {/* Filter Toolbar */}
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
         <div className="flex flex-wrap gap-4 items-center">
           {/* Search Input */}
@@ -850,6 +977,133 @@ export default function Subscriptions() {
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {archiveViewMode === 'archive' && (
+        <>
+          {/* Archive Filter Toolbar */}
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[300px]">
+                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <input
+                    type="text"
+                    placeholder="Search archived subscriptions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Client Selector */}
+              <div className="relative client-selector">
+                <SearchableDropdown
+                  label="Client"
+                  options={[
+                    { value: '', label: 'All clients' },
+                    ...clients.map(client => ({
+                      value: client.id,
+                      label: client.name
+                    }))
+                  ]}
+                  value={selectedClientId}
+                  onChange={(value) => setSelectedClientId(value)}
+                  placeholder="All clients"
+                  searchPlaceholder="Search clients..."
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => setSelectedClientId('')}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Service Selector */}
+              <div className="relative service-selector">
+                <SearchableDropdown
+                  label="Service"
+                  options={[
+                    { value: '', label: 'All services' },
+                    ...services.map(service => ({
+                      value: service.id,
+                      label: formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')
+                    }))
+                  ]}
+                  value={selectedServiceId}
+                  onChange={(value) => setSelectedServiceId(value)}
+                  placeholder="All services"
+                  searchPlaceholder="Search services..."
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => setSelectedServiceId('')}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Archive Stats */}
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+            <div className="text-2xl font-bold text-gray-400">{getTotalArchived()}</div>
+            <div className="text-sm text-gray-400">Archived Subscriptions</div>
+          </div>
+
+          {/* Archived Subscriptions List */}
+          <div className="w-full max-w-full overflow-hidden">
+            {filteredArchivedSubscriptions.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Archive className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No archived subscriptions</h3>
+                <p className="text-gray-400 mb-4">
+                  Archived subscriptions will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="w-full px-2 sm:px-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                  {filteredArchivedSubscriptions.map(subscription => (
+                    <div key={subscription.id} className="w-full min-w-0">
+                      <SubscriptionCard
+                        subscription={subscription}
+                        onUpdate={handleSubscriptionUpdate}
+                        onDelete={handleSubscriptionDelete}
+                        onView={handleSubscriptionView}
+                        onEdit={handleSubscriptionEdit}
+                        isArchived={true}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Create/Edit Subscription Modal */}
       <SubscriptionModal

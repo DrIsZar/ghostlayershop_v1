@@ -1,5 +1,5 @@
 import { Subscription, SubscriptionEvent, RenewalStrategyKey, ServiceConfig } from '../types/subscription';
-import { STRATEGIES } from './subscriptionStrategies';
+import { STRATEGIES, onRenewWithPoolAwareness, computeNextRenewalWithPoolAwareness, computeNextRenewalWithoutCustomWithPoolAwareness } from './subscriptionStrategies';
 import { supabase } from './supabase';
 import { SupabaseSubscriptionPersistenceAdapter, SubscriptionPersistenceAdapter } from './supabaseSubscriptionAdapter';
 
@@ -92,6 +92,8 @@ export class SubscriptionService {
         updatedAt: startDate
       };
 
+      // Use pool-aware logic if the subscription will be linked to a pool
+      // For now, we'll use the standard logic since we don't have pool info at creation time
       const nextRenewal = strategyHandler.computeNextRenewal(tempSub);
       if (nextRenewal) {
         nextRenewalAt = nextRenewal.toISOString();
@@ -153,12 +155,8 @@ export class SubscriptionService {
       throw new Error(`Cannot renew subscription with status: ${subscription.status}`);
     }
 
-    const strategyHandler = STRATEGIES[subscription.strategy];
-    if (!strategyHandler.onRenew) {
-      throw new Error(`Strategy ${subscription.strategy} does not support renewals`);
-    }
-
-    const updates = strategyHandler.onRenew(subscription);
+    // Use pool-aware renewal logic
+    const updates = await onRenewWithPoolAwareness(subscription);
     const now = new Date().toISOString();
 
     // Calculate renewal details for history
@@ -185,7 +183,8 @@ export class SubscriptionService {
         nextRenewalDate: nextRenewalDate?.toISOString(),
         intervalDays: subscription.intervalDays,
         cycleStartDate: updates.currentCycleStartAt,
-        cycleEndDate: updates.nextRenewalAt
+        cycleEndDate: updates.nextRenewalAt,
+        poolAware: true // Flag to indicate pool-aware logic was used
       }
     });
 
@@ -238,15 +237,11 @@ export class SubscriptionService {
       throw new Error(`Cannot clear custom date for subscription with status: ${subscription.status}`);
     }
 
-    const strategyHandler = STRATEGIES[subscription.strategy];
-    if (!strategyHandler?.computeNextRenewalWithoutCustom) {
-      throw new Error(`Strategy ${subscription.strategy} does not support renewal calculations`);
-    }
-
     let nextRenewalAt: string | undefined = undefined;
     
     try {
-      const nextRenewal = strategyHandler.computeNextRenewalWithoutCustom(subscription);
+      // Use pool-aware logic to calculate next renewal
+      const nextRenewal = await computeNextRenewalWithoutCustomWithPoolAwareness(subscription);
       nextRenewalAt = nextRenewal ? nextRenewal.toISOString() : undefined;
     } catch (error) {
       console.error('Error calculating next renewal date:', error);
@@ -266,7 +261,8 @@ export class SubscriptionService {
       meta: { 
         previousCustomDate: subscription.customNextRenewalAt,
         newNextRenewalAt: nextRenewalAt,
-        strategy: subscription.strategy
+        strategy: subscription.strategy,
+        poolAware: true // Flag to indicate pool-aware logic was used
       }
     });
 
@@ -336,15 +332,11 @@ export class SubscriptionService {
       throw new Error(`Subscription is already active and cannot be reverted`);
     }
 
-    const strategyHandler = STRATEGIES[subscription.strategy];
-    if (!strategyHandler?.computeNextRenewalWithoutCustom) {
-      throw new Error(`Strategy ${subscription.strategy} does not support renewal calculations`);
-    }
-
     let nextRenewalAt: string | undefined = undefined;
     
     try {
-      const nextRenewal = strategyHandler.computeNextRenewalWithoutCustom(subscription);
+      // Use pool-aware logic to calculate next renewal
+      const nextRenewal = await computeNextRenewalWithoutCustomWithPoolAwareness(subscription);
       nextRenewalAt = nextRenewal ? nextRenewal.toISOString() : undefined;
     } catch (error) {
       console.error('Error calculating next renewal date:', error);
@@ -366,7 +358,8 @@ export class SubscriptionService {
       meta: { 
         previousStatus: previousStatus,
         newNextRenewalAt: nextRenewalAt,
-        strategy: subscription.strategy
+        strategy: subscription.strategy,
+        poolAware: true // Flag to indicate pool-aware logic was used
       }
     });
 
@@ -439,6 +432,49 @@ export class SubscriptionService {
   async getSubscriptionHistory(subscriptionId: string): Promise<SubscriptionEvent[]> {
     const events = await this.persistenceAdapter.getSubscriptionEvents(subscriptionId);
     return events.sort((a: SubscriptionEvent, b: SubscriptionEvent) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  }
+
+  // Method to recalculate renewal date when subscription is linked to a pool
+  async recalculateRenewalDateForPool(subscriptionId: string): Promise<Subscription> {
+    const subscription = await this.persistenceAdapter.getSubscription(subscriptionId);
+    if (!subscription) {
+      throw new Error(`Subscription not found: ${subscriptionId}`);
+    }
+
+    if (subscription.status !== 'active') {
+      throw new Error(`Cannot recalculate renewal date for subscription with status: ${subscription.status}`);
+    }
+
+    let nextRenewalAt: string | undefined = undefined;
+    
+    try {
+      // Use pool-aware logic to calculate next renewal
+      const nextRenewal = await computeNextRenewalWithPoolAwareness(subscription);
+      nextRenewalAt = nextRenewal ? nextRenewal.toISOString() : undefined;
+    } catch (error) {
+      console.error('Error calculating next renewal date:', error);
+    }
+
+    const now = new Date().toISOString();
+    const updatedSubscription = await this.persistenceAdapter.updateSubscription(subscriptionId, {
+      nextRenewalAt: nextRenewalAt,
+      updatedAt: now
+    });
+
+    await this.persistenceAdapter.createSubscriptionEvent({
+      subscriptionId: subscriptionId,
+      type: 'renewal_recalculated',
+      at: now,
+      meta: { 
+        previousNextRenewalAt: subscription.nextRenewalAt,
+        newNextRenewalAt: nextRenewalAt,
+        strategy: subscription.strategy,
+        poolAware: true,
+        reason: 'pool_linked'
+      }
+    });
+
+    return updatedSubscription;
   }
 }
 

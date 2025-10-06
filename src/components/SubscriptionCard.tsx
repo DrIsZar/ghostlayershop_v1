@@ -26,6 +26,7 @@ interface SubscriptionCardProps {
   onDelete: (id: string) => void;
   onView: (subscription: Subscription) => void;
   onEdit: (subscription: Subscription) => void;
+  isArchived?: boolean;
 }
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
@@ -33,7 +34,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   onUpdate,
   onDelete,
   onView,
-  onEdit
+  onEdit,
+  isArchived = false
 }) => {
   const [serviceName, setServiceName] = useState<string>('');
   const [serviceDuration, setServiceDuration] = useState<string>('');

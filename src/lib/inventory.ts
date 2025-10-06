@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { subscriptionService } from './subscriptionService';
 import { 
   ResourcePool, 
   ResourcePoolSeat, 
@@ -550,13 +551,20 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
     if (subResult.error) return { data: null, error: subResult.error };
     if (seatResult.error) return { data: null, error: seatResult.error };
     
+    // Recalculate renewal date with pool awareness
+    try {
+      await subscriptionService.recalculateRenewalDateForPool(subscriptionId);
+    } catch (error) {
+      console.error('Error recalculating renewal date for pool link:', error);
+    }
+    
     return subResult;
   } else {
     // Auto-assign next available seat
     const { data: seatData, error: seatError } = await assignNextFreeSeat(poolId, assignment || {});
     if (seatError) return { data: null, error: seatError };
     
-    return supabase
+    const result = await supabase
       .from('subscriptions')
       .update({
         resource_pool_id: poolId,
@@ -564,6 +572,17 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
         updated_at: new Date().toISOString(),
       })
       .eq('id', subscriptionId);
+
+    // Recalculate renewal date with pool awareness
+    if (!result.error) {
+      try {
+        await subscriptionService.recalculateRenewalDateForPool(subscriptionId);
+      } catch (error) {
+        console.error('Error recalculating renewal date for pool link:', error);
+      }
+    }
+    
+    return result;
   }
 }
 
@@ -589,4 +608,37 @@ export async function unlinkSubscriptionFromPool(subscriptionId: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId);
+}
+
+// Get pool information for a subscription
+export async function getPoolForSubscription(subscriptionId: string): Promise<{ data: ResourcePool | null; error: any }> {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select(`
+      resource_pool_id,
+      resource_pools (
+        id,
+        provider,
+        pool_type,
+        login_email,
+        login_secret,
+        notes,
+        start_at,
+        end_at,
+        is_alive,
+        max_seats,
+        used_seats,
+        status,
+        created_at,
+        updated_at
+      )
+    `)
+    .eq('id', subscriptionId)
+    .single();
+
+  if (error) {
+    return { data: null, error };
+  }
+
+  return { data: data?.resource_pools || null, error: null };
 }

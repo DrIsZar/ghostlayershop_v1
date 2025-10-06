@@ -1,4 +1,5 @@
 import { RenewalStrategyKey, StrategyHandler, Subscription } from '../types/subscription';
+import { getPoolForSubscription } from './inventory';
 
 // Utility function to add months to a date
 const addMonths = (date: Date, months: number): Date => {
@@ -26,6 +27,35 @@ const isWithinDays = (date: Date, days: number): boolean => {
   const diffTime = date.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= days;
+};
+
+// Utility function to check if pool is ending soon (within 7 days)
+const isPoolEndingSoon = async (subscription: Subscription): Promise<Date | null> => {
+  if (!subscription.resourcePoolId) {
+    return null;
+  }
+
+  try {
+    const { data: pool, error } = await getPoolForSubscription(subscription.id);
+    if (error || !pool) {
+      return null;
+    }
+
+    const poolEndDate = new Date(pool.end_at);
+    const today = new Date();
+    const diffTime = poolEndDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // If pool ends within 7 days, return the pool end date
+    if (diffDays >= 0 && diffDays <= 7) {
+      return poolEndDate;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error checking pool end date:', error);
+    return null;
+  }
 };
 
 export const STRATEGIES: Record<RenewalStrategyKey, StrategyHandler> = {
@@ -87,6 +117,60 @@ export const STRATEGIES: Record<RenewalStrategyKey, StrategyHandler> = {
       };
     }
   }
+};
+
+// Pool-aware strategy functions
+export const computeNextRenewalWithPoolAwareness = async (sub: Subscription): Promise<Date | null> => {
+  // First check if pool is ending soon
+  const poolEndDate = await isPoolEndingSoon(sub);
+  if (poolEndDate) {
+    return poolEndDate;
+  }
+
+  // Otherwise use the standard strategy logic
+  const strategyHandler = STRATEGIES[sub.strategy];
+  if (!strategyHandler?.computeNextRenewal) {
+    return null;
+  }
+
+  return strategyHandler.computeNextRenewal(sub);
+};
+
+export const computeNextRenewalWithoutCustomWithPoolAwareness = async (sub: Subscription): Promise<Date | null> => {
+  // First check if pool is ending soon
+  const poolEndDate = await isPoolEndingSoon(sub);
+  if (poolEndDate) {
+    return poolEndDate;
+  }
+
+  // Otherwise use the standard strategy logic
+  const strategyHandler = STRATEGIES[sub.strategy];
+  if (!strategyHandler?.computeNextRenewalWithoutCustom) {
+    return null;
+  }
+
+  return strategyHandler.computeNextRenewalWithoutCustom(sub);
+};
+
+export const onRenewWithPoolAwareness = async (sub: Subscription): Promise<Partial<Subscription>> => {
+  const strategyHandler = STRATEGIES[sub.strategy];
+  if (!strategyHandler?.onRenew) {
+    throw new Error(`Strategy ${sub.strategy} does not support renewals`);
+  }
+
+  const updates = strategyHandler.onRenew(sub);
+  const now = new Date();
+
+  // Check if pool is ending soon and adjust the next renewal date
+  const poolEndDate = await isPoolEndingSoon(sub);
+  if (poolEndDate && updates.nextRenewalAt) {
+    const calculatedRenewal = new Date(updates.nextRenewalAt);
+    if (poolEndDate < calculatedRenewal) {
+      updates.nextRenewalAt = poolEndDate.toISOString();
+    }
+  }
+
+  return updates;
 };
 
 // Utility functions for subscription state
