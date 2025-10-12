@@ -43,7 +43,31 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
+  const [logoRefreshTrigger, setLogoRefreshTrigger] = useState(0);
 
+
+  // Listen for localStorage changes and custom logo update events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('service_logo_')) {
+        // Force logo refresh when localStorage changes
+        setLogoRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    const handleLogoUpdate = () => {
+      // Force logo refresh when custom logo update event is dispatched
+      setLogoRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('logoUpdated', handleLogoUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('logoUpdated', handleLogoUpdate);
+    };
+  }, []);
 
   // Fetch service and client names
   useEffect(() => {
@@ -59,6 +83,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         if (serviceData) {
           setServiceName(serviceData.product_service);
           setServiceDuration(serviceData.duration);
+          // Trigger logo refresh when service name is loaded
+          setLogoRefreshTrigger(prev => prev + 1);
         }
 
         // Fetch client name
@@ -155,6 +181,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 const serviceLogo = getServiceLogo(serviceName);
                 return serviceLogo ? (
                   <img 
+                    key={`${serviceName}_${logoRefreshTrigger}`} // Force re-render with new key
                     src={serviceLogo} 
                     alt={`${serviceName} logo`} 
                     className="w-full h-full object-cover"

@@ -14,6 +14,7 @@ interface ServiceLogoProps {
 const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, size }) => {
   const serviceLogo = useMemo(() => {
     // This will re-compute when refreshTrigger changes
+    if (!serviceName) return null;
     return getServiceLogo(serviceName);
   }, [serviceName, refreshTrigger]);
 
@@ -27,9 +28,9 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
     <div className={containerClass}>
       {serviceLogo ? (
         <img 
-          key={`${serviceName}_${refreshTrigger}`} // Force re-render with new key
+          key={`${serviceName || 'unknown'}_${refreshTrigger}`} // Force re-render with new key
           src={serviceLogo} 
-          alt={`${serviceName} logo`} 
+          alt={`${serviceName || 'Service'} logo`} 
           className="w-full h-full object-cover"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -62,6 +63,8 @@ export default function ServicesManager() {
     // Migrate existing database logos to the new system
     if (services.length > 0) {
       migrateExistingLogos(services);
+      // Trigger logo refresh after migration to ensure logos are displayed
+      setLogoRefreshTrigger(prev => prev + 1);
     }
   }, [services]);
 
@@ -79,12 +82,18 @@ export default function ServicesManager() {
       setLogoRefreshTrigger(prev => prev + 1);
     };
 
+    // Periodic logo refresh to ensure logos are always up-to-date
+    const logoRefreshInterval = setInterval(() => {
+      setLogoRefreshTrigger(prev => prev + 1);
+    }, 5000); // Refresh every 5 seconds
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('logoUpdated', handleLogoUpdate);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('logoUpdated', handleLogoUpdate);
+      clearInterval(logoRefreshInterval);
     };
   }, []);
 
@@ -97,6 +106,13 @@ export default function ServicesManager() {
 
       if (error) throw error;
       setServices(data || []);
+      
+      // Trigger logo refresh after services are loaded to ensure logos are displayed
+      if (data && data.length > 0) {
+        setTimeout(() => {
+          setLogoRefreshTrigger(prev => prev + 1);
+        }, 100); // Small delay to ensure migration completes first
+      }
     } catch (error) {
       console.error('Error fetching services:', error);
     } finally {

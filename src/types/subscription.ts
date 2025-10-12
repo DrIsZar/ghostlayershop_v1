@@ -2,7 +2,7 @@ export type RenewalStrategyKey =
   | 'MONTHLY' 
   | 'EVERY_N_DAYS';
 
-export type SubscriptionStatus = 'active' | 'completed' | 'overdue' | 'archived';
+export type SubscriptionStatus = 'active' | 'paused' | 'completed' | 'overdue' | 'canceled' | 'archived';
 
 export type SubscriptionEventType = 
   | 'created'

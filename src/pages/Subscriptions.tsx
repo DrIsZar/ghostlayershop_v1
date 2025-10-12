@@ -12,7 +12,8 @@ import {
   ChevronRight,
   X,
   RotateCcw,
-  Archive
+  Archive,
+  Download
 } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -21,10 +22,10 @@ import SubscriptionModal from '../components/SubscriptionModal';
 import SubscriptionDetailModal from '../components/SubscriptionDetailModal';
 import SubscriptionEditModal from '../components/SubscriptionEditModal';
 import SearchableDropdown from '../components/SearchableDropdown';
-import { formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
+import { formatServiceTitleWithDuration, groupServicesByBaseName, getAvailablePeriods, ServiceGroup } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
 
-type ViewMode = 'all' | 'active' | 'completed' | 'archived' | 'dueToday' | 'dueIn3Days' | 'overdue';
+type ViewMode = 'all' | 'active' | 'completed' | 'dueToday' | 'dueIn3Days' | 'overdue';
 type ArchiveViewMode = 'subscriptions' | 'archive';
 type GroupByMode = 'none' | 'client' | 'service';
 
@@ -73,12 +74,15 @@ export default function Subscriptions() {
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [selectedServiceGroup, setSelectedServiceGroup] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
   
   // Data for selectors
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
   
   // UI state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -88,6 +92,9 @@ export default function Subscriptions() {
     fetchArchivedSubscriptions();
     fetchDueBuckets();
     loadFiltersFromURL();
+    
+    // Refresh subscription statuses to auto-complete expired subscriptions
+    refreshSubscriptionStatus();
   }, []);
 
   // Add a manual refresh function for debugging
@@ -119,7 +126,7 @@ export default function Subscriptions() {
       applyArchiveFilters();
     }
     saveFiltersToURL();
-  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, debouncedSearchTerm, archiveViewMode]);
+  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, debouncedSearchTerm, archiveViewMode]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -144,6 +151,8 @@ export default function Subscriptions() {
     const group = urlParams.get('groupBy') as GroupByMode;
     const clientId = urlParams.get('clientId') || '';
     const serviceId = urlParams.get('serviceId') || '';
+    const serviceGroup = urlParams.get('serviceGroup') || '';
+    const period = urlParams.get('period') || '';
     const archiveView = urlParams.get('archiveView') as ArchiveViewMode;
 
     // Load archive view mode
@@ -157,11 +166,11 @@ export default function Subscriptions() {
     }
 
     // Load from URL first, then fallback to localStorage
-    if (view && ['all', 'active', 'completed', 'archived', 'dueToday', 'dueIn3Days', 'overdue'].includes(view)) {
+    if (view && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue'].includes(view)) {
       setViewMode(view);
     } else {
       const savedView = localStorage.getItem('subscription-view-mode') as ViewMode;
-      if (savedView && ['all', 'active', 'completed', 'archived', 'dueToday', 'dueIn3Days', 'overdue'].includes(savedView)) {
+      if (savedView && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue'].includes(savedView)) {
         setViewMode(savedView);
       }
     }
@@ -188,6 +197,20 @@ export default function Subscriptions() {
       const savedServiceId = localStorage.getItem('subscription-service-id');
       if (savedServiceId) setSelectedServiceId(savedServiceId);
     }
+
+    if (serviceGroup) {
+      setSelectedServiceGroup(serviceGroup);
+    } else {
+      const savedServiceGroup = localStorage.getItem('subscription-service-group');
+      if (savedServiceGroup) setSelectedServiceGroup(savedServiceGroup);
+    }
+
+    if (period) {
+      setSelectedPeriod(period);
+    } else {
+      const savedPeriod = localStorage.getItem('subscription-period');
+      if (savedPeriod) setSelectedPeriod(savedPeriod);
+    }
   };
 
   const saveFiltersToURL = () => {
@@ -197,6 +220,8 @@ export default function Subscriptions() {
     if (groupBy !== 'none') urlParams.set('groupBy', groupBy);
     if (selectedClientId) urlParams.set('clientId', selectedClientId);
     if (selectedServiceId) urlParams.set('serviceId', selectedServiceId);
+    if (selectedServiceGroup) urlParams.set('serviceGroup', selectedServiceGroup);
+    if (selectedPeriod) urlParams.set('period', selectedPeriod);
 
     const newURL = `${window.location.pathname}${urlParams.toString() ? '?' + urlParams.toString() : ''}`;
     window.history.replaceState({}, '', newURL);
@@ -207,6 +232,8 @@ export default function Subscriptions() {
     localStorage.setItem('subscription-group-by', groupBy);
     localStorage.setItem('subscription-client-id', selectedClientId);
     localStorage.setItem('subscription-service-id', selectedServiceId);
+    localStorage.setItem('subscription-service-group', selectedServiceGroup);
+    localStorage.setItem('subscription-period', selectedPeriod);
   };
 
   const fetchSubscriptions = async (forceRefresh = false) => {
@@ -217,7 +244,7 @@ export default function Subscriptions() {
       }
       const data = await subscriptionService.listSubscriptions();
       console.log('Fetched subscriptions:', data.length, 'records');
-      // Filter out archived subscriptions
+      // Filter out archived subscriptions (but include completed subscriptions)
       const activeSubscriptions = data.filter(sub => sub.status !== 'archived');
       setSubscriptions(activeSubscriptions);
     } catch (error) {
@@ -251,6 +278,20 @@ export default function Subscriptions() {
     }
   };
 
+  const refreshSubscriptionStatus = async () => {
+    try {
+      const result = await subscriptionService.refreshSubscriptionStatus();
+      if (result.completedCount > 0 || result.overdueCount > 0) {
+        // Refresh subscriptions if any were updated
+        await fetchSubscriptions(true);
+        await fetchArchivedSubscriptions(true);
+        await fetchDueBuckets();
+      }
+    } catch (error) {
+      console.error('Error refreshing subscription status:', error);
+    }
+  };
+
   const fetchClientsAndServices = async () => {
     try {
       // Get unique client and service IDs from subscriptions
@@ -271,6 +312,12 @@ export default function Subscriptions() {
 
       setClients(clientData || []);
       setServices(serviceData || []);
+      
+      // Create service groups
+      if (serviceData) {
+        const groups = groupServicesByBaseName(serviceData);
+        setServiceGroups(groups);
+      }
     } catch (error) {
       console.error('Error fetching clients and services:', error);
     }
@@ -306,9 +353,19 @@ export default function Subscriptions() {
       filtered = filtered.filter(sub => sub.clientId === selectedClientId);
     }
 
-    // Apply service filter
+    // Apply service filter (either by specific service ID or by service group + period)
     if (selectedServiceId) {
       filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
+    } else if (selectedServiceGroup && selectedPeriod) {
+      // Filter by specific service group and period combination
+      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
+    } else if (selectedServiceGroup) {
+      // Filter by service group (all periods for that service)
+      const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
+      if (group) {
+        const serviceIds = group.services.map(s => s.id);
+        filtered = filtered.filter(sub => serviceIds.includes(sub.serviceId));
+      }
     }
 
     // Apply view filter
@@ -319,9 +376,6 @@ export default function Subscriptions() {
         break;
       case 'completed':
         filtered = filtered.filter(sub => sub.status === 'completed');
-        break;
-      case 'archived':
-        filtered = filtered.filter(sub => sub.status === 'archived');
         break;
       case 'dueToday':
         filtered = filtered.filter(sub => {
@@ -414,9 +468,19 @@ export default function Subscriptions() {
       filtered = filtered.filter(sub => sub.clientId === selectedClientId);
     }
 
-    // Apply service filter
+    // Apply service filter (either by specific service ID or by service group + period)
     if (selectedServiceId) {
       filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
+    } else if (selectedServiceGroup && selectedPeriod) {
+      // Filter by specific service group and period combination
+      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
+    } else if (selectedServiceGroup) {
+      // Filter by service group (all periods for that service)
+      const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
+      if (group) {
+        const serviceIds = group.services.map(s => s.id);
+        filtered = filtered.filter(sub => serviceIds.includes(sub.serviceId));
+      }
     }
 
     // Sort archived subscriptions by archive date (most recent first)
@@ -469,6 +533,8 @@ export default function Subscriptions() {
     setGroupBy('none');
     setSelectedClientId('');
     setSelectedServiceId('');
+    setSelectedServiceGroup('');
+    setSelectedPeriod('');
     setSearchTerm('');
     setArchiveViewMode('subscriptions');
     
@@ -477,6 +543,8 @@ export default function Subscriptions() {
     localStorage.removeItem('subscription-group-by');
     localStorage.removeItem('subscription-client-id');
     localStorage.removeItem('subscription-service-id');
+    localStorage.removeItem('subscription-service-group');
+    localStorage.removeItem('subscription-period');
     localStorage.removeItem('subscription-archive-view-mode');
   };
 
@@ -488,6 +556,22 @@ export default function Subscriptions() {
       newCollapsed.add(groupKey);
     }
     setCollapsedGroups(newCollapsed);
+  };
+
+  // Handler for service group selection
+  const handleServiceGroupChange = (serviceGroup: string) => {
+    setSelectedServiceGroup(serviceGroup);
+    // Clear period selection when service group changes
+    setSelectedPeriod('');
+    // Clear specific service selection
+    setSelectedServiceId('');
+  };
+
+  // Handler for period selection
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    // Clear specific service selection when period is selected
+    setSelectedServiceId('');
   };
 
 
@@ -507,12 +591,47 @@ export default function Subscriptions() {
   };
 
   const handleSubscriptionUpdate = (updatedSubscription: Subscription) => {
-    setSubscriptions(prev => prev.map(sub => 
-      sub.id === updatedSubscription.id ? updatedSubscription : sub
-    ));
-    setArchivedSubscriptions(prev => prev.map(sub => 
-      sub.id === updatedSubscription.id ? updatedSubscription : sub
-    ));
+    console.log('📝 Handling subscription update:', updatedSubscription.id, 'Status:', updatedSubscription.status);
+    
+    // Handle status changes that affect which list the subscription belongs to
+    if (updatedSubscription.status === 'archived') {
+      // Move from active to archived
+      setSubscriptions(prev => {
+        const filtered = prev.filter(sub => sub.id !== updatedSubscription.id);
+        console.log('📦 Moved subscription to archived list, active count:', filtered.length);
+        return filtered;
+      });
+      setArchivedSubscriptions(prev => {
+        const updated = prev.map(sub => 
+          sub.id === updatedSubscription.id ? updatedSubscription : sub
+        );
+        // If it's not already in archived list, add it
+        if (!prev.find(sub => sub.id === updatedSubscription.id)) {
+          updated.push(updatedSubscription);
+        }
+        console.log('📦 Updated archived list, archived count:', updated.length);
+        return updated;
+      });
+    } else {
+      // Move from archived to active (or update active subscription)
+      setArchivedSubscriptions(prev => {
+        const filtered = prev.filter(sub => sub.id !== updatedSubscription.id);
+        console.log('📦 Moved subscription from archived to active, archived count:', filtered.length);
+        return filtered;
+      });
+      setSubscriptions(prev => {
+        const updated = prev.map(sub => 
+          sub.id === updatedSubscription.id ? updatedSubscription : sub
+        );
+        // If it's not already in active list, add it
+        if (!prev.find(sub => sub.id === updatedSubscription.id)) {
+          updated.push(updatedSubscription);
+        }
+        console.log('📦 Updated active list, active count:', updated.length);
+        return updated;
+      });
+    }
+    
     fetchDueBuckets();
   };
 
@@ -601,6 +720,104 @@ export default function Subscriptions() {
     }, { dueToday: 0, dueIn3Days: 0, overdue: 0 });
   };
 
+  const exportSubscriptions = () => {
+    const now = new Date();
+    const subscriptionsToExport = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
+    
+    // Prepare CSV data
+    const csvData = subscriptionsToExport.map(subscription => {
+      const client = clients.find(c => c.id === subscription.clientId);
+      const service = services.find(s => s.id === subscription.serviceId);
+      const clientName = client ? client.name : 'Unknown Client';
+      const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : 'Unknown Service';
+      
+      // Calculate elapsed days since start
+      const startDate = new Date(subscription.startedAt);
+      const elapsedDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate days remaining
+      let daysRemaining = '';
+      if (subscription.nextRenewalAt) {
+        const renewalDate = new Date(subscription.nextRenewalAt);
+        const remainingMs = renewalDate.getTime() - now.getTime();
+        const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+        daysRemaining = remainingDays > 0 ? remainingDays.toString() : 'Overdue';
+      } else if (subscription.targetEndAt) {
+        const endDate = new Date(subscription.targetEndAt);
+        const remainingMs = endDate.getTime() - now.getTime();
+        const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+        daysRemaining = remainingDays > 0 ? remainingDays.toString() : 'Completed';
+      } else {
+        daysRemaining = 'N/A';
+      }
+      
+      // Format dates
+      const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      };
+      
+      return {
+        'Subscription ID': subscription.id,
+        'Client Name': clientName,
+        'Service Name': serviceName,
+        'Status': subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1),
+        'Start Date': formatDate(subscription.startedAt),
+        'Next Renewal Date': subscription.nextRenewalAt ? formatDate(subscription.nextRenewalAt) : 'N/A',
+        'Target End Date': subscription.targetEndAt ? formatDate(subscription.targetEndAt) : 'N/A',
+        'Days Elapsed': elapsedDays.toString(),
+        'Days Remaining': daysRemaining,
+        'Renewal Strategy': subscription.strategy,
+        'Auto Renew': subscription.isAutoRenew ? 'Yes' : 'No',
+        'Iterations Done': subscription.iterationsDone?.toString() || '0',
+        'Notes': subscription.notes || '',
+        'Created At': formatDate(subscription.createdAt),
+        'Updated At': formatDate(subscription.updatedAt)
+      };
+    });
+    
+    // Convert to CSV
+    if (csvData.length === 0) {
+      alert('No subscriptions to export');
+      return;
+    }
+    
+    const headers = Object.keys(csvData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => {
+          const value = row[header as keyof typeof row];
+          // Escape commas and quotes in CSV
+          return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
+            ? `"${value.replace(/"/g, '""')}"` 
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filterSuffix = archiveViewMode === 'archive' ? '_archived' : '';
+    const viewSuffix = viewMode !== 'all' ? `_${viewMode}` : '';
+    const clientSuffix = selectedClientId ? `_client_${clients.find(c => c.id === selectedClientId)?.name.replace(/\s+/g, '_') || 'unknown'}` : '';
+    const serviceSuffix = selectedServiceGroup ? `_service_${selectedServiceGroup.replace(/\s+/g, '_')}` : '';
+    
+    link.setAttribute('download', `subscriptions${filterSuffix}${viewSuffix}${clientSuffix}${serviceSuffix}_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   if (loading) {
     return (
@@ -623,7 +840,16 @@ export default function Subscriptions() {
             Track and manage all your active subscriptions
           </p>
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex gap-2">
+          <button
+            onClick={exportSubscriptions}
+            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            title="Export filtered subscriptions to CSV"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden xs:inline">Export</span>
+            <span className="xs:hidden">Export</span>
+          </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
@@ -697,7 +923,6 @@ export default function Subscriptions() {
                 { value: 'all', label: 'All' },
                 { value: 'active', label: 'Active' },
                 { value: 'completed', label: 'Completed' },
-                { value: 'archived', label: 'Archived' },
                 { value: 'dueToday', label: 'Due Today' },
                 { value: 'dueIn3Days', label: 'Due in 3 Days' },
                 { value: 'overdue', label: 'Overdue' }
@@ -750,27 +975,54 @@ export default function Subscriptions() {
             />
           </div>
 
-          {/* Service Selector */}
-          <div className="relative service-selector">
+          {/* Service Group Selector */}
+          <div className="relative service-group-selector">
             <SearchableDropdown
               label="Service"
               options={[
                 { value: '', label: 'All services' },
-                ...services.map(service => ({
-                  value: service.id,
-                  label: formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')
+                ...serviceGroups.map(group => ({
+                  value: group.baseName,
+                  label: group.baseName
                 }))
               ]}
-              value={selectedServiceId}
-              onChange={(value) => setSelectedServiceId(value)}
+              value={selectedServiceGroup}
+              onChange={handleServiceGroupChange}
               placeholder="All services"
               searchPlaceholder="Search services..."
               className="min-w-[160px]"
               allowClear={true}
-              onClear={() => setSelectedServiceId('')}
+              onClear={() => {
+                setSelectedServiceGroup('');
+                setSelectedPeriod('');
+              }}
               showSearchThreshold={3}
             />
           </div>
+
+          {/* Period Selector - Only show when a service group is selected */}
+          {selectedServiceGroup && (
+            <div className="relative period-selector">
+              <SearchableDropdown
+                label="Period"
+                options={[
+                  { value: '', label: 'All periods' },
+                  ...(() => {
+                    const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
+                    return group ? getAvailablePeriods(group) : [];
+                  })()
+                ]}
+                value={selectedPeriod}
+                onChange={handlePeriodChange}
+                placeholder="All periods"
+                searchPlaceholder="Search periods..."
+                className="min-w-[120px]"
+                allowClear={true}
+                onClear={() => setSelectedPeriod('')}
+                showSearchThreshold={3}
+              />
+            </div>
+          )}
 
           {/* Reset Button */}
           <div className="flex items-end gap-2">
@@ -1030,27 +1282,54 @@ export default function Subscriptions() {
                 />
               </div>
 
-              {/* Service Selector */}
-              <div className="relative service-selector">
+              {/* Service Group Selector */}
+              <div className="relative service-group-selector">
                 <SearchableDropdown
                   label="Service"
                   options={[
                     { value: '', label: 'All services' },
-                    ...services.map(service => ({
-                      value: service.id,
-                      label: formatServiceTitleWithDuration(service.product_service, service.duration || '1 month')
+                    ...serviceGroups.map(group => ({
+                      value: group.baseName,
+                      label: group.baseName
                     }))
                   ]}
-                  value={selectedServiceId}
-                  onChange={(value) => setSelectedServiceId(value)}
+                  value={selectedServiceGroup}
+                  onChange={handleServiceGroupChange}
                   placeholder="All services"
                   searchPlaceholder="Search services..."
                   className="min-w-[160px]"
                   allowClear={true}
-                  onClear={() => setSelectedServiceId('')}
+                  onClear={() => {
+                    setSelectedServiceGroup('');
+                    setSelectedPeriod('');
+                  }}
                   showSearchThreshold={3}
                 />
               </div>
+
+              {/* Period Selector - Only show when a service group is selected */}
+              {selectedServiceGroup && (
+                <div className="relative period-selector">
+                  <SearchableDropdown
+                    label="Period"
+                    options={[
+                      { value: '', label: 'All periods' },
+                      ...(() => {
+                        const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
+                        return group ? getAvailablePeriods(group) : [];
+                      })()
+                    ]}
+                    value={selectedPeriod}
+                    onChange={handlePeriodChange}
+                    placeholder="All periods"
+                    searchPlaceholder="Search periods..."
+                    className="min-w-[120px]"
+                    allowClear={true}
+                    onClear={() => setSelectedPeriod('')}
+                    showSearchThreshold={3}
+                  />
+                </div>
+              )}
 
               {/* Reset Button */}
               <div className="flex items-end gap-2">

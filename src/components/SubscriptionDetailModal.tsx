@@ -34,6 +34,30 @@ export default function SubscriptionDetailModal({
   // Remove edit data - editing is handled by SubscriptionEditModal
   const [countdown, setCountdown] = useState<string>('');
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
+  const [logoRefreshTrigger, setLogoRefreshTrigger] = useState(0);
+
+  // Listen for localStorage changes and custom logo update events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith('service_logo_')) {
+        // Force logo refresh when localStorage changes
+        setLogoRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    const handleLogoUpdate = () => {
+      // Force logo refresh when custom logo update event is dispatched
+      setLogoRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('logoUpdated', handleLogoUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('logoUpdated', handleLogoUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && subscription) {
@@ -83,6 +107,8 @@ const fetchSubscriptionData = async () => {
         // Get the logo using the service name
         const logoUrl = getServiceLogo(service.product_service);
         setServiceLogo(logoUrl);
+        // Trigger logo refresh when service name is loaded
+        setLogoRefreshTrigger(prev => prev + 1);
       }
 
       // Fetch client name
@@ -134,6 +160,8 @@ const fetchSubscriptionData = async () => {
       const updated = await subscriptionService.renewNow(subscription.id);
       onUpdate(updated);
       fetchSubscriptionData(); // Refresh events
+      // Close modal after successful update
+      onClose();
     } catch (error) {
       console.error('Error renewing subscription:', error);
       alert('Failed to renew subscription');
@@ -152,6 +180,8 @@ const fetchSubscriptionData = async () => {
       const updated = await subscriptionService.complete(subscription.id);
       onUpdate(updated);
       fetchSubscriptionData();
+      // Close modal after successful update
+      onClose();
     } catch (error) {
       console.error('Error completing subscription:', error);
       alert('Failed to complete subscription');
@@ -172,6 +202,8 @@ const fetchSubscriptionData = async () => {
       const updated = await subscriptionService.revert(subscription.id);
       onUpdate(updated);
       fetchSubscriptionData();
+      // Close modal after successful update
+      onClose();
     } catch (error) {
       console.error('Error reverting subscription:', error);
       alert('Failed to revert subscription');
@@ -183,13 +215,20 @@ const fetchSubscriptionData = async () => {
   const handleArchive = async () => {
     if (!subscription) return;
 
-    if (!confirm(`Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`)) return;
+    const isCompleted = subscription.status === 'completed';
+    const confirmMessage = isCompleted 
+      ? `Archive this completed subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+      : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
+
+    if (!confirm(confirmMessage)) return;
 
     setIsLoading(true);
     try {
       const updated = await subscriptionService.archive(subscription.id);
       onUpdate(updated);
       fetchSubscriptionData();
+      // Close modal after successful update
+      onClose();
     } catch (error) {
       console.error('Error archiving subscription:', error);
       alert('Failed to archive subscription');
@@ -257,6 +296,7 @@ const fetchSubscriptionData = async () => {
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600">
               {serviceLogo ? (
                 <img 
+                  key={`${serviceName}_${logoRefreshTrigger}`} // Force re-render with new key
                   src={serviceLogo} 
                   alt={`${serviceName} logo`} 
                   className="w-full h-full object-cover"
@@ -497,7 +537,7 @@ const fetchSubscriptionData = async () => {
                   </>
                 )}
                 
-                {subscription.status === 'active' && (
+                {(subscription.status === 'active' || subscription.status === 'completed') && (
                   <button
                     onClick={handleArchive}
                     disabled={isLoading}

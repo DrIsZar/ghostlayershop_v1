@@ -476,6 +476,47 @@ export class SubscriptionService {
 
     return updatedSubscription;
   }
+
+  // Method to automatically complete expired subscriptions
+  async refreshSubscriptionStatus(): Promise<{ completedCount: number; overdueCount: number }> {
+    try {
+      // Call the database function to refresh subscription statuses
+      const { data, error } = await supabase.rpc('refresh_subscription_status');
+      
+      if (error) {
+        console.error('Error refreshing subscription status:', error);
+        throw new Error(`Failed to refresh subscription status: ${error.message}`);
+      }
+
+      const result = data?.[0] || { completed_count: 0, overdue_count: 0 };
+      
+      console.log(`✅ Refreshed subscription status: ${result.completed_count} completed, ${result.overdue_count} overdue`);
+      
+      return {
+        completedCount: result.completed_count || 0,
+        overdueCount: result.overdue_count || 0
+      };
+    } catch (error) {
+      console.error('Error refreshing subscription status:', error);
+      throw error;
+    }
+  }
+
+  // Method to check if a subscription should be automatically completed
+  shouldAutoComplete(subscription: Subscription): boolean {
+    if (subscription.status !== 'active') {
+      return false;
+    }
+    
+    if (!subscription.targetEndAt) {
+      return false;
+    }
+    
+    const now = new Date();
+    const targetEnd = new Date(subscription.targetEndAt);
+    
+    return now >= targetEnd;
+  }
 }
 
 // Export a default instance

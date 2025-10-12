@@ -184,3 +184,71 @@ export const formatServiceTitleWithDuration = (serviceName: string, durationStri
     return `${serviceName} (${months}M)`;
   }
 };
+
+// Extract base service name (without duration)
+export const extractBaseServiceName = (serviceName: string): string => {
+  // Remove common duration patterns from service names
+  return serviceName
+    .replace(/\s*\(\d+[Mm]\)\s*$/, '') // Remove (1M), (3M), etc.
+    .replace(/\s*-\s*\d+[Mm]\s*$/, '') // Remove -1M, -3M, etc.
+    .replace(/\s*\d+[Mm]\s*$/, '') // Remove 1M, 3M, etc. at the end
+    .trim();
+};
+
+// Group services by base name
+export interface ServiceGroup {
+  baseName: string;
+  services: Array<{
+    id: string;
+    product_service: string;
+    duration?: string;
+    fullName: string;
+  }>;
+}
+
+export const groupServicesByBaseName = (services: Array<{id: string; product_service: string; duration?: string}>): ServiceGroup[] => {
+  const groups = new Map<string, ServiceGroup>();
+  
+  services.forEach(service => {
+    const baseName = extractBaseServiceName(service.product_service);
+    const fullName = formatServiceTitleWithDuration(service.product_service, service.duration || '1 month');
+    
+    if (!groups.has(baseName)) {
+      groups.set(baseName, {
+        baseName,
+        services: []
+      });
+    }
+    
+    groups.get(baseName)!.services.push({
+      id: service.id,
+      product_service: service.product_service,
+      duration: service.duration,
+      fullName
+    });
+  });
+  
+  // Sort services within each group by duration (months)
+  groups.forEach(group => {
+    group.services.sort((a, b) => {
+      const monthsA = parseServiceDuration(a.duration || '1 month');
+      const monthsB = parseServiceDuration(b.duration || '1 month');
+      return monthsA - monthsB;
+    });
+  });
+  
+  // Sort groups alphabetically
+  return Array.from(groups.values()).sort((a, b) => a.baseName.localeCompare(b.baseName));
+};
+
+// Get available periods for a service group
+export const getAvailablePeriods = (serviceGroup: ServiceGroup): Array<{value: string; label: string; months: number}> => {
+  return serviceGroup.services.map(service => {
+    const months = parseServiceDuration(service.duration || '1 month');
+    return {
+      value: service.id,
+      label: `${months}M`,
+      months
+    };
+  });
+};
