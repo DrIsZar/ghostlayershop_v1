@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Mail } from 'lucide-react';
+import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Mail, Copy } from 'lucide-react';
 import { Subscription, SubscriptionEvent } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, getStatusBadge, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
@@ -216,8 +216,11 @@ const fetchSubscriptionData = async () => {
     if (!subscription) return;
 
     const isCompleted = subscription.status === 'completed';
+    const isOverdue = subscription.status === 'overdue';
     const confirmMessage = isCompleted 
       ? `Archive this completed subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+      : isOverdue
+      ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
       : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
 
     if (!confirm(confirmMessage)) return;
@@ -276,6 +279,19 @@ const fetchSubscriptionData = async () => {
       alert(`Failed to delete subscription: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopyNotes = async () => {
+    if (!subscription?.notes) return;
+    
+    try {
+      await navigator.clipboard.writeText(subscription.notes);
+      // You could add a toast notification here if you have a toast system
+      alert('Notes copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy notes:', error);
+      alert('Failed to copy notes to clipboard');
     }
   };
 
@@ -515,7 +531,7 @@ const fetchSubscriptionData = async () => {
             <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
               
               <div className="grid grid-cols-2 gap-2">
-                {subscription.status === 'active' && (
+                {(subscription.status === 'active' || subscription.status === 'overdue') && (
                   <>
                     <button
                       onClick={handleRenew}
@@ -537,7 +553,7 @@ const fetchSubscriptionData = async () => {
                   </>
                 )}
                 
-                {(subscription.status === 'active' || subscription.status === 'completed') && (
+                {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (
                   <button
                     onClick={handleArchive}
                     disabled={isLoading}
@@ -550,7 +566,7 @@ const fetchSubscriptionData = async () => {
                   </button>
                 )}
 
-                {subscription.status !== 'active' && subscription.status !== 'archived' && (
+                {(subscription.status === 'completed' || subscription.status === 'paused' || subscription.status === 'canceled') && (
                   <button
                     onClick={handleRevert}
                     disabled={isLoading}
@@ -582,10 +598,21 @@ const fetchSubscriptionData = async () => {
             <div className="space-y-4">
               {/* Notes */}
               <div className="p-4 bg-gray-800/50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Notes
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Notes
+                  </h4>
+                  {subscription.notes && (
+                    <button
+                      onClick={handleCopyNotes}
+                      className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+                      title="Copy notes to clipboard"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 <p className="text-white">
                   {subscription.notes || 'No notes provided.'}
                 </p>

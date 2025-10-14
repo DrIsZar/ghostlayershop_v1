@@ -692,6 +692,15 @@ export default function Subscriptions() {
     return filteredSubscriptions.filter(sub => sub.status === 'completed').length;
   };
 
+  const getTotalOverdue = () => {
+    const now = new Date();
+    return filteredSubscriptions.filter(sub => {
+      if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+      const renewalDate = new Date(sub.nextRenewalAt);
+      return renewalDate < now;
+    }).length;
+  };
+
   const getTotalArchived = () => {
     return archiveViewMode === 'archive' ? filteredArchivedSubscriptions.length : archivedSubscriptions.length;
   };
@@ -1115,8 +1124,8 @@ export default function Subscriptions() {
           <div className="text-sm text-gray-400">Completed</div>
         </div>
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-bold text-gray-400">{getTotalArchived()}</div>
-          <div className="text-sm text-gray-400">Archived</div>
+          <div className="text-2xl font-bold text-red-400">{getTotalOverdue()}</div>
+          <div className="text-sm text-gray-400">Overdue</div>
         </div>
       </div>
 
