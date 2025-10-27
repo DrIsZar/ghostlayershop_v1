@@ -7,9 +7,10 @@ import { calculateEndDateFromDuration, formatServiceTitleWithDuration, parseServ
 import SearchableDropdown from './SearchableDropdown';
 import { LinkResourceSection } from './LinkResourceSection';
 import { SERVICE_PROVISIONING } from '../constants/provisioning';
-import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool } from '../lib/inventory';
+import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool, linkSubscriptionToPool, assignSeat } from '../lib/inventory';
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import PoolEditModal from './PoolEditModal';
 
 interface SubscriptionEditModalProps {
   isOpen: boolean;
@@ -61,6 +62,9 @@ export default function SubscriptionEditModal({
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
   const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
   const [showResourceLinking, setShowResourceLinking] = useState(false);
+  const [showPoolEditModal, setShowPoolEditModal] = useState(false);
+  const [pendingPoolId, setPendingPoolId] = useState('');
+  const [pendingSeatId, setPendingSeatId] = useState('');
   const linkResourceSectionRef = useRef<HTMLDivElement>(null);
 
   // Populate form data when subscription changes
@@ -81,6 +85,9 @@ export default function SubscriptionEditModal({
           subscription.targetEndAt.split('T')[0] : ''
       });
       fetchResourcePoolInfo();
+      // Clear pending pool selection when modal opens
+      setPendingPoolId('');
+      setPendingSeatId('');
     }
   }, [subscription, isOpen]);
 
@@ -239,7 +246,25 @@ export default function SubscriptionEditModal({
       }
       
       console.log('✅ Subscription updated successfully:', updated);
-      onUpdate(updated);
+      
+      // Check if there's a pending pool selection and link it
+      if (pendingPoolId) {
+        console.log('🔗 Pending pool detected, performing linking...');
+        await performPoolLinking(
+          pendingPoolId, 
+          pendingSeatId, 
+          subscription.id, 
+          formData.notes || `customer-${subscription.id.slice(0, 8)}`
+        );
+        console.log('✅ Pool linked successfully');
+        
+        // Refresh subscription to get updated pool info
+        const refreshedSub = await subscriptionService.getSubscription(subscription.id);
+        onUpdate(refreshedSub);
+      } else {
+        onUpdate(updated);
+      }
+      
       onClose();
     } catch (error) {
       console.error('❌ Error updating subscription:', error);
@@ -310,10 +335,150 @@ export default function SubscriptionEditModal({
     }
   };
 
+  // Helper function to perform actual pool linking
+  const performPoolLinking = async (poolId: string, seatId: string, subscriptionId: string, customerEmail: string) => {
+    console.log('Performing pool linking:', { poolId, seatId, subscriptionId, customerEmail });
+    
+    let result;
+    if (seatId) {
+      // Assign specific seat first, then link
+      console.log('Assigning specific seat:', seatId);
+      const { data: seatData, error: assignError } = await assignSeat(seatId, {
+        email: customerEmail || undefined,
+        subscriptionId: subscriptionId,
+      });
+      
+      if (assignError) {
+        console.error('Specific seat assignment error:', assignError);
+        throw new Error(`Seat assignment failed: ${assignError.message || 'Unknown error'}`);
+      }
+      
+      console.log('Assigned specific seat:', seatData?.id);
+      result = await linkSubscriptionToPool(subscriptionId, poolId, seatData?.id);
+    } else {
+      // Auto-assign next available seat
+      console.log('Auto-assigning next available seat in pool:', poolId);
+      result = await linkSubscriptionToPool(subscriptionId, poolId, undefined, {
+        email: customerEmail || undefined,
+        subscriptionId: subscriptionId,
+      });
+    }
+    
+    const { error } = result;
+    
+    if (error) {
+      console.error('Subscription linking error:', error);
+      throw new Error(`Failed to link subscription to pool: ${error.message || 'Unknown error'}`);
+    }
+    
+    console.log('Successfully linked resource pool');
+    return result;
+  };
+
+  const handlePoolSelectionChange = (poolId: string, seatId: string) => {
+    console.log('Pool selection changed:', { poolId, seatId });
+    setPendingPoolId(poolId);
+    setPendingSeatId(seatId);
+  };
+
   const handleResourceLinked = async () => {
+    console.log('Resource linked, refreshing and closing modals');
     // Refresh resource pool info after linking
     await fetchResourcePoolInfo();
     setShowResourceLinking(false);
+    setPendingPoolId('');
+    setPendingSeatId('');
+    // Refresh the subscription to ensure parent component has latest data
+    if (subscription) {
+      const refreshedSub = await subscriptionService.getSubscription(subscription.id);
+      onUpdate(refreshedSub);
+    }
+    // Close all modals as requested by user
+    onClose();
+  };
+
+  const handleLinkAndSave = async () => {
+    if (!subscription || !pendingPoolId) return;
+    
+    console.log('Link and Save triggered');
+    setIsLoading(true);
+    
+    try {
+      // First, save subscription changes
+      if (!validateForm()) {
+        setIsLoading(false);
+        return;
+      }
+      
+      const updateData: Partial<Subscription> = {
+        serviceId: formData.serviceId,
+        clientId: formData.clientId,
+        strategy: formData.strategy,
+        intervalDays: formData.intervalDays,
+        startedAt: formData.startDate,
+        targetEndAt: formData.targetEndAt ? new Date(formData.targetEndAt).toISOString() : undefined,
+        notes: formData.notes,
+        isAutoRenew: formData.isAutoRenew
+      };
+
+      let updated: Subscription;
+
+      // Handle custom renewal date separately
+      if (formData.customNextRenewalAt && formData.customNextRenewalAt !== subscription.customNextRenewalAt?.split('T')[0]) {
+        updated = await subscriptionService.setCustomRenewalDate(subscription.id, formData.customNextRenewalAt);
+        if (Object.keys(updateData).some(key => updateData[key as keyof typeof updateData] !== undefined)) {
+          updated = await subscriptionService.updateSubscription(subscription.id, updateData);
+        }
+      } else if (formData.customNextRenewalAt === '' && subscription.customNextRenewalAt) {
+        updated = await subscriptionService.clearCustomRenewalDate(subscription.id);
+        if (Object.keys(updateData).some(key => updateData[key as keyof typeof updateData] !== undefined)) {
+          updated = await subscriptionService.updateSubscription(subscription.id, updateData);
+        }
+      } else {
+        updated = await subscriptionService.updateSubscription(subscription.id, updateData);
+      }
+      
+      console.log('✅ Subscription updated successfully:', updated);
+      
+      // Now perform pool linking
+      await performPoolLinking(
+        pendingPoolId, 
+        pendingSeatId, 
+        subscription.id, 
+        formData.notes || `customer-${subscription.id.slice(0, 8)}`
+      );
+      
+      console.log('✅ Pool linked successfully');
+      
+      // Refresh subscription data
+      const refreshedSub = await subscriptionService.getSubscription(subscription.id);
+      onUpdate(refreshedSub);
+      
+      // Close all modals
+      onClose();
+    } catch (error) {
+      console.error('❌ Error in link and save:', error);
+      alert('Failed to save changes and link pool: ' + (error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePoolUpdated = async (updatedPool: ResourcePool) => {
+    console.log('Pool updated in subscription edit modal:', updatedPool);
+    // Update local pool state
+    setResourcePool(updatedPool);
+    // Close the pool edit modal
+    setShowPoolEditModal(false);
+    // Refresh pool info to get latest data
+    await fetchResourcePoolInfo();
+    // Refresh the subscription to ensure parent component has latest data
+    if (subscription) {
+      const refreshedSub = await subscriptionService.getSubscription(subscription.id);
+      onUpdate(refreshedSub);
+    }
+    // Close all modals as requested by user
+    onClose();
   };
 
   const handleSwitchPool = () => {
@@ -534,13 +699,22 @@ export default function SubscriptionEditModal({
 
           {/* Resource Pool Information */}
           {resourcePool && (
-            <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+              <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <Archive className="w-4 h-4" />
                   Linked Resource Pool
                 </h4>
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPoolEditModal(true)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-green-400 hover:text-green-300 hover:bg-green-900/20 rounded transition-colors"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Edit Pool
+                  </button>
                   <button
                     type="button"
                     onClick={handleSwitchPool}
@@ -640,6 +814,8 @@ export default function SubscriptionEditModal({
                 subscriptionId={subscription.id}
                 customerEmail={formData.notes || `customer-${subscription.id.slice(0, 8)}`}
                 onResourceLinked={handleResourceLinked}
+                onPoolSelectionChange={handlePoolSelectionChange}
+                onLinkAndSave={handleLinkAndSave}
               />
             </div>
           )}
@@ -702,6 +878,16 @@ export default function SubscriptionEditModal({
           </button>
         </div>
       </div>
+
+      {/* Pool Edit Modal */}
+      {resourcePool && (
+        <PoolEditModal
+          isOpen={showPoolEditModal}
+          onClose={() => setShowPoolEditModal(false)}
+          pool={resourcePool}
+          onPoolUpdated={handlePoolUpdated}
+        />
+      )}
     </div>
   );
 }

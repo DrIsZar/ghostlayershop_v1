@@ -416,7 +416,7 @@ export async function getAvailablePoolsForService(serviceProvider: string) {
     .from('resource_pools')
     .select('*')
     .eq('provider', serviceProvider)
-    .order('end_at', { ascending: true });
+    .order('created_at', { ascending: false }); // Show newest pools first
   
   console.log('Pools query result:', result);
   return result;

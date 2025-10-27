@@ -1424,6 +1424,9 @@ export default function Subscriptions() {
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingSubscription(null);
+          // Also close the detail modal when edit modal closes
+          setIsDetailModalOpen(false);
+          setSelectedSubscription(null);
         }}
         subscription={editingSubscription}
         onUpdate={handleSubscriptionUpdate}

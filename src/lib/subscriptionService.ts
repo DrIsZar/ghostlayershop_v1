@@ -151,8 +151,8 @@ export class SubscriptionService {
       throw new Error(`Subscription not found: ${subscriptionId}`);
     }
 
-    if (subscription.status !== 'active') {
-      throw new Error(`Cannot renew subscription with status: ${subscription.status}`);
+    if (subscription.status !== 'active' && subscription.status !== 'overdue') {
+      throw new Error(`Cannot renew subscription with status: ${subscription.status}. Only active or overdue subscriptions can be renewed.`);
     }
 
     // Use pool-aware renewal logic
@@ -167,6 +167,7 @@ export class SubscriptionService {
 
     const updatedSubscription = await this.persistenceAdapter.updateSubscription(subscriptionId, {
       ...updates,
+      status: 'active', // Reset status to active when renewing (especially important for overdue subscriptions)
       updatedAt: now
     });
 

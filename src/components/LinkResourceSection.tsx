@@ -10,9 +10,18 @@ interface LinkResourceSectionProps {
   subscriptionId?: string;
   customerEmail?: string;
   onResourceLinked?: (poolId: string, seatId: string) => void;
+  onPoolSelectionChange?: (poolId: string, seatId: string) => void;
+  onLinkAndSave?: () => Promise<void>;
 }
 
-export function LinkResourceSection({ serviceProvider, subscriptionId, customerEmail, onResourceLinked }: LinkResourceSectionProps) {
+export function LinkResourceSection({ 
+  serviceProvider, 
+  subscriptionId, 
+  customerEmail, 
+  onResourceLinked, 
+  onPoolSelectionChange,
+  onLinkAndSave 
+}: LinkResourceSectionProps) {
   const [availablePools, setAvailablePools] = useState<ResourcePool[]>([]);
   const [availableSeats, setAvailableSeats] = useState<any[]>([]);
   const [selectedPoolId, setSelectedPoolId] = useState('');
@@ -34,6 +43,13 @@ export function LinkResourceSection({ serviceProvider, subscriptionId, customerE
       fetchAvailableSeats();
     }
   }, [selectedPoolId]);
+
+  // Notify parent when pool/seat selection changes
+  useEffect(() => {
+    if (onPoolSelectionChange) {
+      onPoolSelectionChange(selectedPoolId, selectedSeatId);
+    }
+  }, [selectedPoolId, selectedSeatId]);
 
   const fetchAvailablePools = async () => {
     try {
@@ -85,6 +101,12 @@ export function LinkResourceSection({ serviceProvider, subscriptionId, customerE
         subscriptionId,
         customerEmail
       });
+      
+      // If onLinkAndSave is provided, call it (this will save subscription changes and close modals)
+      if (onLinkAndSave) {
+        await onLinkAndSave();
+        return;
+      }
       
       // Link the subscription to the pool (this will handle seat assignment)
       console.log('Linking subscription to pool:', { subscriptionId, selectedPoolId, selectedSeatId, customerEmail });

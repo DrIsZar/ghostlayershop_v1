@@ -116,7 +116,7 @@ export default function SearchableDropdown({
         
         // For modals, check if dropdown would go off-screen vertically
         if (isInModal) {
-          const dropdownHeight = 320; // Max dropdown height
+          const dropdownHeight = 360; // Max dropdown height (increased for better scrolling)
           const maxHeight = viewportHeight - rect.bottom - 40; // 40px margin from bottom
           
           // If dropdown would go off-screen, position it above the input
@@ -384,7 +384,7 @@ export default function SearchableDropdown({
           className={`
             fixed bg-gray-800 border border-gray-600 rounded-xl shadow-2xl backdrop-blur-sm
             transition-all duration-200 ease-out
-            ${window.innerWidth <= 768 ? 'max-h-[60vh]' : 'max-h-[320px]'}
+            ${window.innerWidth <= 768 ? 'max-h-[60vh]' : 'max-h-[360px]'}
           `}
           style={{
             top: dropdownPosition.top,
@@ -428,9 +428,9 @@ export default function SearchableDropdown({
 
           {/* Enhanced Options list */}
           <div 
-            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800" 
+            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 py-2" 
             style={{
-              maxHeight: window.innerWidth <= 768 ? 'calc(60vh - 80px)' : '240px'
+              maxHeight: window.innerWidth <= 768 ? 'calc(60vh - 80px)' : '280px'
             }}
           >
             {filteredOptions.length === 0 ? (

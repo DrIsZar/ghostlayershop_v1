@@ -731,12 +731,19 @@ export default function SubscriptionModal({
               serviceProvider={getServiceProvider()}
               subscriptionId={createdSubscriptionId}
               customerEmail={formData.notes || `customer-${createdSubscriptionId.slice(0, 8)}`}
-              onResourceLinked={isEditing ? () => {
+              onResourceLinked={isEditing ? async () => {
                 // Refresh pool info after linking
                 if (editingSubscription) {
-                  fetchPoolInfo();
+                  await fetchPoolInfo();
+                  // Refresh the subscription to ensure parent component has latest data
+                  const refreshedSub = await subscriptionService.getSubscription(editingSubscription.id);
+                  if (refreshedSub) {
+                    onSubscriptionUpdated(refreshedSub);
+                  }
                 }
                 setCreatedSubscriptionId(null);
+                // Close all modals after successful linking
+                onClose();
               } : handleResourceLinked}
             />
           )}
