@@ -642,3 +642,22 @@ export async function getPoolForSubscription(subscriptionId: string): Promise<{ 
 
   return { data: data?.resource_pools || null, error: null };
 }
+
+// Search for pools by seat email
+export async function searchPoolsBySeatEmail(searchTerm: string): Promise<{ data: string[]; error: any }> {
+  // Find seats where assigned_email matches the search term (case-insensitive)
+  const { data: seats, error } = await supabase
+    .from('resource_pool_seats')
+    .select('pool_id')
+    .ilike('assigned_email', `%${searchTerm}%`)
+    .not('assigned_email', 'is', null);
+
+  if (error) {
+    return { data: [], error };
+  }
+
+  // Extract unique pool IDs
+  const poolIds = Array.from(new Set((seats || []).map(seat => seat.pool_id)));
+  
+  return { data: poolIds, error: null };
+}

@@ -13,7 +13,7 @@ import {
   Archive
 } from 'lucide-react';
 import { ResourcePool, PoolFilter } from '../types/inventory';
-import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool } from '../lib/inventory';
+import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail } from '../lib/inventory';
 import { PoolCard } from '../components/PoolCard';
 import { PoolFormModal } from '../components/PoolFormModal';
 import { PoolDetailModal } from '../components/PoolDetailModal';
@@ -40,6 +40,7 @@ export default function Inventory() {
   const [archiveFilters, setArchiveFilters] = useState<PoolFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [matchingPoolIdsBySeat, setMatchingPoolIdsBySeat] = useState<Set<string>>(new Set());
   
 
   useEffect(() => {
@@ -70,13 +71,31 @@ export default function Inventory() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Fetch matching pool IDs by seat email when search term changes
+  useEffect(() => {
+    const fetchMatchingPoolIds = async () => {
+      if (debouncedSearchTerm.trim()) {
+        const { data: poolIds, error } = await searchPoolsBySeatEmail(debouncedSearchTerm);
+        if (!error && poolIds) {
+          setMatchingPoolIdsBySeat(new Set(poolIds));
+        } else {
+          setMatchingPoolIdsBySeat(new Set());
+        }
+      } else {
+        setMatchingPoolIdsBySeat(new Set());
+      }
+    };
+    
+    fetchMatchingPoolIds();
+  }, [debouncedSearchTerm]);
+
   useEffect(() => {
     applyFilters();
-  }, [pools, filters, debouncedSearchTerm]);
+  }, [pools, filters, debouncedSearchTerm, matchingPoolIdsBySeat]);
 
   useEffect(() => {
     applyArchiveFilters();
-  }, [archivedPools, archiveFilters]);
+  }, [archivedPools, archiveFilters, debouncedSearchTerm, matchingPoolIdsBySeat]);
 
   const fetchPools = async () => {
     try {
@@ -115,7 +134,9 @@ export default function Inventory() {
         const providerMatch = pool.provider.toLowerCase().includes(searchLower);
         const emailMatch = pool.login_email.toLowerCase().includes(searchLower);
         const notesMatch = pool.notes?.toLowerCase().includes(searchLower) || false;
-        return providerMatch || emailMatch || notesMatch;
+        // Also check if this pool has a seat with matching assigned_email
+        const seatEmailMatch = matchingPoolIdsBySeat.has(pool.id);
+        return providerMatch || emailMatch || notesMatch || seatEmailMatch;
       });
     }
 
@@ -163,7 +184,9 @@ export default function Inventory() {
         const providerMatch = pool.provider.toLowerCase().includes(searchLower);
         const emailMatch = pool.login_email.toLowerCase().includes(searchLower);
         const notesMatch = pool.notes?.toLowerCase().includes(searchLower) || false;
-        return providerMatch || emailMatch || notesMatch;
+        // Also check if this pool has a seat with matching assigned_email
+        const seatEmailMatch = matchingPoolIdsBySeat.has(pool.id);
+        return providerMatch || emailMatch || notesMatch || seatEmailMatch;
       });
     }
 
@@ -190,16 +213,6 @@ export default function Inventory() {
 
   const resetArchiveFilters = () => {
     setArchiveFilters({});
-  };
-
-  const toggleSection = (sectionKey: string) => {
-    const newCollapsed = new Set(collapsedSections);
-    if (newCollapsed.has(sectionKey)) {
-      newCollapsed.delete(sectionKey);
-    } else {
-      newCollapsed.add(sectionKey);
-    }
-    setCollapsedSections(newCollapsed);
   };
 
   const handlePoolCreated = (pool: ResourcePool) => {
@@ -373,7 +386,7 @@ export default function Inventory() {
                   <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
                     type="text"
-                    placeholder="Search by provider, email, or notes..."
+                    placeholder="Search by provider, email, notes, or seat email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
@@ -592,7 +605,7 @@ export default function Inventory() {
                   <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
                     type="text"
-                    placeholder="Search archived pools..."
+                    placeholder="Search by provider, email, notes, or seat email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"

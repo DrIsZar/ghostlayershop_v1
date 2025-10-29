@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -13,7 +13,8 @@ import {
   X,
   RotateCcw,
   Archive,
-  Download
+  Download,
+  Keyboard
 } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -24,6 +25,7 @@ import SubscriptionEditModal from '../components/SubscriptionEditModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { formatServiceTitleWithDuration, groupServicesByBaseName, getAvailablePeriods, ServiceGroup } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
+import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 type ViewMode = 'all' | 'active' | 'completed' | 'dueToday' | 'dueIn3Days' | 'overdue';
 type ArchiveViewMode = 'subscriptions' | 'archive';
@@ -86,6 +88,10 @@ export default function Subscriptions() {
   
   // UI state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -128,22 +134,223 @@ export default function Subscriptions() {
     saveFiltersToURL();
   }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, debouncedSearchTerm, archiveViewMode]);
 
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === '/' && !event.target || (event.target as Element).tagName === 'BODY') {
-        event.preventDefault();
-        // Focus the first selector (View dropdown)
-        const viewSelect = document.querySelector('input[data-testid]') as HTMLInputElement;
-        if (viewSelect) viewSelect.focus();
-      }
-    };
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'n',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setIsModalOpen(true);
+          }
+        },
+        description: 'Create new subscription',
+      },
+      {
+        key: 'c',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setIsModalOpen(true);
+          }
+        },
+        description: 'Create new subscription',
+      },
+      {
+        key: '/',
+        handler: () => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select();
+          }
+        },
+        description: 'Focus search',
+      },
+      {
+        key: 'f',
+        handler: () => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select();
+          }
+        },
+        description: 'Focus search',
+        ctrl: true,
+      },
+      {
+        key: 'e',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            exportSubscriptions();
+          }
+        },
+        description: 'Export subscriptions',
+      },
+      {
+        key: 'r',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            resetFilters();
+          }
+        },
+        description: 'Reset filters',
+      },
+      {
+        key: 'a',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setArchiveViewMode(prev => prev === 'subscriptions' ? 'archive' : 'subscriptions');
+          }
+        },
+        description: 'Toggle archive view',
+      },
+      {
+        key: 'Escape',
+        handler: () => {
+          if (isEditModalOpen) {
+            setIsEditModalOpen(false);
+            setEditingSubscription(null);
+            setIsDetailModalOpen(false);
+            setSelectedSubscription(null);
+          } else if (isDetailModalOpen) {
+            setIsDetailModalOpen(false);
+            setSelectedSubscription(null);
+          } else if (isModalOpen) {
+            setIsModalOpen(false);
+            setEditingSubscription(null);
+          } else if (showKeyboardHelp) {
+            setShowKeyboardHelp(false);
+          } else {
+            setSelectedCardIndex(-1);
+          }
+        },
+        description: 'Close modal or deselect',
+      },
+      {
+        key: 'ArrowDown',
+        handler: () => {
+          if (isModalOpen || isDetailModalOpen || isEditModalOpen) return;
+          const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
+          if (currentSubs.length === 0) return;
+          
+          setSelectedCardIndex(prev => {
+            const nextIndex = prev < currentSubs.length - 1 ? prev + 1 : prev;
+            // Scroll into view
+            setTimeout(() => {
+              if (cardRefs.current[nextIndex]) {
+                cardRefs.current[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 0);
+            return nextIndex;
+          });
+        },
+        description: 'Navigate down',
+      },
+      {
+        key: 'ArrowUp',
+        handler: () => {
+          if (isModalOpen || isDetailModalOpen || isEditModalOpen) return;
+          const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
+          if (currentSubs.length === 0) return;
+          
+          setSelectedCardIndex(prev => {
+            const nextIndex = prev > 0 ? prev - 1 : 0;
+            // Scroll into view
+            setTimeout(() => {
+              if (cardRefs.current[nextIndex]) {
+                cardRefs.current[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 0);
+            return nextIndex;
+          });
+        },
+        description: 'Navigate up',
+      },
+      {
+        key: 'Enter',
+        handler: () => {
+          if (isModalOpen || isDetailModalOpen || isEditModalOpen) return;
+          const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
+          if (selectedCardIndex >= 0 && selectedCardIndex < currentSubs.length) {
+            const subscription = currentSubs[selectedCardIndex];
+            handleSubscriptionView(subscription);
+          }
+        },
+        description: 'Open selected subscription',
+      },
+      {
+        key: '?',
+        handler: () => {
+          setShowKeyboardHelp(prev => !prev);
+        },
+        description: 'Show keyboard shortcuts help',
+        shift: true,
+      },
+      // Quick view filters (1-6)
+      {
+        key: '1',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('all');
+          }
+        },
+        description: 'View: All',
+      },
+      {
+        key: '2',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('active');
+          }
+        },
+        description: 'View: Active',
+      },
+      {
+        key: '3',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('completed');
+          }
+        },
+        description: 'View: Completed',
+      },
+      {
+        key: '4',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('dueToday');
+          }
+        },
+        description: 'View: Due Today',
+      },
+      {
+        key: '5',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('dueIn3Days');
+          }
+        },
+        description: 'View: Due in 3 Days',
+      },
+      {
+        key: '6',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode('overdue');
+          }
+        },
+        description: 'View: Overdue',
+      },
+    ],
+    enabled: true,
+    ignoreWhen: shouldIgnoreKeyboardEvent,
+  });
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
+  // Reset selected card index when filters change and resize card refs array
+  useEffect(() => {
+    setSelectedCardIndex(-1);
+    const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
+    cardRefs.current = new Array(currentSubs.length).fill(null);
+  }, [filteredSubscriptions, filteredArchivedSubscriptions, archiveViewMode]);
 
   const loadFiltersFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -853,7 +1060,7 @@ export default function Subscriptions() {
           <button
             onClick={exportSubscriptions}
             className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
-            title="Export filtered subscriptions to CSV"
+            title="Export filtered subscriptions to CSV (E)"
           >
             <Download className="h-4 w-4" />
             <span className="hidden xs:inline">Export</span>
@@ -862,10 +1069,19 @@ export default function Subscriptions() {
           <button
             onClick={() => setIsModalOpen(true)}
             className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            title="Create new subscription (N or C)"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden xs:inline">Create Subscription</span>
             <span className="xs:hidden">Create</span>
+          </button>
+          <button
+            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            title="Keyboard shortcuts (Shift+?)"
+          >
+            <Keyboard className="h-4 w-4" />
+            <span className="hidden sm:inline">Shortcuts</span>
           </button>
         </div>
       </div>
@@ -907,8 +1123,9 @@ export default function Subscriptions() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search by service, client, or notes..."
+                placeholder="Search by service, client, or notes... (Press / to focus)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
@@ -1129,6 +1346,115 @@ export default function Subscriptions() {
         </div>
       </div>
 
+      {/* Keyboard Shortcuts Help Modal */}
+      {showKeyboardHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Keyboard className="w-5 h-5" />
+                Keyboard Shortcuts
+              </h2>
+              <button
+                onClick={() => setShowKeyboardHelp(false)}
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Navigation</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Arrow Up/Down</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">↑ ↓</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Enter</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Enter</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Focus Search</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Create New</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Export</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">E</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Reset Filters</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Toggle Archive</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Quick Views</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: All</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">1</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: Active</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">2</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: Completed</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">3</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: Due Today</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">4</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: Due in 3 Days</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">5</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">View: Overdue</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">6</kbd>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Close Modal</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Show Help</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-700">
+                <p className="text-xs text-gray-400 text-center">
+                  Keyboard shortcuts are disabled when typing in input fields
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subscriptions List - Mobile Viewport Optimized */}
       <div className="w-full max-w-full overflow-hidden">
         {filteredSubscriptions.length === 0 ? (
@@ -1202,17 +1528,31 @@ export default function Subscriptions() {
                 {!collapsedGroups.has(group.key) && (
                   <div className="w-full px-2 sm:px-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                      {group.subscriptions.map(subscription => (
-                        <div key={subscription.id} className="w-full min-w-0">
-                          <SubscriptionCard
-                            subscription={subscription}
-                            onUpdate={handleSubscriptionUpdate}
-                            onDelete={handleSubscriptionDelete}
-                            onView={handleSubscriptionView}
-                            onEdit={handleSubscriptionEdit}
-                          />
-                        </div>
-                      ))}
+                      {group.subscriptions.map((subscription, groupIndex) => {
+                        const globalIndex = filteredSubscriptions.findIndex(sub => sub.id === subscription.id);
+                        const isSelected = selectedCardIndex === globalIndex;
+                        return (
+                          <div 
+                            key={subscription.id} 
+                            ref={(el) => {
+                              if (globalIndex >= 0 && globalIndex < cardRefs.current.length) {
+                                cardRefs.current[globalIndex] = el;
+                              }
+                            }}
+                            className={`w-full min-w-0 transition-all ${
+                              isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                            }`}
+                          >
+                            <SubscriptionCard
+                              subscription={subscription}
+                              onUpdate={handleSubscriptionUpdate}
+                              onDelete={handleSubscriptionDelete}
+                              onView={handleSubscriptionView}
+                              onEdit={handleSubscriptionEdit}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1223,17 +1563,30 @@ export default function Subscriptions() {
           // Ungrouped view - Mobile viewport optimized
           <div className="w-full px-2 sm:px-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {filteredSubscriptions.map(subscription => (
-                <div key={subscription.id} className="w-full min-w-0">
-                  <SubscriptionCard
-                    subscription={subscription}
-                    onUpdate={handleSubscriptionUpdate}
-                    onDelete={handleSubscriptionDelete}
-                    onView={handleSubscriptionView}
-                    onEdit={handleSubscriptionEdit}
-                  />
-                </div>
-              ))}
+              {filteredSubscriptions.map((subscription, index) => {
+                const isSelected = selectedCardIndex === index;
+                return (
+                  <div 
+                    key={subscription.id} 
+                    ref={(el) => {
+                      if (index < cardRefs.current.length) {
+                        cardRefs.current[index] = el;
+                      }
+                    }}
+                    className={`w-full min-w-0 transition-all ${
+                      isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                    }`}
+                  >
+                    <SubscriptionCard
+                      subscription={subscription}
+                      onUpdate={handleSubscriptionUpdate}
+                      onDelete={handleSubscriptionDelete}
+                      onView={handleSubscriptionView}
+                      onEdit={handleSubscriptionEdit}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1252,8 +1605,9 @@ export default function Subscriptions() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
+                    ref={searchInputRef}
                     type="text"
-                    placeholder="Search archived subscriptions..."
+                    placeholder="Search archived subscriptions... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
@@ -1374,18 +1728,31 @@ export default function Subscriptions() {
             ) : (
               <div className="w-full px-2 sm:px-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                  {filteredArchivedSubscriptions.map(subscription => (
-                    <div key={subscription.id} className="w-full min-w-0">
-                      <SubscriptionCard
-                        subscription={subscription}
-                        onUpdate={handleSubscriptionUpdate}
-                        onDelete={handleSubscriptionDelete}
-                        onView={handleSubscriptionView}
-                        onEdit={handleSubscriptionEdit}
-                        isArchived={true}
-                      />
-                    </div>
-                  ))}
+                  {filteredArchivedSubscriptions.map((subscription, index) => {
+                    const isSelected = selectedCardIndex === index;
+                    return (
+                      <div 
+                        key={subscription.id} 
+                        ref={(el) => {
+                          if (index < cardRefs.current.length) {
+                            cardRefs.current[index] = el;
+                          }
+                        }}
+                        className={`w-full min-w-0 transition-all ${
+                          isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                        }`}
+                      >
+                        <SubscriptionCard
+                          subscription={subscription}
+                          onUpdate={handleSubscriptionUpdate}
+                          onDelete={handleSubscriptionDelete}
+                          onView={handleSubscriptionView}
+                          onEdit={handleSubscriptionEdit}
+                          isArchived={true}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
