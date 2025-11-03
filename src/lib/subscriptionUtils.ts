@@ -131,8 +131,7 @@ export const getProgressBarColor = (percentage: number): string => {
 // Check if subscription can be renewed
 export const canRenew = (subscription: Subscription): boolean => {
   return subscription.status === 'active' && 
-         (subscription.nextRenewalAt !== undefined || subscription.targetEndAt !== undefined) &&
-         subscription.isAutoRenew;
+         (subscription.nextRenewalAt !== undefined || subscription.targetEndAt !== undefined);
 };
 
 // Parse service duration string and extract months

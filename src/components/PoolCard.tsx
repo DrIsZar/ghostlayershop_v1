@@ -20,6 +20,7 @@ import {
 import { ResourcePool } from '../types/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS } from '../constants/provisioning';
 import { copyToClipboard } from '../lib/toast';
+import { updateResourcePool } from '../lib/inventory';
 
 interface PoolCardProps {
   pool: ResourcePool;
@@ -85,13 +86,54 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
   };
 
   const handleToggleAlive = async () => {
-    // This would call an API to toggle the alive status
-    onUpdate({ ...pool, is_alive: !pool.is_alive });
+    const newAliveStatus = !pool.is_alive;
+    try {
+      console.log(`Toggling pool ${pool.id} is_alive from ${pool.is_alive} to ${newAliveStatus}`);
+      const { data, error } = await updateResourcePool(pool.id, { is_alive: newAliveStatus });
+      if (error) {
+        console.error('Error updating pool:', error);
+        alert(`Failed to update pool: ${error.message || 'Unknown error'}`);
+        return;
+      }
+      if (!data) {
+        alert('Failed to update pool: No data returned');
+        return;
+      }
+      console.log('Pool updated successfully, received data:', data);
+      // Verify the update was saved
+      if (data.is_alive !== newAliveStatus) {
+        console.error('Update verification failed: is_alive mismatch', {
+          expected: newAliveStatus,
+          actual: data.is_alive
+        });
+        alert('Warning: Pool update may not have been saved correctly. Please refresh the page.');
+      }
+      // Update parent state with fresh data from database
+      onUpdate(data);
+    } catch (error) {
+      console.error('Error updating pool:', error);
+      alert(`Failed to update pool: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleToggleStatus = async () => {
     const newStatus = pool.status === 'paused' ? 'active' : 'paused';
-    onUpdate({ ...pool, status: newStatus });
+    try {
+      const { data, error } = await updateResourcePool(pool.id, { status: newStatus });
+      if (error) {
+        console.error('Error updating pool status:', error);
+        alert(`Failed to update pool status: ${error.message || 'Unknown error'}`);
+        return;
+      }
+      if (!data) {
+        alert('Failed to update pool status: No data returned');
+        return;
+      }
+      onUpdate(data);
+    } catch (error) {
+      console.error('Error updating pool status:', error);
+      alert(`Failed to update pool status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (

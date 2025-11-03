@@ -94,6 +94,12 @@ export default function PoolEditModal({
 
     setLoading(true);
     try {
+      // Check if is_alive is being changed from true to false
+      const wasAlive = pool.is_alive;
+      const willBeAlive = formData.is_alive;
+      
+      console.log(`Updating pool ${pool.id}, is_alive: ${wasAlive} -> ${willBeAlive}`);
+      
       const { data, error } = await updateResourcePool(pool.id, {
         ...formData,
         max_seats: typeof formData.max_seats === 'string' ? parseInt(formData.max_seats) || 1 : formData.max_seats,
@@ -101,13 +107,35 @@ export default function PoolEditModal({
         end_at: new Date(formData.end_at).toISOString(),
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating pool:', error);
+        alert(`Failed to update pool: ${error.message || 'Unknown error'}`);
+        setLoading(false);
+        return;
+      }
+      
+      if (!data) {
+        alert('Failed to update pool: No data returned');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Pool updated successfully, received data:', data);
+      
+      // Verify the update was saved
+      if (data.is_alive !== willBeAlive) {
+        console.error('Update verification failed: is_alive mismatch', {
+          expected: willBeAlive,
+          actual: data.is_alive
+        });
+        alert('Warning: Pool update may not have been saved correctly. Please refresh the page.');
+      }
       
       onPoolUpdated(data);
       onClose();
     } catch (error) {
       console.error('Error updating pool:', error);
-      alert('Failed to update pool');
+      alert(`Failed to update pool: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

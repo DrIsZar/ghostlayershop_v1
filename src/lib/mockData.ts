@@ -13,7 +13,6 @@ export const mockSubscriptions: Subscription[] = [
     nextRenewalAt: '2024-02-15T00:00:00Z',
     strategy: 'MONTHLY_MANUAL_DATE',
     status: 'active',
-    isAutoRenew: true,
     notes: 'Netflix Premium subscription for John',
     createdAt: '2024-01-15T00:00:00Z',
     updatedAt: '2024-01-15T00:00:00Z'
@@ -29,7 +28,6 @@ export const mockSubscriptions: Subscription[] = [
     nextRenewalAt: '2024-02-01T00:00:00Z',
     strategy: 'MONTHLY',
     status: 'active',
-    isAutoRenew: true,
     notes: 'Spotify Family plan',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z'
@@ -46,7 +44,6 @@ export const mockSubscriptions: Subscription[] = [
     strategy: 'EVERY_N_DAYS',
     intervalDays: 14,
     status: 'active',
-    isAutoRenew: true,
     notes: 'Cursor Pro 14-day cycle',
     createdAt: '2024-01-10T00:00:00Z',
     updatedAt: '2024-01-10T00:00:00Z'

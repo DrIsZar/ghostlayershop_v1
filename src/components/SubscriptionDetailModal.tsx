@@ -375,12 +375,6 @@ const fetchSubscriptionData = async () => {
               <p className="text-gray-400 text-sm">Strategy</p>
             </div>
 
-            <div className="p-4 bg-gray-800/50 rounded-lg">
-              <div className="text-white font-medium mb-2">
-                {subscription.isAutoRenew ? 'Auto-renew' : 'Manual'}
-              </div>
-              <p className="text-gray-400 text-sm">Renewal</p>
-            </div>
           </div>
 
           {/* Timeline Section */}
@@ -633,10 +627,6 @@ const fetchSubscriptionData = async () => {
                       <span className="text-white">{subscription.intervalDays} days</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Auto-renew:</span>
-                    <span className="text-white">{subscription.isAutoRenew ? 'Yes' : 'No'}</span>
-                  </div>
                   {subscription.targetEndAt && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Target End:</span>

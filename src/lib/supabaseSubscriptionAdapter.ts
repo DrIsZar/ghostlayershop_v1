@@ -32,7 +32,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
         iterations_done: subscription.iterationsDone || 0,
         strategy: subscription.strategy,
         status: subscription.status,
-        is_auto_renew: subscription.isAutoRenew
       })
       .select()
       .single();
@@ -61,7 +60,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       iterationsDone: data.iterations_done,
       strategy: data.strategy as RenewalStrategyKey,
       status: data.status as any,
-      isAutoRenew: data.is_auto_renew,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -97,7 +95,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       iterationsDone: data.iterations_done,
       strategy: data.strategy as RenewalStrategyKey,
       status: data.status as any,
-      isAutoRenew: data.is_auto_renew,
       resourcePoolId: data.resource_pool_id,
       resourcePoolSeatId: data.resource_pool_seat_id,
       createdAt: data.created_at,
@@ -127,7 +124,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
     if (updates.iterationsDone !== undefined) dbUpdates.iterations_done = updates.iterationsDone;
     if (updates.strategy !== undefined) dbUpdates.strategy = updates.strategy;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.isAutoRenew !== undefined) dbUpdates.is_auto_renew = updates.isAutoRenew;
     if (updates.resourcePoolId !== undefined) dbUpdates.resource_pool_id = updates.resourcePoolId;
     if (updates.resourcePoolSeatId !== undefined) dbUpdates.resource_pool_seat_id = updates.resourcePoolSeatId;
 
@@ -164,7 +160,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       iterationsDone: data.iterations_done,
       strategy: data.strategy as RenewalStrategyKey,
       status: data.status as any,
-      isAutoRenew: data.is_auto_renew,
       resourcePoolId: data.resource_pool_id,
       resourcePoolSeatId: data.resource_pool_seat_id,
       createdAt: data.created_at,
@@ -206,7 +201,6 @@ export class SupabaseSubscriptionPersistenceAdapter implements SubscriptionPersi
       iterationsDone: dbSub.iterations_done,
       strategy: dbSub.strategy as RenewalStrategyKey,
       status: dbSub.status as any,
-      isAutoRenew: dbSub.is_auto_renew,
       resourcePoolId: dbSub.resource_pool_id,
       resourcePoolSeatId: dbSub.resource_pool_seat_id,
       createdAt: dbSub.created_at,

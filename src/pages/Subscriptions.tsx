@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Plus, 
   Search, 
@@ -26,8 +26,10 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { formatServiceTitleWithDuration, groupServicesByBaseName, getAvailablePeriods, ServiceGroup } from '../lib/subscriptionUtils';
 import { supabase } from '../lib/supabase';
 import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { syncSubscriptionsForDeadPools, getResourcePool } from '../lib/inventory';
+import { ResourcePool } from '../types/inventory';
 
-type ViewMode = 'all' | 'active' | 'completed' | 'dueToday' | 'dueIn3Days' | 'overdue';
+type ViewMode = 'all' | 'active' | 'completed' | 'dueToday' | 'dueIn3Days' | 'overdue' | 'overdueNormal' | 'overdueDeadPool';
 type ArchiveViewMode = 'subscriptions' | 'archive';
 type GroupByMode = 'none' | 'client' | 'service';
 
@@ -86,6 +88,9 @@ export default function Subscriptions() {
   const [services, setServices] = useState<Service[]>([]);
   const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
   
+  // Pool data cache for checking dead pool status
+  const [poolCache, setPoolCache] = useState<Map<string, ResourcePool>>(new Map());
+  
   // UI state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
@@ -94,13 +99,20 @@ export default function Subscriptions() {
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    fetchSubscriptions();
-    fetchArchivedSubscriptions();
-    fetchDueBuckets();
-    loadFiltersFromURL();
+    const initializeData = async () => {
+      // First sync subscriptions linked to dead pools
+      await syncSubscriptionsForDeadPools();
+      // Then fetch subscriptions
+      await fetchSubscriptions();
+      await fetchArchivedSubscriptions();
+      await fetchDueBuckets();
+      loadFiltersFromURL();
+      
+      // Refresh subscription statuses to auto-complete expired subscriptions
+      refreshSubscriptionStatus();
+    };
     
-    // Refresh subscription statuses to auto-complete expired subscriptions
-    refreshSubscriptionStatus();
+    initializeData();
   }, []);
 
   // Add a manual refresh function for debugging
@@ -111,11 +123,60 @@ export default function Subscriptions() {
     await fetchDueBuckets();
   };
 
+  // Fetch pool data for subscriptions that have resourcePoolId
+  const fetchPoolDataForSubscriptions = useCallback(async () => {
+    const poolIds = [...new Set(subscriptions
+      .filter(sub => sub.resourcePoolId)
+      .map(sub => sub.resourcePoolId!)
+    )];
+    
+    if (poolIds.length === 0) {
+      setPoolCache(new Map());
+      return;
+    }
+    
+    try {
+      // Filter out pools that are already in cache
+      setPoolCache(currentCache => {
+        const poolsToFetch = poolIds.filter(poolId => !currentCache.has(poolId));
+        
+        if (poolsToFetch.length === 0) {
+          // All pools already in cache
+          return currentCache;
+        }
+        
+        // Fetch pools that aren't in cache
+        const poolPromises = poolsToFetch.map(async (poolId) => {
+          const { data: pool, error } = await getResourcePool(poolId);
+          if (error || !pool) return null;
+          return { poolId, pool };
+        });
+        
+        Promise.all(poolPromises).then(results => {
+          setPoolCache(prevCache => {
+            const newCache = new Map(prevCache);
+            results.forEach(result => {
+              if (result) {
+                newCache.set(result.poolId, result.pool);
+              }
+            });
+            return newCache;
+          });
+        });
+        
+        return currentCache;
+      });
+    } catch (error) {
+      console.error('Error fetching pool data:', error);
+    }
+  }, [subscriptions]);
+
   useEffect(() => {
     if (subscriptions.length > 0) {
       fetchClientsAndServices();
+      fetchPoolDataForSubscriptions();
     }
-  }, [subscriptions]);
+  }, [subscriptions, fetchPoolDataForSubscriptions]);
 
 
   useEffect(() => {
@@ -132,7 +193,7 @@ export default function Subscriptions() {
       applyArchiveFilters();
     }
     saveFiltersToURL();
-  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, debouncedSearchTerm, archiveViewMode]);
+  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, debouncedSearchTerm, archiveViewMode, poolCache]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -373,11 +434,11 @@ export default function Subscriptions() {
     }
 
     // Load from URL first, then fallback to localStorage
-    if (view && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue'].includes(view)) {
+    if (view && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue', 'overdueNormal', 'overdueDeadPool'].includes(view)) {
       setViewMode(view);
     } else {
       const savedView = localStorage.getItem('subscription-view-mode') as ViewMode;
-      if (savedView && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue'].includes(savedView)) {
+      if (savedView && ['all', 'active', 'completed', 'dueToday', 'dueIn3Days', 'overdue', 'overdueNormal', 'overdueDeadPool'].includes(savedView)) {
         setViewMode(savedView);
       }
     }
@@ -605,6 +666,38 @@ export default function Subscriptions() {
           if (!sub.nextRenewalAt || sub.status === 'completed') return false;
           const renewalDate = new Date(sub.nextRenewalAt);
           return renewalDate < now;
+        });
+        break;
+      case 'overdueNormal':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          if (renewalDate >= now) return false;
+          
+          // Check if it's NOT overdue from dead pool
+          if (sub.resourcePoolId) {
+            const pool = poolCache.get(sub.resourcePoolId);
+            if (pool && !pool.is_alive) {
+              return false; // This is overdue from dead pool, exclude it
+            }
+          }
+          return true;
+        });
+        break;
+      case 'overdueDeadPool':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          if (renewalDate >= now) return false;
+          
+          // Check if it's overdue from dead pool
+          if (sub.resourcePoolId) {
+            const pool = poolCache.get(sub.resourcePoolId);
+            if (pool && !pool.is_alive) {
+              return true; // This is overdue from dead pool
+            }
+          }
+          return false; // Not overdue from dead pool
         });
         break;
     }
@@ -987,7 +1080,6 @@ export default function Subscriptions() {
         'Days Elapsed': elapsedDays.toString(),
         'Days Remaining': daysRemaining,
         'Renewal Strategy': subscription.strategy,
-        'Auto Renew': subscription.isAutoRenew ? 'Yes' : 'No',
         'Iterations Done': subscription.iterationsDone?.toString() || '0',
         'Notes': subscription.notes || '',
         'Created At': formatDate(subscription.createdAt),
@@ -1151,7 +1243,9 @@ export default function Subscriptions() {
                 { value: 'completed', label: 'Completed' },
                 { value: 'dueToday', label: 'Due Today' },
                 { value: 'dueIn3Days', label: 'Due in 3 Days' },
-                { value: 'overdue', label: 'Overdue' }
+                { value: 'overdue', label: 'Overdue (All)' },
+                { value: 'overdueNormal', label: 'Overdue (Normal)' },
+                { value: 'overdueDeadPool', label: 'Overdue (Dead Pool)' }
               ]}
               value={viewMode}
               onChange={(value) => setViewMode(value as ViewMode)}

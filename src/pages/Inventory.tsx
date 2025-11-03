@@ -64,6 +64,20 @@ export default function Inventory() {
     return () => clearInterval(interval);
   }, []);
 
+  // Refresh pools when component becomes visible again (user returns to page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page became visible, refreshing pools...');
+        fetchPools();
+        fetchArchivedPools();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -248,6 +262,8 @@ export default function Inventory() {
     setPools(prev => prev.map(pool => 
       pool.id === updatedPool.id ? updatedPool : pool
     ));
+    // If the detail modal is open for this pool, keep it in sync
+    setSelectedPool(prev => (prev && prev.id === updatedPool.id ? updatedPool : prev));
   };
 
   const handlePoolArchive = async (poolId: string) => {

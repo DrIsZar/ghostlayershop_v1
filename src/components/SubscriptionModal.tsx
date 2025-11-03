@@ -53,7 +53,6 @@ export default function SubscriptionModal({
     startDate: new Date().toISOString().split('T')[0], // Default to today
     strategy: 'MONTHLY' as RenewalStrategyKey,
     intervalDays: 30,
-    isAutoRenew: true,
     notes: ''
   });
 
@@ -89,7 +88,6 @@ export default function SubscriptionModal({
         startDate: editingSubscription.startedAt ? editingSubscription.startedAt.split('T')[0] : new Date().toISOString().split('T')[0],
         strategy: editingSubscription.strategy,
         intervalDays: editingSubscription.intervalDays || 30,
-        isAutoRenew: editingSubscription.isAutoRenew || false,
         notes: editingSubscription.notes || ''
       });
       setCreatedSubscriptionId(editingSubscription.id);
@@ -281,8 +279,7 @@ export default function SubscriptionModal({
             intervalDays: formData.intervalDays,
             startedAt: formData.startDate,
             targetEndAt: calculatedEndDate ? new Date(calculatedEndDate).toISOString() : undefined,
-            notes: formData.notes,
-            isAutoRenew: formData.isAutoRenew
+            notes: formData.notes
           }
         );
       } else {
@@ -294,8 +291,7 @@ export default function SubscriptionModal({
             intervalDays: formData.intervalDays,
             startedAt: formData.startDate,
             targetEndAt: calculatedEndDate ? new Date(calculatedEndDate).toISOString() : undefined,
-            notes: formData.notes,
-            isAutoRenew: formData.isAutoRenew
+            notes: formData.notes
           }
         );
       }
@@ -320,7 +316,6 @@ export default function SubscriptionModal({
       startDate: new Date().toISOString().split('T')[0],
       strategy: 'MONTHLY',
       intervalDays: 30,
-      isAutoRenew: true,
       notes: ''
     });
     setErrors({});
@@ -415,8 +410,7 @@ export default function SubscriptionModal({
         intervalDays: formData.intervalDays,
         startedAt: formData.startDate,
         targetEndAt: calculatedEndDate ? new Date(calculatedEndDate).toISOString() : undefined,
-        notes: formData.notes,
-        isAutoRenew: formData.isAutoRenew
+        notes: formData.notes
       });
       
       console.log('✅ Subscription updated successfully:', updatedSubscription);
@@ -595,20 +589,6 @@ export default function SubscriptionModal({
               )}
             </div>
           )}
-
-          {/* Auto-renewal */}
-          <div className="flex items-center p-4 bg-gray-800/30 rounded-lg border border-gray-700">
-            <input
-              type="checkbox"
-              id="isAutoRenew"
-              checked={formData.isAutoRenew}
-              onChange={(e) => handleInputChange('isAutoRenew', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            <label htmlFor="isAutoRenew" className="ml-3 text-sm font-medium text-gray-300">
-              Auto-renewal enabled
-            </label>
-          </div>
 
           {/* Login */}
           <div>

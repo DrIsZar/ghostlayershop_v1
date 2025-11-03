@@ -48,7 +48,6 @@ export default function SubscriptionEditModal({
     startDate: '',
     strategy: 'MONTHLY' as RenewalStrategyKey,
     intervalDays: 30,
-    isAutoRenew: true,
     notes: '',
     customNextRenewalAt: '',
     targetEndAt: ''
@@ -77,7 +76,6 @@ export default function SubscriptionEditModal({
         startDate: subscription.startedAt ? subscription.startedAt.split('T')[0] : '',
         strategy: subscription.strategy,
         intervalDays: subscription.intervalDays || 30,
-        isAutoRenew: subscription.isAutoRenew || false,
         notes: subscription.notes || '',
         customNextRenewalAt: subscription.customNextRenewalAt ? 
           subscription.customNextRenewalAt.split('T')[0] : '',
@@ -220,8 +218,7 @@ export default function SubscriptionEditModal({
         intervalDays: formData.intervalDays,
         startedAt: formData.startDate,
         targetEndAt: formData.targetEndAt ? new Date(formData.targetEndAt).toISOString() : undefined,
-        notes: formData.notes,
-        isAutoRenew: formData.isAutoRenew
+        notes: formData.notes
       };
 
       let updated: Subscription;
@@ -417,8 +414,7 @@ export default function SubscriptionEditModal({
         intervalDays: formData.intervalDays,
         startedAt: formData.startDate,
         targetEndAt: formData.targetEndAt ? new Date(formData.targetEndAt).toISOString() : undefined,
-        notes: formData.notes,
-        isAutoRenew: formData.isAutoRenew
+        notes: formData.notes
       };
 
       let updated: Subscription;
@@ -663,20 +659,6 @@ export default function SubscriptionEditModal({
             <p className="mt-1 text-xs text-gray-400">
               Set a custom renewal date or leave empty to use automatic renewal
             </p>
-          </div>
-
-          {/* Auto-renewal */}
-          <div className="flex items-center p-4 bg-gray-800/30 rounded-lg border border-gray-700">
-            <input
-              type="checkbox"
-              id="isAutoRenew"
-              checked={formData.isAutoRenew}
-              onChange={(e) => handleInputChange('isAutoRenew', e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            <label htmlFor="isAutoRenew" className="ml-3 text-sm font-medium text-gray-300">
-              Auto-renewal enabled
-            </label>
           </div>
 
           {/* Login */}

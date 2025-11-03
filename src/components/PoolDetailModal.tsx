@@ -52,16 +52,19 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
     }
   }, [isOpen, pool]);
 
-  // Also refresh when the pool prop changes (e.g., after editing)
+  // Also refresh when the pool prop changes (e.g., after editing or toggling alive status)
   useEffect(() => {
     if (isOpen && pool && poolWithSeats) {
-      // Only refresh if the max_seats has changed
-      if (pool.max_seats !== poolWithSeats.max_seats) {
-        console.log('Pool max_seats changed, refreshing details...');
+      // Refresh if max_seats or is_alive has changed
+      if (pool.max_seats !== poolWithSeats.max_seats || pool.is_alive !== poolWithSeats.is_alive) {
+        console.log('Pool properties changed, refreshing details...', {
+          max_seats: pool.max_seats !== poolWithSeats.max_seats,
+          is_alive: pool.is_alive !== poolWithSeats.is_alive
+        });
         fetchPoolDetails();
       }
     }
-  }, [pool?.max_seats]);
+  }, [pool?.max_seats, pool?.is_alive]);
 
   const fetchPoolDetails = async () => {
     if (!pool) return;
@@ -163,12 +166,39 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
   const handleToggleAlive = async () => {
     if (!pool) return;
+    const newAliveStatus = !pool.is_alive;
     try {
-      const { data, error } = await updateResourcePool(pool.id, { is_alive: !pool.is_alive });
-      if (error) throw error;
+      console.log(`Toggling pool ${pool.id} is_alive from ${pool.is_alive} to ${newAliveStatus}`);
+      const { data, error } = await updateResourcePool(pool.id, { is_alive: newAliveStatus });
+      if (error) {
+        console.error('Error updating pool:', error);
+        alert(`Failed to update pool: ${error.message || 'Unknown error'}`);
+        return;
+      }
+      if (!data) {
+        alert('Failed to update pool: No data returned');
+        return;
+      }
+      console.log('Pool updated successfully, received data:', data);
+      // Verify the update was saved by checking the returned data
+      if (data.is_alive !== newAliveStatus) {
+        console.error('Update verification failed: is_alive mismatch', {
+          expected: newAliveStatus,
+          actual: data.is_alive
+        });
+        alert('Warning: Pool update may not have been saved correctly. Please refresh the page.');
+      }
+      // Update parent state with fresh data from database
       onUpdate(data);
+      // Refresh pool details to ensure we have the latest data including seats
+      await fetchPoolDetails();
+      // Update local pool state
+      if (poolWithSeats) {
+        setPoolWithSeats({ ...poolWithSeats, ...data });
+      }
     } catch (error) {
       console.error('Error updating pool:', error);
+      alert(`Failed to update pool: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

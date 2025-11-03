@@ -47,7 +47,6 @@ export interface Subscription {
   
   // State
   status: SubscriptionStatus;
-  isAutoRenew: boolean;
   notes?: string;
   
   // Resource pool linking

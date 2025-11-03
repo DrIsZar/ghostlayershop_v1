@@ -56,7 +56,7 @@ export class SubscriptionService {
     saleId: string, 
     serviceId: string, 
     clientId: string, 
-    configOverrides?: Partial<Pick<Subscription, 'strategy' | 'intervalDays' | 'startedAt' | 'notes' | 'isAutoRenew' | 'targetEndAt'>>
+    configOverrides?: Partial<Pick<Subscription, 'strategy' | 'intervalDays' | 'startedAt' | 'notes' | 'targetEndAt'>>
   ): Promise<Subscription> {
     const serviceConfig = await this.getServiceConfig(serviceId);
     if (!serviceConfig) {
@@ -86,7 +86,6 @@ export class SubscriptionService {
         strategy,
         intervalDays: configOverrides?.intervalDays || serviceConfig.intervalDays,
         status: 'active',
-        isAutoRenew: configOverrides?.isAutoRenew ?? true,
         notes: configOverrides?.notes,
         createdAt: startDate,
         updatedAt: startDate
@@ -118,7 +117,6 @@ export class SubscriptionService {
       strategy,
       intervalDays: configOverrides?.intervalDays || serviceConfig.intervalDays,
       status: 'active' as const,
-      isAutoRenew: configOverrides?.isAutoRenew ?? true,
       notes: configOverrides?.notes,
       nextRenewalAt,
       targetEndAt
@@ -140,7 +138,7 @@ export class SubscriptionService {
   async createManual(
     serviceId: string, 
     clientId: string, 
-    initialConfig: Pick<Subscription, 'strategy' | 'intervalDays' | 'startedAt' | 'notes' | 'isAutoRenew' | 'targetEndAt'>
+    initialConfig: Pick<Subscription, 'strategy' | 'intervalDays' | 'startedAt' | 'notes' | 'targetEndAt'>
   ): Promise<Subscription> {
     return this.createFromSale('', serviceId, clientId, initialConfig);
   }

@@ -92,7 +92,12 @@ export async function createResourcePool(data: CreatePoolData) {
 export async function updateResourcePool(id: string, data: UpdatePoolData) {
   // First get the current pool to check if max_seats changed
   const { data: currentPool, error: fetchError } = await getResourcePool(id);
-  if (fetchError) return { data: null, error: fetchError };
+  if (fetchError) {
+    console.error('Error fetching current pool:', fetchError);
+    return { data: null, error: fetchError };
+  }
+
+  console.log('Updating pool:', id, 'with data:', data, 'current pool:', currentPool);
 
   // Update the pool
   const result = await supabase
@@ -102,7 +107,22 @@ export async function updateResourcePool(id: string, data: UpdatePoolData) {
     .select('*')
     .single();
 
-  if (result.error) return result;
+  if (result.error) {
+    console.error('Error updating pool in database:', result.error);
+    return result;
+  }
+
+  console.log('Pool updated successfully:', result.data);
+
+  // If pool was just marked dead, mark linked subscriptions as overdue
+  try {
+    if (typeof data.is_alive === 'boolean' && currentPool && currentPool.is_alive && !data.is_alive) {
+      console.log('Pool marked dead, marking linked subscriptions as overdue');
+      await markLinkedSubscriptionsOverdue([id]);
+    }
+  } catch (e) {
+    console.warn('Failed to mark linked subscriptions overdue for pool', id, e);
+  }
 
   // If max_seats changed, ensure we have exactly the right number of seats
   if (data.max_seats !== undefined && data.max_seats !== currentPool.max_seats) {
@@ -195,7 +215,7 @@ export async function deleteResourcePool(id: string) {
 }
 
 export async function archiveResourcePool(id: string) {
-  return supabase
+  const result = await supabase
     .from('resource_pools')
     .update({ 
       status: 'expired',
@@ -205,11 +225,21 @@ export async function archiveResourcePool(id: string) {
     .eq('id', id)
     .select('*')
     .single();
+
+  if (!result.error) {
+    try {
+      await markLinkedSubscriptionsOverdue([id]);
+    } catch (e) {
+      console.warn('Failed to mark linked subscriptions overdue when archiving pool', id, e);
+    }
+  }
+
+  return result;
 }
 
 export async function archiveExpiredPools() {
   const now = new Date();
-  return supabase
+  const result = await supabase
     .from('resource_pools')
     .update({ 
       status: 'expired',
@@ -219,10 +249,21 @@ export async function archiveExpiredPools() {
     .lt('end_at', now.toISOString())
     .in('status', ['active', 'overdue'])
     .select('*');
+
+  if (result.data && result.data.length > 0) {
+    try {
+      const poolIds = result.data.map((p: any) => p.id);
+      await markLinkedSubscriptionsOverdue(poolIds);
+    } catch (e) {
+      console.warn('Failed to mark linked subscriptions overdue for expired pools', e);
+    }
+  }
+
+  return result;
 }
 
 export async function bulkArchivePools(poolIds: string[]) {
-  return supabase
+  const result = await supabase
     .from('resource_pools')
     .update({ 
       status: 'expired',
@@ -231,6 +272,16 @@ export async function bulkArchivePools(poolIds: string[]) {
     })
     .in('id', poolIds)
     .select('*');
+
+  if (!result.error) {
+    try {
+      await markLinkedSubscriptionsOverdue(poolIds);
+    } catch (e) {
+      console.warn('Failed to mark linked subscriptions overdue for bulk archive', e);
+    }
+  }
+
+  return result;
 }
 
 // Seat management
@@ -431,6 +482,80 @@ export async function getAvailableSeatsInPool(poolId: string) {
     .order('seat_index');
 }
 
+// Helper: mark subscriptions linked to the given pools as overdue
+async function markLinkedSubscriptionsOverdue(poolIds: string[]) {
+  if (!poolIds || poolIds.length === 0) return;
+  try {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update({
+        status: 'overdue',
+        updated_at: new Date().toISOString(),
+      })
+      .in('resource_pool_id', poolIds)
+      .in('status', ['active', 'paused'])
+      .select('id');
+    
+    if (error) {
+      console.error('markLinkedSubscriptionsOverdue error:', error);
+    } else {
+      console.log(`Marked ${data?.length || 0} subscriptions as overdue for pools:`, poolIds);
+    }
+  } catch (error) {
+    console.error('markLinkedSubscriptionsOverdue exception:', error);
+  }
+}
+
+// Sync function: mark all subscriptions linked to dead pools as overdue
+export async function syncSubscriptionsForDeadPools() {
+  try {
+    console.log('Syncing subscriptions linked to dead pools...');
+    
+    // Find all dead pools
+    const { data: deadPools, error: poolsError } = await supabase
+      .from('resource_pools')
+      .select('id')
+      .eq('is_alive', false);
+    
+    if (poolsError) {
+      console.error('Error fetching dead pools:', poolsError);
+      return { error: poolsError };
+    }
+    
+    if (!deadPools || deadPools.length === 0) {
+      console.log('No dead pools found');
+      return { data: { count: 0 } };
+    }
+    
+    const deadPoolIds = deadPools.map(p => p.id);
+    console.log(`Found ${deadPoolIds.length} dead pools`);
+    
+    // Mark subscriptions linked to dead pools as overdue
+    const { data: updatedSubs, error: updateError } = await supabase
+      .from('subscriptions')
+      .update({
+        status: 'overdue',
+        updated_at: new Date().toISOString(),
+      })
+      .in('resource_pool_id', deadPoolIds)
+      .in('status', ['active', 'paused'])
+      .select('id');
+    
+    if (updateError) {
+      console.error('Error updating subscriptions for dead pools:', updateError);
+      return { error: updateError };
+    }
+    
+    const count = updatedSubs?.length || 0;
+    console.log(`Marked ${count} subscriptions as overdue for dead pools`);
+    
+    return { data: { count } };
+  } catch (error) {
+    console.error('syncSubscriptionsForDeadPools exception:', error);
+    return { error };
+  }
+}
+
 export async function getAllAssignedSeats() {
   console.log('Fetching all assigned seats...');
   
@@ -521,15 +646,30 @@ export async function getAllAssignedSeats() {
 
 // Subscription integration
 export async function linkSubscriptionToPool(subscriptionId: string, poolId: string, seatId?: string, assignment?: SeatAssignment) {
+  // First check if the pool is dead - if so, mark subscription as overdue when linking
+  const { data: pool, error: poolError } = await getResourcePool(poolId);
+  if (poolError) {
+    console.error('Error fetching pool when linking subscription:', poolError);
+  }
+  
+  const shouldMarkOverdue = pool && !pool.is_alive;
+  
   if (seatId) {
     // Link to specific seat - update both subscription and seat
+    const subscriptionUpdateData: any = {
+      resource_pool_id: poolId,
+      resource_pool_seat_id: seatId,
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Mark overdue if pool is dead
+    if (shouldMarkOverdue) {
+      subscriptionUpdateData.status = 'overdue';
+    }
+    
     const subscriptionUpdate = supabase
       .from('subscriptions')
-      .update({
-        resource_pool_id: poolId,
-        resource_pool_seat_id: seatId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(subscriptionUpdateData)
       .eq('id', subscriptionId);
 
     // Also update the seat to mark it as assigned with assignment details
@@ -551,6 +691,10 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
     if (subResult.error) return { data: null, error: subResult.error };
     if (seatResult.error) return { data: null, error: seatResult.error };
     
+    if (shouldMarkOverdue) {
+      console.log(`Subscription ${subscriptionId} linked to dead pool ${poolId}, marked as overdue`);
+    }
+    
     // Recalculate renewal date with pool awareness
     try {
       await subscriptionService.recalculateRenewalDateForPool(subscriptionId);
@@ -564,14 +708,25 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
     const { data: seatData, error: seatError } = await assignNextFreeSeat(poolId, assignment || {});
     if (seatError) return { data: null, error: seatError };
     
+    const subscriptionUpdateData: any = {
+      resource_pool_id: poolId,
+      resource_pool_seat_id: seatData,
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Mark overdue if pool is dead
+    if (shouldMarkOverdue) {
+      subscriptionUpdateData.status = 'overdue';
+    }
+    
     const result = await supabase
       .from('subscriptions')
-      .update({
-        resource_pool_id: poolId,
-        resource_pool_seat_id: seatData,
-        updated_at: new Date().toISOString(),
-      })
+      .update(subscriptionUpdateData)
       .eq('id', subscriptionId);
+
+    if (shouldMarkOverdue && !result.error) {
+      console.log(`Subscription ${subscriptionId} linked to dead pool ${poolId}, marked as overdue`);
+    }
 
     // Recalculate renewal date with pool awareness
     if (!result.error) {

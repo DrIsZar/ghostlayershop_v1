@@ -106,7 +106,11 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             setResourcePool(pool);
           } catch (error) {
             console.error('Error fetching resource pool:', error);
+            setResourcePool(null); // Reset on error
           }
+        } else {
+          // Reset pool if subscription is no longer linked
+          setResourcePool(null);
         }
       } catch (error) {
         console.error('Error fetching names:', error);
@@ -145,8 +149,27 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const cycleProgress = computeCycleProgress(subscription);
   const renewalProgress = computeRenewalProgress(subscription);
   const targetDate = subscription.nextRenewalAt || subscription.targetEndAt;
-  const displayText = subscription.customNextRenewalAt ? 'Custom renewal' : 
-                     subscription.targetEndAt ? 'Subscription ends' : 'Next renewal';
+  
+  // Check if subscription is overdue due to dead pool
+  // Only apply dead pool styling if subscription has a resourcePoolId AND pool is fetched AND pool is dead
+  const isOverdueFromDeadPool = subscription.status === 'overdue' && 
+                                  subscription.resourcePoolId && 
+                                  resourcePool && 
+                                  !resourcePool.is_alive;
+  
+  // Determine display text - show "Overdue" if linked to dead pool, otherwise show normal text
+  const displayText = isOverdueFromDeadPool 
+    ? 'Overdue' 
+    : subscription.customNextRenewalAt 
+      ? 'Custom renewal' 
+      : subscription.targetEndAt 
+        ? 'Subscription ends' 
+        : 'Next renewal';
+  
+  // For overdue subscriptions linked to dead pools, ensure progress bar shows at 100%
+  const progressBarWidth = isOverdueFromDeadPool 
+    ? 100 
+    : Math.min(renewalProgress.pct, 100);
 
   // Calculate days used for completed subscriptions
   const getDaysUsed = () => {
@@ -222,27 +245,37 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       <div className="p-3 sm:p-4 bg-gray-800/30 border-b border-gray-700/30">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs sm:text-sm font-medium text-gray-300 flex items-center">
-            <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${
+              isOverdueFromDeadPool ? 'text-red-500' : 'text-blue-500'
+            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="truncate">{displayText}</span>
           </span>
           {targetDate && (
-            <span className="text-xs font-medium text-blue-400 bg-blue-900/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2">
+            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${
+              isOverdueFromDeadPool 
+                ? 'text-red-400 bg-red-900/30' 
+                : 'text-blue-400 bg-blue-900/30'
+            }`}>
               {formatDate(targetDate)}
             </span>
           )}
         </div>
         
-        <div className="text-lg sm:text-2xl font-bold text-white mb-2 text-center">
-          {countdown}
+        <div className={`text-lg sm:text-2xl font-bold mb-2 text-center ${
+          isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
+        }`}>
+          {isOverdueFromDeadPool ? 'Overdue' : countdown}
         </div>
         
         {targetDate && (
           <div className="w-full bg-gray-700 rounded-full h-1 sm:h-1.5 overflow-hidden">
             <div 
-              className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressBarColor(renewalProgress.pct)}`}
-              style={{ width: `${Math.min(renewalProgress.pct, 100)}%` }}
+              className={`h-full rounded-full transition-all duration-500 ease-out ${
+                isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(renewalProgress.pct)
+              }`}
+              style={{ width: `${progressBarWidth}%` }}
             />
           </div>
         )}
@@ -253,12 +286,18 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
         <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-xs sm:text-sm font-medium text-gray-300 flex items-center">
-              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${
+                isOverdueFromDeadPool ? 'text-red-500' : 'text-green-500'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="truncate">Full Period Timeline</span>
             </span>
-            <span className="text-xs font-medium text-green-400 bg-green-900/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2">
+            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${
+              isOverdueFromDeadPool 
+                ? 'text-red-400 bg-red-900/30' 
+                : 'text-green-400 bg-green-900/30'
+            }`}>
               {formatDate(subscription.targetEndAt)}
             </span>
           </div>
@@ -267,26 +306,44 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-3">
             <div className="flex justify-between text-xs text-gray-400">
               <span className="truncate">Start: {formatDate(subscription.startedAt)}</span>
-              <span className="truncate ml-2">End: {formatDate(subscription.targetEndAt)}</span>
+              <span className={`truncate ml-2 ${
+                isOverdueFromDeadPool ? 'text-red-400' : ''
+              }`}>
+                End: {formatDate(subscription.targetEndAt)}
+              </span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-1 sm:h-1.5 overflow-hidden">
               <div 
-                className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressBarColor(cycleProgress.pct)}`}
+                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                  isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(cycleProgress.pct)
+                }`}
                 style={{ width: `${Math.min(cycleProgress.pct, 100)}%` }}
               />
             </div>
           </div>
           
           {/* Countdown Display */}
-          <div className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3 text-center">
+          <div className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-center ${
+            isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
+          }`}>
             {fullPeriodCountdown}
           </div>
           
           {/* Timeline Stats - Mobile Grid */}
           <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-xs">
-            <div className="bg-gray-700/50 rounded-lg p-1.5 sm:p-2 text-center">
-              <div className="text-gray-400 text-xs">Elapsed</div>
-              <div className="font-semibold text-white text-xs sm:text-sm">
+            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${
+              isOverdueFromDeadPool 
+                ? 'bg-red-900/20 border border-red-800/50' 
+                : 'bg-gray-700/50'
+            }`}>
+              <div className={`text-xs ${
+                isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+              }`}>
+                Elapsed
+              </div>
+              <div className={`font-semibold text-xs sm:text-sm ${
+                isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
+              }`}>
                 {(() => {
                   const now = new Date();
                   const startDate = new Date(subscription.startedAt);
@@ -295,9 +352,19 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 })()}
               </div>
             </div>
-            <div className="bg-gray-700/50 rounded-lg p-1.5 sm:p-2 text-center">
-              <div className="text-gray-400 text-xs">Remaining</div>
-              <div className="font-semibold text-white text-xs sm:text-sm">
+            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${
+              isOverdueFromDeadPool 
+                ? 'bg-red-900/20 border border-red-800/50' 
+                : 'bg-gray-700/50'
+            }`}>
+              <div className={`text-xs ${
+                isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+              }`}>
+                Remaining
+              </div>
+              <div className={`font-semibold text-xs sm:text-sm ${
+                isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
+              }`}>
                 {(() => {
                   const now = new Date();
                   const endDate = new Date(subscription.targetEndAt);
@@ -310,7 +377,9 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           
           {/* Progress Percentage */}
           <div className="mt-1 sm:mt-2 text-center">
-            <span className="text-xs font-medium text-green-400">
+            <span className={`text-xs font-medium ${
+              isOverdueFromDeadPool ? 'text-red-400' : 'text-green-400'
+            }`}>
               {Math.round(cycleProgress.pct)}% complete
             </span>
           </div>
@@ -376,6 +445,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="text-xs">{daysUsed} day{daysUsed !== 1 ? 's' : ''} used</span>
+            </div>
+          )}
+
+          {/* Pool is Dead Badge */}
+          {isOverdueFromDeadPool && (
+            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-900/30 text-red-400 rounded-full text-xs font-medium border border-red-800/50">
+              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="text-xs">Pool is Dead</span>
             </div>
           )}
 
