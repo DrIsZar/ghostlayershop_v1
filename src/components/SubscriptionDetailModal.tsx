@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Mail, Copy } from 'lucide-react';
+import { X, Edit, Clock, Calendar, Package, CheckCircle, RefreshCw, Trash2, Mail, Copy, AlertTriangle } from 'lucide-react';
 import { Subscription, SubscriptionEvent } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, getStatusBadge, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
@@ -235,6 +235,26 @@ const fetchSubscriptionData = async () => {
     } catch (error) {
       console.error('Error archiving subscription:', error);
       alert('Failed to archive subscription');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMarkOverdue = async () => {
+    if (!subscription) return;
+
+    if (!confirm(`Mark this subscription as overdue? This will change the status from "${subscription.status}" to "overdue".`)) return;
+
+    setIsLoading(true);
+    try {
+      const updated = await subscriptionService.markOverdue(subscription.id);
+      onUpdate(updated);
+      fetchSubscriptionData();
+      // Close modal after successful update
+      onClose();
+    } catch (error) {
+      console.error('Error marking subscription as overdue:', error);
+      alert(`Failed to mark subscription as overdue: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -545,6 +565,17 @@ const fetchSubscriptionData = async () => {
                       Complete
                     </button>
                   </>
+                )}
+                
+                {subscription.status === 'active' && (
+                  <button
+                    onClick={handleMarkOverdue}
+                    disabled={isLoading}
+                    className="p-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Mark Overdue
+                  </button>
                 )}
                 
                 {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (

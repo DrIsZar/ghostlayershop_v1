@@ -365,6 +365,41 @@ export class SubscriptionService {
     return updatedSubscription;
   }
 
+  async markOverdue(subscriptionId: string): Promise<Subscription> {
+    const subscription = await this.persistenceAdapter.getSubscription(subscriptionId);
+    if (!subscription) {
+      throw new Error(`Subscription not found: ${subscriptionId}`);
+    }
+
+    if (subscription.status === 'overdue') {
+      throw new Error(`Subscription is already marked as overdue`);
+    }
+
+    if (subscription.status !== 'active') {
+      throw new Error(`Cannot mark subscription as overdue. Only active subscriptions can be manually marked as overdue. Current status: ${subscription.status}`);
+    }
+
+    const now = new Date().toISOString();
+    const previousStatus = subscription.status;
+    
+    const updatedSubscription = await this.persistenceAdapter.updateSubscription(subscriptionId, {
+      status: 'overdue',
+      updatedAt: now
+    });
+
+    await this.persistenceAdapter.createSubscriptionEvent({
+      subscriptionId: subscriptionId,
+      type: 'overdue',
+      at: now,
+      meta: { 
+        previousStatus: previousStatus,
+        manuallyMarked: true // Flag to indicate this was manually marked as overdue
+      }
+    });
+
+    return updatedSubscription;
+  }
+
   async updateSubscription(subscriptionId: string, updates: Partial<Subscription>): Promise<Subscription> {
     const now = new Date().toISOString();
     const updatedSubscription = await this.persistenceAdapter.updateSubscription(subscriptionId, {

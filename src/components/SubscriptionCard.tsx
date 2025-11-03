@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, Copy, Eye } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Edit, Trash2, Copy, Eye, MoreVertical, AlertTriangle, RefreshCw, CheckCircle, Archive } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
 import { formatFullPeriodCountdown, formatRenewalCountdown, formatElapsedTime, formatDate, getStatusBadge, getStrategyDisplayName, getStrategyPillColor, getProgressBarColor, formatServiceTitleWithDuration } from '../lib/subscriptionUtils';
@@ -44,6 +44,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const [fullPeriodCountdown, setFullPeriodCountdown] = useState<string>('');
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
   const [logoRefreshTrigger, setLogoRefreshTrigger] = useState(0);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
 
   // Listen for localStorage changes and custom logo update events
@@ -142,8 +144,81 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
     return () => clearInterval(interval);
   }, [subscription.nextRenewalAt, subscription.targetEndAt]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
   const handleCopy = async (text: string) => {
     await copyToClipboard(text, 'Notes copied to clipboard');
+  };
+
+  const handleMarkOverdue = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    if (confirm(`Mark this subscription as overdue? This will change the status from "${subscription.status}" to "overdue".`)) {
+      try {
+        const updated = await subscriptionService.markOverdue(subscription.id);
+        onUpdate(updated);
+      } catch (error) {
+        alert(`Failed to mark subscription as overdue: ${(error as Error).message}`);
+      }
+    }
+  };
+
+  const handleRenew = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    try {
+      const updated = await subscriptionService.renewNow(subscription.id);
+      onUpdate(updated);
+    } catch (error) {
+      alert(`Failed to renew subscription: ${(error as Error).message}`);
+    }
+  };
+
+  const handleComplete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    try {
+      const updated = await subscriptionService.complete(subscription.id);
+      onUpdate(updated);
+    } catch (error) {
+      alert(`Failed to complete subscription: ${(error as Error).message}`);
+    }
+  };
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(false);
+    const isCompleted = subscription.status === 'completed';
+    const isOverdue = subscription.status === 'overdue';
+    const confirmMessage = isCompleted 
+      ? `Archive this completed subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+      : isOverdue
+      ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+      : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
+
+    if (confirm(confirmMessage)) {
+      try {
+        const updated = await subscriptionService.archive(subscription.id);
+        onUpdate(updated);
+      } catch (error) {
+        alert(`Failed to archive subscription: ${(error as Error).message}`);
+      }
+    }
   };
 
   const cycleProgress = computeCycleProgress(subscription);
@@ -232,11 +307,115 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
             </div>
           </div>
           
-          <div className="flex flex-col items-end space-y-1 flex-shrink-0 ml-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
             <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${getStrategyPillColor(subscription.strategy)}`}>
               {getStrategyDisplayName(subscription.strategy)}
             </span>
             <StatusBadge status={subscription.status} />
+            
+            {/* 3-dots Menu */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
+            
+              {showMenu && (
+                <div className="absolute right-0 top-8 sm:top-10 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[160px] sm:min-w-[180px]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onView(subscription);
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>View Details</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(subscription);
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>Edit</span>
+                  </button>
+                  
+                  {/* Status-specific actions */}
+                  {(subscription.status === 'active' || subscription.status === 'overdue') && (
+                    <>
+                      <div className="border-t border-gray-700 my-1" />
+                      {subscription.status === 'active' && (
+                        <button
+                          onClick={handleMarkOverdue}
+                          className="w-full px-3 py-2 text-left text-xs sm:text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span>Mark Overdue</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={handleRenew}
+                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-green-400 hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>Renew</span>
+                      </button>
+                      <button
+                        onClick={handleComplete}
+                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-blue-400 hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>Complete</span>
+                      </button>
+                    </>
+                  )}
+                  
+                  {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (
+                    <>
+                      <div className="border-t border-gray-700 my-1" />
+                      <button
+                        onClick={handleArchive}
+                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                      >
+                        <Archive className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span>Archive</span>
+                      </button>
+                    </>
+                  )}
+                  
+                  <div className="border-t border-gray-700 my-1" />
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      if (confirm('Are you sure you want to delete this subscription?')) {
+                        try {
+                          await subscriptionService.delete(subscription.id);
+                          onDelete(subscription.id);
+                        } catch (error) {
+                          alert(`Failed to delete subscription: ${(error as Error).message}`);
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs sm:text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
