@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { Client } from '../types/client';
 import { Subscription } from '../types/subscription';
 import SearchableDropdown from './SearchableDropdown';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 interface SeatAssignmentModalProps {
   isOpen: boolean;
@@ -201,6 +202,34 @@ export default function SeatAssignmentModal({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter' && !loading) {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, loading, onClose]);
 
   if (!isOpen || !seat) return null;
 

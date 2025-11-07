@@ -11,6 +11,7 @@ import {
   PoolFilter, 
   SeatFilter 
 } from '../types/inventory';
+import { getNowInTunisia, getStartOfDayInTunisia, addDaysInTunisia, getNowISOInTunisia } from './dateUtils';
 
 // Resource Pool CRUD operations
 export async function listResourcePools(filter?: PoolFilter) {
@@ -29,13 +30,13 @@ export async function listResourcePools(filter?: PoolFilter) {
     query = query.eq('is_alive', filter.alive);
   }
   if (filter?.time_bucket) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const now = getNowInTunisia();
+    const today = getStartOfDayInTunisia();
+    const threeDaysFromNow = addDaysInTunisia(today, 3);
     
     switch (filter.time_bucket) {
       case 'today':
-        query = query.gte('end_at', today.toISOString()).lt('end_at', new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString());
+        query = query.gte('end_at', today.toISOString()).lt('end_at', addDaysInTunisia(today, 1).toISOString());
         break;
       case '3days':
         query = query.gte('end_at', today.toISOString()).lt('end_at', threeDaysFromNow.toISOString());
@@ -122,6 +123,16 @@ export async function updateResourcePool(id: string, data: UpdatePoolData) {
     }
   } catch (e) {
     console.warn('Failed to mark linked subscriptions overdue for pool', id, e);
+  }
+
+  // If pool end date changed, recalculate renewal dates for all linked subscriptions
+  if (data.end_at && currentPool && data.end_at !== currentPool.end_at) {
+    try {
+      console.log('Pool end date changed, recalculating renewal dates for linked subscriptions');
+      await recalculateRenewalDatesForPool(id);
+    } catch (e) {
+      console.warn('Failed to recalculate renewal dates for pool', id, e);
+    }
   }
 
   // If max_seats changed, ensure we have exactly the right number of seats
@@ -238,13 +249,13 @@ export async function archiveResourcePool(id: string) {
 }
 
 export async function archiveExpiredPools() {
-  const now = new Date();
+  const now = getNowInTunisia();
   const result = await supabase
     .from('resource_pools')
     .update({ 
       status: 'expired',
       is_alive: false,
-      updated_at: new Date().toISOString()
+      updated_at: getNowISOInTunisia()
     })
     .lt('end_at', now.toISOString())
     .in('status', ['active', 'overdue'])
@@ -503,6 +514,50 @@ async function markLinkedSubscriptionsOverdue(poolIds: string[]) {
     }
   } catch (error) {
     console.error('markLinkedSubscriptionsOverdue exception:', error);
+  }
+}
+
+// Helper: recalculate renewal dates for all active subscriptions linked to a pool
+async function recalculateRenewalDatesForPool(poolId: string) {
+  try {
+    // Get all active subscriptions linked to this pool
+    const { data: subscriptions, error } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('resource_pool_id', poolId)
+      .eq('status', 'active');
+    
+    if (error) {
+      console.error('Error fetching subscriptions for pool:', error);
+      return;
+    }
+    
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No active subscriptions found for pool ${poolId}`);
+      return;
+    }
+    
+    console.log(`Recalculating renewal dates for ${subscriptions.length} subscriptions linked to pool ${poolId}`);
+    
+    // Recalculate renewal date for each subscription
+    const results = await Promise.allSettled(
+      subscriptions.map(sub => subscriptionService.recalculateRenewalDateForPool(sub.id))
+    );
+    
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const failureCount = results.filter(r => r.status === 'rejected').length;
+    
+    console.log(`Successfully recalculated renewal dates for ${successCount} subscriptions`);
+    if (failureCount > 0) {
+      console.warn(`Failed to recalculate renewal dates for ${failureCount} subscriptions`);
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`Failed to recalculate renewal date for subscription ${subscriptions[index].id}:`, result.reason);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error recalculating renewal dates for pool:', error);
   }
 }
 
@@ -789,6 +844,14 @@ export async function unlinkSubscriptionFromPool(subscriptionId: string) {
   // If there was an error updating the subscription, return it
   if (result.error) {
     return result;
+  }
+  
+  // Recalculate renewal date after unlinking (will use standard strategy logic since no pool)
+  try {
+    await subscriptionService.recalculateRenewalDateForPool(subscriptionId);
+  } catch (error) {
+    console.error('Error recalculating renewal date after unlinking pool:', error);
+    // Don't fail the unlink operation if recalculation fails
   }
   
   // Verify the seat was unassigned (if there was one)

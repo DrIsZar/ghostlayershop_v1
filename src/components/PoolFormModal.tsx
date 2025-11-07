@@ -5,6 +5,8 @@ import { createResourcePool } from '../lib/inventory';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS } from '../constants/provisioning';
 import SearchableDropdown from './SearchableDropdown';
 import { toast } from '../lib/toast';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { getTodayInTunisia, getNowInTunisia, addDaysInTunisia, formatDateForInput } from '../lib/dateUtils';
 
 interface PoolFormModalProps {
   isOpen: boolean;
@@ -19,8 +21,8 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     login_email: '',
     login_secret: '',
     notes: '',
-    start_at: new Date().toISOString().split('T')[0],
-    end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    start_at: getTodayInTunisia(),
+    end_at: formatDateForInput(addDaysInTunisia(getNowInTunisia(), 30)),
     max_seats: 1,
   });
 
@@ -31,8 +33,8 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      const startDate = getNowInTunisia();
+      const endDate = addDaysInTunisia(startDate, 30); // 30 days from now
       
       setFormData({
         provider: '',
@@ -40,8 +42,8 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
         login_email: '',
         login_secret: '',
         notes: '',
-        start_at: startDate.toISOString().split('T')[0],
-        end_at: endDate.toISOString().split('T')[0],
+        start_at: formatDateForInput(startDate),
+        end_at: formatDateForInput(endDate),
         max_seats: 1,
       });
       setMaxSeatsInput('1');
@@ -173,6 +175,34 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
       setIsLoading(false);
     }
   };
+
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter' && !isLoading) {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isLoading, onClose]);
 
   const providerOptions = Object.keys(SERVICE_PROVISIONING).map(provider => ({
     value: provider,

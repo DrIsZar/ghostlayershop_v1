@@ -2,6 +2,7 @@ import { Subscription, SubscriptionEvent, RenewalStrategyKey, ServiceConfig } fr
 import { STRATEGIES, onRenewWithPoolAwareness, computeNextRenewalWithPoolAwareness, computeNextRenewalWithoutCustomWithPoolAwareness } from './subscriptionStrategies';
 import { supabase } from './supabase';
 import { SupabaseSubscriptionPersistenceAdapter, SubscriptionPersistenceAdapter } from './supabaseSubscriptionAdapter';
+import { getNowISOInTunisia } from './dateUtils';
 
 export interface SalesIntegrationHook {
   onSubscriptionRenewed(subscription: Subscription): Promise<void>;
@@ -63,7 +64,7 @@ export class SubscriptionService {
       throw new Error(`Service not found: ${serviceId}`);
     }
 
-    const startDate = configOverrides?.startedAt || new Date().toISOString();
+    const startDate = configOverrides?.startedAt || getNowISOInTunisia();
     const strategy = configOverrides?.strategy || 'MONTHLY';
     const strategyHandler = STRATEGIES[strategy];
 
@@ -503,8 +504,8 @@ export class SubscriptionService {
         previousNextRenewalAt: subscription.nextRenewalAt,
         newNextRenewalAt: nextRenewalAt,
         strategy: subscription.strategy,
-        poolAware: true,
-        reason: 'pool_linked'
+        poolAware: !!subscription.resourcePoolId,
+        reason: subscription.resourcePoolId ? 'pool_linked' : 'pool_unlinked'
       }
     });
 

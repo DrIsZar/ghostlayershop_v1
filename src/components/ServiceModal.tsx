@@ -3,6 +3,7 @@ import { X, Upload, Trash2 } from 'lucide-react';
 import { Service, categories } from '../lib/supabase';
 import { uploadServiceLogo, validateLogoFile } from '../lib/fileUtils';
 import SearchableDropdown from './SearchableDropdown';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -175,6 +176,34 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
       setIsUploading(false);
     }
   };
+
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter' && !isUploading) {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isUploading, onClose]);
 
   if (!isOpen) return null;
 

@@ -11,6 +11,7 @@ import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool, linkSubscrip
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 import PoolEditModal from './PoolEditModal';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 interface SubscriptionEditModalProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export default function SubscriptionEditModal({
   const [pendingPoolId, setPendingPoolId] = useState('');
   const [pendingSeatId, setPendingSeatId] = useState('');
   const linkResourceSectionRef = useRef<HTMLDivElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
 
   // Populate form data when subscription changes
   useEffect(() => {
@@ -523,6 +525,34 @@ export default function SubscriptionEditModal({
     return '';
   };
 
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter' && !isLoading && subscription) {
+        event.preventDefault();
+        // Trigger the save button click
+        if (saveButtonRef.current) {
+          saveButtonRef.current.click();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isLoading, subscription]);
+
   if (!isOpen || !subscription) return null;
 
   return (
@@ -832,6 +862,7 @@ export default function SubscriptionEditModal({
         {/* Actions - Fixed Footer */}
         <div className="flex gap-3 p-6 border-t border-gray-700 flex-shrink-0 bg-gray-900">
           <button
+            ref={saveButtonRef}
             onClick={handleSave}
             disabled={isLoading}
             className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"

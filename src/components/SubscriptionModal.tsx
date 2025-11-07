@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Calendar, User, Package, Info, Clock, Mail, Archive, Edit, Unlink } from 'lucide-react';
 import { Subscription, RenewalStrategyKey } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -10,6 +10,8 @@ import { SERVICE_PROVISIONING } from '../constants/provisioning';
 import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool } from '../lib/inventory';
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { getTodayInTunisia } from '../lib/dateUtils';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -65,6 +67,8 @@ export default function SubscriptionModal({
   const [resourcePool, setResourcePool] = useState<ResourcePool | null>(null);
   const [assignedSeat, setAssignedSeat] = useState<ResourcePoolSeat | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const updateButtonRef = useRef<HTMLButtonElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   // Update form data when initial values change
   useEffect(() => {
@@ -85,7 +89,7 @@ export default function SubscriptionModal({
       setFormData({
         serviceId: editingSubscription.serviceId,
         clientId: editingSubscription.clientId,
-        startDate: editingSubscription.startedAt ? editingSubscription.startedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        startDate: editingSubscription.startedAt ? editingSubscription.startedAt.split('T')[0] : getTodayInTunisia(),
         strategy: editingSubscription.strategy,
         intervalDays: editingSubscription.intervalDays || 30,
         notes: editingSubscription.notes || ''
@@ -111,7 +115,7 @@ export default function SubscriptionModal({
     if (!formData.startDate || isNaN(new Date(formData.startDate).getTime())) {
       setFormData(prev => ({
         ...prev,
-        startDate: new Date().toISOString().split('T')[0]
+        startDate: getTodayInTunisia()
       }));
     }
   }, [formData.startDate]);
@@ -427,6 +431,35 @@ export default function SubscriptionModal({
       setIsLoading(false);
     }
   };
+
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter' && !isLoading) {
+        event.preventDefault();
+        if (isEditing && updateButtonRef.current) {
+          updateButtonRef.current.click();
+        } else if (!createdSubscriptionId && submitButtonRef.current) {
+          submitButtonRef.current.click();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isEditing, isLoading, createdSubscriptionId, formData, editingSubscription, onSubscriptionUpdated, onClose]);
 
   const getServiceProvider = () => {
     if (!selectedService) return '';
@@ -765,6 +798,7 @@ export default function SubscriptionModal({
                 return (
                   <>
                     <button
+                      ref={updateButtonRef}
                       type="button"
                       onClick={handleUpdateSubscription}
                       disabled={isLoading}
@@ -785,6 +819,7 @@ export default function SubscriptionModal({
                 return (
                   <>
                     <button
+                      ref={submitButtonRef}
                       type="submit"
                       disabled={isLoading}
                       className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"

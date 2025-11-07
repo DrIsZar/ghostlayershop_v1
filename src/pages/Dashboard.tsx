@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [topServicesPeriodState, setTopServicesPeriodState] = useState<PeriodState>({
     type: 'month',
     label: 'This Month',
-    date: new Date(),
+    date: getNowInTunisia(),
   });
 
   type AnalyticsPeriodState = {
@@ -33,7 +33,7 @@ export default function Dashboard() {
   const [analyticsPeriodState, setAnalyticsPeriodState] = useState<AnalyticsPeriodState>({
     type: 'month',
     label: 'This Month',
-    date: new Date(),
+    date: getNowInTunisia(),
   });
 
   useEffect(() => {

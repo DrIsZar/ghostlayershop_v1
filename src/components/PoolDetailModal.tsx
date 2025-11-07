@@ -25,6 +25,7 @@ import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS, STATUS_LABELS } from '
 import { copyToClipboard } from '../lib/toast';
 import SeatAssignmentModal from './SeatAssignmentModal';
 import PoolEditModal from './PoolEditModal';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 interface PoolDetailModalProps {
   isOpen: boolean;
@@ -240,6 +241,24 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
       }
     }
   };
+
+  // Keyboard shortcut: Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Always allow Escape
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !pool) return null;
 

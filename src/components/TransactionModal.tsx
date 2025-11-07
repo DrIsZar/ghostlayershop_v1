@@ -5,6 +5,8 @@ import type { Client } from '../types/client';
 import { clientsDb } from '../lib/clients';
 import ClientModal from './ClientModal';
 import SearchableDropdown from './SearchableDropdown';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { getTodayInTunisia } from '../lib/dateUtils';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -18,7 +20,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   const [formData, setFormData] = useState({
     service_id: '',
     client_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayInTunisia(),
     cost_at_sale: 0,
     selling_price: 0,
     notes: ''
@@ -46,7 +48,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
       setFormData({
         service_id: '',
         client_id: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayInTunisia(),
         cost_at_sale: 0,
         selling_price: 0,
         notes: ''
@@ -83,6 +85,34 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
     onSave(formData);
     onClose();
   };
+
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Client } from '../types/client';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 interface ClientModalProps {
     open: boolean;
@@ -32,10 +33,38 @@ export default function ClientModal({ open, onClose, onSave, initialData }: Clie
                 notes: initialData?.notes ?? '',
                 source: initialData?.source ?? ''
             });
-        }
-    }, [open, initialData]);
+    }
+  }, [open, initialData]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  // Keyboard shortcuts: Enter to save, Escape to close
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      if (shouldIgnoreKeyboardEvent(event) && event.key !== 'Escape') {
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await onSave(formData);

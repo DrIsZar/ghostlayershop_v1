@@ -6,6 +6,8 @@ import { getStrategyDisplayName, formatDate, formatFullPeriodCountdown, formatRe
 import { computeCycleProgress, computeRenewalProgress } from '../lib/subscriptionStrategies';
 import { supabase } from '../lib/supabase';
 import { getServiceLogo } from '../lib/fileUtils';
+import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { getNowInTunisia, toTunisiaTime } from '../lib/dateUtils';
 
 interface SubscriptionDetailModalProps {
   isOpen: boolean;
@@ -73,13 +75,17 @@ export default function SubscriptionDetailModal({
       // Update renewal countdown
       const targetDate = subscription.nextRenewalAt || subscription.targetEndAt;
       if (targetDate) {
-        const msLeft = new Date(targetDate).getTime() - Date.now();
+        const now = getNowInTunisia();
+        const target = toTunisiaTime(new Date(targetDate));
+        const msLeft = target.getTime() - now.getTime();
         setCountdown(formatRenewalCountdown(msLeft));
       }
 
       // Update full period countdown
       if (subscription.targetEndAt) {
-        const fullPeriodMsLeft = new Date(subscription.targetEndAt).getTime() - Date.now();
+        const now = getNowInTunisia();
+        const target = toTunisiaTime(new Date(subscription.targetEndAt));
+        const fullPeriodMsLeft = target.getTime() - now.getTime();
         setFullPeriodCountdown(formatFullPeriodCountdown(fullPeriodMsLeft));
       }
     };
@@ -318,6 +324,24 @@ const fetchSubscriptionData = async () => {
   // Removed unused functions - editing is now handled by SubscriptionEditModal
 
   // handleResourceLinked removed - resource linking is now handled by SubscriptionEditModal
+
+  // Keyboard shortcut: Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Always allow Escape
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !subscription) return null;
 

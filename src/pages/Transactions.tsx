@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-re
 import { supabase, Transaction, Service } from '../lib/supabase';
 import TransactionModal from '../components/TransactionModal';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { getNowInTunisia } from '../lib/dateUtils';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -13,7 +14,7 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('all');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getNowInTunisia());
 
   useEffect(() => {
     fetchData();
@@ -57,7 +58,7 @@ export default function Transactions() {
 
   const handlePeriodChange = (newPeriod: 'all' | 'day' | 'week' | 'month') => {
     setPeriod(newPeriod);
-    setCurrentDate(new Date()); // Reset to current date when changing period
+    setCurrentDate(getNowInTunisia()); // Reset to current date when changing period
   };
 
   const handleNavigate = (direction: 'prev' | 'next') => {

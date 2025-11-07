@@ -18,6 +18,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { Subscription } from '../types/subscription';
+import { getNowInTunisia, toTunisiaTime, getTodayInTunisia } from '../lib/dateUtils';
 import { subscriptionService } from '../lib/subscriptionService';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import SubscriptionModal from '../components/SubscriptionModal';
@@ -638,7 +639,7 @@ export default function Subscriptions() {
     }
 
     // Apply view filter
-    const now = new Date();
+    const now = getNowInTunisia();
     switch (viewMode) {
       case 'active':
         filtered = filtered.filter(sub => sub.status === 'active' || sub.status === 'overdue');
@@ -994,10 +995,10 @@ export default function Subscriptions() {
   };
 
   const getTotalOverdue = () => {
-    const now = new Date();
+    const now = getNowInTunisia();
     return filteredSubscriptions.filter(sub => {
       if (!sub.nextRenewalAt || sub.status === 'completed') return false;
-      const renewalDate = new Date(sub.nextRenewalAt);
+      const renewalDate = toTunisiaTime(new Date(sub.nextRenewalAt));
       return renewalDate < now;
     }).length;
   };
@@ -1007,7 +1008,7 @@ export default function Subscriptions() {
   };
 
   const getFilteredDueBuckets = () => {
-    const now = new Date();
+    const now = getNowInTunisia();
     const today = now.toDateString();
     
     return filteredSubscriptions.reduce((buckets, sub) => {
@@ -1031,7 +1032,7 @@ export default function Subscriptions() {
   };
 
   const exportSubscriptions = () => {
-    const now = new Date();
+    const now = getNowInTunisia();
     const subscriptionsToExport = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
     
     // Prepare CSV data
@@ -1114,7 +1115,7 @@ export default function Subscriptions() {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = getTodayInTunisia();
     const filterSuffix = archiveViewMode === 'archive' ? '_archived' : '';
     const viewSuffix = viewMode !== 'all' ? `_${viewMode}` : '';
     const clientSuffix = selectedClientId ? `_client_${clients.find(c => c.id === selectedClientId)?.name.replace(/\s+/g, '_') || 'unknown'}` : '';

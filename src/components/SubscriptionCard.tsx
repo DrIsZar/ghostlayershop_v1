@@ -9,6 +9,7 @@ import { getServiceLogo } from '../lib/fileUtils';
 import { getResourcePool } from '../lib/inventory';
 import { ResourcePool } from '../types/inventory';
 import { copyToClipboard } from '../lib/toast';
+import { getNowInTunisia, toTunisiaTime } from '../lib/dateUtils';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ status: Subscription['status'] }> = ({ status }) => {
@@ -128,13 +129,17 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       // Update renewal countdown
       const targetDate = subscription.nextRenewalAt || subscription.targetEndAt;
       if (targetDate) {
-        const msLeft = new Date(targetDate).getTime() - Date.now();
+        const now = getNowInTunisia();
+        const target = toTunisiaTime(new Date(targetDate));
+        const msLeft = target.getTime() - now.getTime();
         setCountdown(formatRenewalCountdown(msLeft));
       }
 
       // Update full period countdown
       if (subscription.targetEndAt) {
-        const fullPeriodMsLeft = new Date(subscription.targetEndAt).getTime() - Date.now();
+        const now = getNowInTunisia();
+        const target = toTunisiaTime(new Date(subscription.targetEndAt));
+        const fullPeriodMsLeft = target.getTime() - now.getTime();
         setFullPeriodCountdown(formatFullPeriodCountdown(fullPeriodMsLeft));
       }
     };
@@ -250,7 +255,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   const getDaysUsed = () => {
     if (subscription.status === 'completed' && subscription.startedAt) {
       const startDate = new Date(subscription.startedAt);
-      const endDate = subscription.lastRenewalAt ? new Date(subscription.lastRenewalAt) : new Date();
+      const endDate = subscription.lastRenewalAt ? toTunisiaTime(new Date(subscription.lastRenewalAt)) : getNowInTunisia();
       const diffTime = endDate.getTime() - startDate.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
@@ -524,8 +529,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
               }`}>
                 {(() => {
-                  const now = new Date();
-                  const startDate = new Date(subscription.startedAt);
+                  const now = getNowInTunisia();
+                  const startDate = toTunisiaTime(new Date(subscription.startedAt));
                   const elapsedMs = now.getTime() - startDate.getTime();
                   return formatElapsedTime(elapsedMs);
                 })()}
@@ -545,8 +550,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
               }`}>
                 {(() => {
-                  const now = new Date();
-                  const endDate = new Date(subscription.targetEndAt);
+                  const now = getNowInTunisia();
+                  const endDate = toTunisiaTime(new Date(subscription.targetEndAt));
                   const remainingMs = endDate.getTime() - now.getTime();
                   return formatFullPeriodCountdown(Math.max(0, remainingMs));
                 })()}

@@ -1,5 +1,6 @@
 import { RenewalStrategyKey, StrategyHandler, Subscription } from '../types/subscription';
 import { getPoolForSubscription } from './inventory';
+import { getNowInTunisia, isTodayInTunisia, toTunisiaTime } from './dateUtils';
 
 // Utility function to add months to a date
 const addMonths = (date: Date, months: number): Date => {
@@ -15,22 +16,23 @@ const addDays = (date: Date, days: number): Date => {
   return newDate;
 };
 
-// Utility function to check if date is today
+// Utility function to check if date is today (in Tunisian timezone)
 const isToday = (date: Date): boolean => {
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
+  return isTodayInTunisia(date);
 };
 
-// Utility function to check if date is within N days
+// Utility function to check if date is within N days (in Tunisian timezone)
 const isWithinDays = (date: Date, days: number): boolean => {
-  const today = new Date();
-  const diffTime = date.getTime() - today.getTime();
+  const today = getNowInTunisia();
+  const tunisiaDate = toTunisiaTime(date);
+  const diffTime = tunisiaDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays >= 0 && diffDays <= days;
 };
 
-// Utility function to check if pool is ending soon (within 7 days)
-const isPoolEndingSoon = async (subscription: Subscription): Promise<Date | null> => {
+// Utility function to get pool end date if subscription is linked to a pool
+// Returns the pool's end date if the subscription is linked to an alive pool, null otherwise
+const getPoolEndDate = async (subscription: Subscription): Promise<Date | null> => {
   if (!subscription.resourcePoolId) {
     return null;
   }
@@ -41,17 +43,14 @@ const isPoolEndingSoon = async (subscription: Subscription): Promise<Date | null
       return null;
     }
 
-    const poolEndDate = new Date(pool.end_at);
-    const today = new Date();
-    const diffTime = poolEndDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    // If pool ends within 7 days, return the pool end date
-    if (diffDays >= 0 && diffDays <= 7) {
-      return poolEndDate;
+    // Only use pool end date if the pool is alive
+    // Dead/expired pools shouldn't affect renewal dates
+    if (!pool.is_alive) {
+      return null;
     }
 
-    return null;
+    const poolEndDate = new Date(pool.end_at);
+    return poolEndDate;
   } catch (error) {
     console.error('Error checking pool end date:', error);
     return null;
@@ -75,7 +74,7 @@ export const STRATEGIES: Record<RenewalStrategyKey, StrategyHandler> = {
       return addMonths(lastRenewal, 1);
     },
     onRenew(sub: Subscription): Partial<Subscription> {
-      const now = new Date();
+      const now = getNowInTunisia();
       const nextRenewal = addMonths(now, 1);
       return {
         currentCycleStartAt: now.toISOString(),
@@ -105,7 +104,7 @@ export const STRATEGIES: Record<RenewalStrategyKey, StrategyHandler> = {
       return addDays(lastRenewal, intervalDays);
     },
     onRenew(sub: Subscription): Partial<Subscription> {
-      const now = new Date();
+      const now = getNowInTunisia();
       const intervalDays = sub.intervalDays || 30;
       const nextRenewal = addDays(now, intervalDays);
       return {
@@ -121,8 +120,8 @@ export const STRATEGIES: Record<RenewalStrategyKey, StrategyHandler> = {
 
 // Pool-aware strategy functions
 export const computeNextRenewalWithPoolAwareness = async (sub: Subscription): Promise<Date | null> => {
-  // First check if pool is ending soon
-  const poolEndDate = await isPoolEndingSoon(sub);
+  // If subscription is linked to a pool, always use the pool's end date
+  const poolEndDate = await getPoolEndDate(sub);
   if (poolEndDate) {
     return poolEndDate;
   }
@@ -137,8 +136,8 @@ export const computeNextRenewalWithPoolAwareness = async (sub: Subscription): Pr
 };
 
 export const computeNextRenewalWithoutCustomWithPoolAwareness = async (sub: Subscription): Promise<Date | null> => {
-  // First check if pool is ending soon
-  const poolEndDate = await isPoolEndingSoon(sub);
+  // If subscription is linked to a pool, always use the pool's end date
+  const poolEndDate = await getPoolEndDate(sub);
   if (poolEndDate) {
     return poolEndDate;
   }
@@ -159,15 +158,13 @@ export const onRenewWithPoolAwareness = async (sub: Subscription): Promise<Parti
   }
 
   const updates = strategyHandler.onRenew(sub);
-  const now = new Date();
+  const now = getNowInTunisia();
 
-  // Check if pool is ending soon and adjust the next renewal date
-  const poolEndDate = await isPoolEndingSoon(sub);
-  if (poolEndDate && updates.nextRenewalAt) {
-    const calculatedRenewal = new Date(updates.nextRenewalAt);
-    if (poolEndDate < calculatedRenewal) {
-      updates.nextRenewalAt = poolEndDate.toISOString();
-    }
+  // If subscription is linked to a pool, always use the pool's end date for renewal
+  const poolEndDate = await getPoolEndDate(sub);
+  if (poolEndDate) {
+    // Always use pool end date to keep subscription in sync with pool
+    updates.nextRenewalAt = poolEndDate.toISOString();
   }
 
   return updates;
@@ -186,8 +183,8 @@ export const isDueSoon = (sub: Subscription): boolean => {
 
 export const isOverdue = (sub: Subscription): boolean => {
   if (!sub.nextRenewalAt) return false;
-  const nextRenewal = new Date(sub.nextRenewalAt);
-  const today = new Date();
+  const nextRenewal = toTunisiaTime(new Date(sub.nextRenewalAt));
+  const today = getNowInTunisia();
   return nextRenewal < today && sub.status === 'active';
 };
 
@@ -196,9 +193,9 @@ export const computeCycleProgress = (sub: Subscription): { pct: number; msLeft: 
     return { pct: 0, msLeft: 0, msTotal: 0 };
   }
   
-  const now = new Date();
-  const startDate = new Date(sub.startedAt);
-  const endDate = new Date(sub.targetEndAt);
+  const now = getNowInTunisia();
+  const startDate = toTunisiaTime(new Date(sub.startedAt));
+  const endDate = toTunisiaTime(new Date(sub.targetEndAt));
   
   const msTotal = endDate.getTime() - startDate.getTime();
   const msElapsed = now.getTime() - startDate.getTime();
@@ -219,9 +216,9 @@ export const computeRenewalProgress = (sub: Subscription): { pct: number; msLeft
     return { pct: 0, msLeft: 0, msTotal: 0 };
   }
   
-  const now = new Date();
-  const cycleStart = new Date(sub.currentCycleStartAt);
-  const nextRenewal = new Date(sub.nextRenewalAt);
+  const now = getNowInTunisia();
+  const cycleStart = toTunisiaTime(new Date(sub.currentCycleStartAt));
+  const nextRenewal = toTunisiaTime(new Date(sub.nextRenewalAt));
   
   const msTotal = nextRenewal.getTime() - cycleStart.getTime();
   const msElapsed = now.getTime() - cycleStart.getTime();

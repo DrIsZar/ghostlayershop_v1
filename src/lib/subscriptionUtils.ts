@@ -36,7 +36,7 @@ export const formatFullPeriodCountdown = (msLeft: number): string => {
   }
 };
 
-// Format countdown display for custom renewal timeline (days only, no hours)
+// Format countdown display for custom renewal timeline (days and hours)
 export const formatRenewalCountdown = (msLeft: number): string => {
   if (msLeft <= 0) return 'Overdue';
   
@@ -44,7 +44,7 @@ export const formatRenewalCountdown = (msLeft: number): string => {
   const hours = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   
   if (days > 0) {
-    return `${days}d`;
+    return `${days}d ${hours}h`;
   } else if (hours > 0) {
     return `${hours}h`;
   } else {
