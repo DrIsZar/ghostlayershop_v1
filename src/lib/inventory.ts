@@ -743,19 +743,41 @@ export async function linkSubscriptionToPool(subscriptionId: string, poolId: str
 
 export async function unlinkSubscriptionFromPool(subscriptionId: string) {
   // First get the current seat assignment
-  const { data: subscription } = await supabase
+  const { data: subscription, error: fetchError } = await supabase
     .from('subscriptions')
-    .select('resource_pool_seat_id')
+    .select('resource_pool_seat_id, resource_pool_id')
     .eq('id', subscriptionId)
     .single();
+  
+  if (fetchError) {
+    return { data: null, error: fetchError };
+  }
     
+  // If there's a seat assigned, unassign it first using the RPC function
+  // This ensures the seat is properly unassigned from the pool at the database level
   if (subscription?.resource_pool_seat_id) {
-    // Unassign the seat
-    await unassignSeat(subscription.resource_pool_seat_id);
+    // Use the RPC function which handles bidirectional sync at the database level
+    // This will:
+    // 1. Unassign the seat (set to available, clear assignments)
+    // 2. Unlink the subscription from the pool and seat
+    const { error: unassignError } = await unassignSeatRPC(subscription.resource_pool_seat_id);
+    
+    if (unassignError) {
+      console.error('Error unassigning seat via RPC:', unassignError);
+      // If RPC fails, try the JavaScript function as a fallback
+      const { error: fallbackError } = await unassignSeat(subscription.resource_pool_seat_id);
+      
+      if (fallbackError) {
+        console.error('Error unassigning seat via fallback method:', fallbackError);
+        // Continue anyway - the database trigger will handle it when we update the subscription
+      }
+    }
   }
   
   // Remove the links from subscription
-  return supabase
+  // This will also trigger the database trigger (fn_sync_subscription_seat_assignment)
+  // that ensures the seat is unassigned, providing an additional safety net
+  const result = await supabase
     .from('subscriptions')
     .update({
       resource_pool_id: null,
@@ -763,6 +785,29 @@ export async function unlinkSubscriptionFromPool(subscriptionId: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', subscriptionId);
+  
+  // If there was an error updating the subscription, return it
+  if (result.error) {
+    return result;
+  }
+  
+  // Verify the seat was unassigned (if there was one)
+  if (subscription?.resource_pool_seat_id) {
+    const { data: seat, error: seatCheckError } = await supabase
+      .from('resource_pool_seats')
+      .select('seat_status, assigned_subscription_id')
+      .eq('id', subscription.resource_pool_seat_id)
+      .single();
+    
+    if (!seatCheckError && seat) {
+      // Verify the seat is now available and not assigned to this subscription
+      if (seat.seat_status !== 'available' || seat.assigned_subscription_id === subscriptionId) {
+        console.warn('Seat may not have been properly unassigned. Status:', seat.seat_status, 'Assigned to:', seat.assigned_subscription_id);
+      }
+    }
+  }
+  
+  return result;
 }
 
 // Get pool information for a subscription

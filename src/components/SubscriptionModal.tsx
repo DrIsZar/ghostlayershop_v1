@@ -338,7 +338,11 @@ export default function SubscriptionModal({
 
     try {
       setIsLoading(true);
-      await unlinkSubscriptionFromPool(editingSubscription.id);
+      const result = await unlinkSubscriptionFromPool(editingSubscription.id);
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to unlink resource pool');
+      }
       
       // Update local state
       setResourcePool(null);
