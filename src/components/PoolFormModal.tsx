@@ -26,6 +26,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [maxSeatsInput, setMaxSeatsInput] = useState<string>('1');
 
   // Reset form when modal opens
   useEffect(() => {
@@ -43,6 +44,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
         end_at: endDate.toISOString().split('T')[0],
         max_seats: 1,
       });
+      setMaxSeatsInput('1');
       setErrors({});
     }
   }, [isOpen]);
@@ -63,22 +65,48 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
           max_seats: config.defaultSeats,
           end_at: endDate.toISOString().split('T')[0],
         }));
+        setMaxSeatsInput(config.defaultSeats.toString());
       }
     }
   }, [formData.provider, formData.start_at]);
 
   const handleInputChange = (field: keyof CreatePoolData, value: any) => {
-    // Ensure max_seats is always a valid number
-    if (field === 'max_seats') {
-      const numValue = parseInt(value) || 1;
-      setFormData(prev => ({ ...prev, [field]: numValue }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    }
+    setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleMaxSeatsChange = (value: string) => {
+    // Allow empty string for editing
+    setMaxSeatsInput(value);
+    
+    // Update formData only if value is a valid number
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue > 0) {
+      setFormData(prev => ({ ...prev, max_seats: numValue }));
+    } else if (value === '') {
+      // Allow empty temporarily, but keep formData valid
+      // We'll validate on blur
+    }
+    
+    // Clear error when user starts typing
+    if (errors.max_seats) {
+      setErrors(prev => ({ ...prev, max_seats: '' }));
+    }
+  };
+
+  const handleMaxSeatsBlur = () => {
+    // On blur, ensure we have a valid number, default to 1 if empty/invalid
+    const numValue = parseInt(maxSeatsInput);
+    if (isNaN(numValue) || numValue < 1) {
+      setMaxSeatsInput('1');
+      setFormData(prev => ({ ...prev, max_seats: 1 }));
+    } else {
+      setMaxSeatsInput(numValue.toString());
+      setFormData(prev => ({ ...prev, max_seats: numValue }));
     }
   };
 
@@ -108,8 +136,17 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     } else if (new Date(formData.end_at) <= new Date(formData.start_at)) {
       newErrors.end_at = 'End date must be after start date';
     }
-    if (!formData.max_seats || formData.max_seats < 1) {
+    
+    // Validate max_seats - ensure input is converted to number first
+    const seatsNum = parseInt(maxSeatsInput);
+    if (isNaN(seatsNum) || seatsNum < 1) {
       newErrors.max_seats = 'Max seats must be at least 1';
+      // Update formData to ensure it's valid
+      setMaxSeatsInput('1');
+      setFormData(prev => ({ ...prev, max_seats: 1 }));
+    } else {
+      // Ensure formData is in sync with input value
+      setFormData(prev => ({ ...prev, max_seats: seatsNum }));
     }
 
     setErrors(newErrors);
@@ -290,11 +327,19 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               Maximum Seats
             </label>
             <input
-              type="number"
-              min="1"
-              value={isNaN(formData.max_seats) ? 1 : formData.max_seats}
-              onChange={(e) => handleInputChange('max_seats', parseInt(e.target.value) || 1)}
+              type="text"
+              inputMode="numeric"
+              value={maxSeatsInput}
+              onChange={(e) => {
+                // Only allow numbers and empty string
+                const value = e.target.value;
+                if (value === '' || /^\d+$/.test(value)) {
+                  handleMaxSeatsChange(value);
+                }
+              }}
+              onBlur={handleMaxSeatsBlur}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              placeholder="Enter number of seats"
             />
             {errors.max_seats && (
               <p className="mt-1 text-sm text-red-400">{errors.max_seats}</p>

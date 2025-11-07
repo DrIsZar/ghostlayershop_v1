@@ -14,7 +14,8 @@ import {
   RotateCcw,
   Archive,
   Download,
-  Keyboard
+  Keyboard,
+  HelpCircle
 } from 'lucide-react';
 import { Subscription } from '../types/subscription';
 import { subscriptionService } from '../lib/subscriptionService';
@@ -1169,11 +1170,10 @@ export default function Subscriptions() {
           </button>
           <button
             onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
             title="Keyboard shortcuts (Shift+?)"
           >
-            <Keyboard className="h-4 w-4" />
-            <span className="hidden sm:inline">Shortcuts</span>
+            <HelpCircle className="h-5 w-5" />
           </button>
         </div>
       </div>

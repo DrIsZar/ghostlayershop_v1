@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -10,7 +10,9 @@ import {
   ChevronRight,
   X,
   RotateCcw,
-  Archive
+  Archive,
+  HelpCircle,
+  Keyboard
 } from 'lucide-react';
 import { ResourcePool, PoolFilter } from '../types/inventory';
 import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail } from '../lib/inventory';
@@ -20,6 +22,7 @@ import { PoolDetailModal } from '../components/PoolDetailModal';
 import PoolEditModal from '../components/PoolEditModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
 type ViewMode = 'pools' | 'archive';
 
@@ -41,6 +44,10 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [matchingPoolIdsBySeat, setMatchingPoolIdsBySeat] = useState<Set<string>>(new Set());
+  
+  // UI state
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
 
   useEffect(() => {
@@ -110,6 +117,101 @@ export default function Inventory() {
   useEffect(() => {
     applyArchiveFilters();
   }, [archivedPools, archiveFilters, debouncedSearchTerm, matchingPoolIdsBySeat]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'n',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setIsModalOpen(true);
+          }
+        },
+        description: 'Create new pool',
+      },
+      {
+        key: 'c',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setIsModalOpen(true);
+          }
+        },
+        description: 'Create new pool',
+      },
+      {
+        key: '/',
+        handler: () => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select();
+          }
+        },
+        description: 'Focus search',
+      },
+      {
+        key: 'f',
+        handler: () => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select();
+          }
+        },
+        description: 'Focus search',
+        ctrl: true,
+      },
+      {
+        key: 'r',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            if (viewMode === 'pools') {
+              resetFilters();
+            } else {
+              resetArchiveFilters();
+            }
+          }
+        },
+        description: 'Reset filters',
+      },
+      {
+        key: 'a',
+        handler: () => {
+          if (!isModalOpen && !isDetailModalOpen && !isEditModalOpen) {
+            setViewMode(prev => prev === 'pools' ? 'archive' : 'pools');
+          }
+        },
+        description: 'Toggle archive view',
+      },
+      {
+        key: 'Escape',
+        handler: () => {
+          if (isEditModalOpen) {
+            setIsEditModalOpen(false);
+            setSelectedPool(null);
+            setIsDetailModalOpen(false);
+          } else if (isDetailModalOpen) {
+            setIsDetailModalOpen(false);
+            setSelectedPool(null);
+          } else if (isModalOpen) {
+            setIsModalOpen(false);
+          } else if (showKeyboardHelp) {
+            setShowKeyboardHelp(false);
+          }
+        },
+        description: 'Close modal or deselect',
+      },
+      {
+        key: '?',
+        handler: () => {
+          setShowKeyboardHelp(prev => !prev);
+        },
+        description: 'Show keyboard shortcuts help',
+        shift: true,
+      },
+    ],
+    enabled: true,
+    ignoreWhen: shouldIgnoreKeyboardEvent,
+  });
 
   const fetchPools = async () => {
     try {
@@ -352,14 +454,22 @@ export default function Inventory() {
             Manage resource pools and seat assignments
           </p>
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex gap-2">
           <button
             onClick={() => setIsModalOpen(true)}
             className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            title="Create new pool (N or C)"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden xs:inline">New Pool</span>
             <span className="xs:hidden">New</span>
+          </button>
+          <button
+            onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            title="Keyboard shortcuts (Shift+?)"
+          >
+            <HelpCircle className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -401,8 +511,9 @@ export default function Inventory() {
                 <div className="relative">
                   <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
+                    ref={searchInputRef}
                     type="text"
-                    placeholder="Search by provider, email, notes, or seat email..."
+                    placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
@@ -620,8 +731,9 @@ export default function Inventory() {
                 <div className="relative">
                   <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                   <input
+                    ref={searchInputRef}
                     type="text"
-                    placeholder="Search by provider, email, notes, or seat email..."
+                    placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
@@ -784,6 +896,73 @@ export default function Inventory() {
             )}
           </div>
         </>
+      )}
+
+      {/* Keyboard Shortcuts Help Modal */}
+      {showKeyboardHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Keyboard className="w-5 h-5" />
+                Keyboard Shortcuts
+              </h2>
+              <button
+                onClick={() => setShowKeyboardHelp(false)}
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Create New Pool</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Focus Search</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Reset Filters</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Toggle Archive View</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Close Modal</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Show Help</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                      <span className="text-gray-300 text-sm">Focus Search (Alternative)</span>
+                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Ctrl + F</kbd>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-700">
+                <p className="text-xs text-gray-400 text-center">
+                  Keyboard shortcuts are disabled when typing in input fields
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modals */}
