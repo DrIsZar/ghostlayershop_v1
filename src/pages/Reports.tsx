@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Users, Package, Download, Target, AlertTriangle, TrendingDown, Archive, Clock } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
@@ -74,9 +74,9 @@ export default function Reports() {
 
   useEffect(() => {
     fetchData();
-  }, [period]);
+  }, [fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -124,7 +124,7 @@ export default function Reports() {
       setServices(servicesData);
       setClients(clientsData);
 
-      // Process data for reports
+      // Process data for reports - memoized
       const processedData = processReportData(transactionsData, servicesData, clientsData, poolsData);
       setReportData(processedData);
       
@@ -137,7 +137,7 @@ export default function Reports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period, processReportData]);
 
   const getDateRange = () => {
     const now = new Date();
@@ -161,7 +161,7 @@ export default function Reports() {
     };
   };
 
-  const processReportData = (
+  const processReportData = useCallback((
     transactions: Transaction[],
     services: Service[],
     clients: Client[],
@@ -353,7 +353,7 @@ export default function Reports() {
         expiringPools
       }
     };
-  };
+  }, []);
 
   const analyzeProfitTrends = (monthlyData: Array<{ month: string; revenue: number; profit: number; transactions: number }>) => {
     if (monthlyData.length < 2) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };

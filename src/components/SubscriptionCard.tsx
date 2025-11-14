@@ -30,7 +30,7 @@ interface SubscriptionCardProps {
   isArchived?: boolean;
 }
 
-export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
+export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
   subscription,
   onUpdate,
   onDelete,
@@ -707,4 +707,4 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       </div>
     </div>
   );
-};
+});

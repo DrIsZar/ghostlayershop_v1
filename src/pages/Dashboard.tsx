@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TrendingUp, DollarSign, Package, ShoppingCart } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { toast, copyToClipboard } from '../lib/toast';
+import { getNowInTunisia } from '../lib/dateUtils';
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -40,8 +41,13 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
+      // Limit initial query to last 90 days for better performance
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+
       const [transactionsResult, servicesResult] = await Promise.all([
         supabase
           .from('transactions')
@@ -54,6 +60,7 @@ export default function Dashboard() {
               duration
             )
           `)
+          .gte('date', ninetyDaysAgoStr)
           .order('date', { ascending: false }),
         supabase
           .from('services')
@@ -71,7 +78,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const formatAnalyticsPeriod = (type: AnalyticsPeriodState['type'], date: Date, position: 'current' | 'prev' | 'next'): string => {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -196,7 +203,7 @@ export default function Dashboard() {
   };
 
   // Handler for Top Services period changes (independent)
-  const handleTopServicesPeriodChange = (direction: 'prev' | 'next') => {
+  const handleTopServicesPeriodChange = useCallback((direction: 'prev' | 'next') => {
     const newDate = new Date(topServicesPeriodState.date);
     switch (topServicesPeriodState.type) {
       case 'week':
@@ -228,18 +235,18 @@ export default function Dashboard() {
       date: newDate,
       label
     });
-  };
+  }, [topServicesPeriodState.date, topServicesPeriodState.type]);
 
-  // Main dashboard date ranges (Daily or Monthly based on toggle)
-  const mainDashboardPeriod = mainDashboardView === 'daily' ? 'day' : 'month';
-  const currentRange = getDateRange(mainDashboardPeriod, new Date());
-  const previousRange = getPreviousPeriodRange(mainDashboardPeriod, new Date());
+  // Main dashboard date ranges (Daily or Monthly based on toggle) - memoized
+  const mainDashboardPeriod = useMemo(() => mainDashboardView === 'daily' ? 'day' : 'month', [mainDashboardView]);
+  const currentRange = useMemo(() => getDateRange(mainDashboardPeriod, new Date()), [mainDashboardPeriod]);
+  const previousRange = useMemo(() => getPreviousPeriodRange(mainDashboardPeriod, new Date()), [mainDashboardPeriod]);
 
-  // Top Services filtering (independent)
-  const topServicesRange = getDateRange(topServicesPeriodState.type, topServicesPeriodState.date);
+  // Top Services filtering (independent) - memoized
+  const topServicesRange = useMemo(() => getDateRange(topServicesPeriodState.type, topServicesPeriodState.date), [topServicesPeriodState.type, topServicesPeriodState.date]);
 
-  // Calculate profits for current and previous periods
-  const calculatePeriodStats = (transactions: Transaction[], range: { start: string; end: string }) => {
+  // Calculate profits for current and previous periods - memoized
+  const calculatePeriodStats = useCallback((transactions: Transaction[], range: { start: string; end: string }) => {
     const periodTransactions = transactions.filter(t => {
       // Ensure we're comparing dates in the same format (YYYY-MM-DD)
       const transactionDate = t.date.split('T')[0]; // Handle both date and datetime formats
@@ -259,20 +266,20 @@ export default function Dashboard() {
       count: periodTransactions.length,
       transactions: periodTransactions
     };
-  };
+  }, []);
 
-  const currentStats = calculatePeriodStats(transactions, currentRange);
-  const previousStats = calculatePeriodStats(transactions, previousRange);
+  const currentStats = useMemo(() => calculatePeriodStats(transactions, currentRange), [transactions, currentRange, calculatePeriodStats]);
+  const previousStats = useMemo(() => calculatePeriodStats(transactions, previousRange), [transactions, previousRange, calculatePeriodStats]);
   
-  const percentageChange = (current: number, previous: number) => {
+  const percentageChange = useCallback((current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / Math.abs(previous)) * 100;
-  };
+  }, []);
 
-  const profitChange = percentageChange(currentStats.profit, previousStats.profit);
+  const profitChange = useMemo(() => percentageChange(currentStats.profit, previousStats.profit), [currentStats.profit, previousStats.profit, percentageChange]);
 
-  // Recent transactions - filter for last 24 hours
-  const getLast24HoursTransactions = (transactions: Transaction[]) => {
+  // Recent transactions - filter for last 24 hours - memoized
+  const recentTransactions = useMemo(() => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString().split('T')[0];
@@ -283,32 +290,33 @@ export default function Dashboard() {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort by most recent first
     .slice(0, 5); // Limit to 5 most recent within 24h
-  };
+  }, [transactions]);
 
-  const recentTransactions = getLast24HoursTransactions(transactions);
+  // Top services by profit - filtered by Top Services period - memoized
+  const topServicesStats = useMemo(() => calculatePeriodStats(transactions, topServicesRange), [transactions, topServicesRange, calculatePeriodStats]);
+  
+  const topServices = useMemo(() => {
+    const serviceProfit = topServicesStats.transactions.reduce((acc, t) => {
+      const serviceId = t.service_id;
+      if (!acc[serviceId]) {
+        acc[serviceId] = {
+          service: t.services,
+          profit: 0,
+          count: 0
+        };
+      }
+      acc[serviceId].profit += (t.selling_price - t.cost_at_sale);
+      acc[serviceId].count += 1;
+      return acc;
+    }, {} as Record<string, { service: any; profit: number; count: number }>);
 
-  // Top services by profit - filtered by Top Services period
-  const topServicesStats = calculatePeriodStats(transactions, topServicesRange);
-  const serviceProfit = topServicesStats.transactions.reduce((acc, t) => {
-    const serviceId = t.service_id;
-    if (!acc[serviceId]) {
-      acc[serviceId] = {
-        service: t.services,
-        profit: 0,
-        count: 0
-      };
-    }
-    acc[serviceId].profit += (t.selling_price - t.cost_at_sale);
-    acc[serviceId].count += 1;
-    return acc;
-  }, {} as Record<string, { service: any; profit: number; count: number }>);
+    return Object.values(serviceProfit)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 5);
+  }, [topServicesStats.transactions]);
 
-  const topServices = Object.values(serviceProfit)
-    .sort((a, b) => b.profit - a.profit)
-    .slice(0, 5);
-
-  // Analytics Summary - get date range for analytics periods
-  const getAnalyticsDateRange = (period: 'month' | 'quarter' | 'year', date: Date) => {
+  // Analytics Summary - get date range for analytics periods - memoized
+  const getAnalyticsDateRange = useCallback((period: 'month' | 'quarter' | 'year', date: Date) => {
     const start = new Date(date);
     const end = new Date(date);
     
@@ -333,9 +341,9 @@ export default function Dashboard() {
       start: start.toISOString().split('T')[0],
       end: end.toISOString().split('T')[0]
     };
-  };
+  }, []);
 
-  const getPreviousAnalyticsPeriodRange = (period: 'month' | 'quarter' | 'year', date: Date) => {
+  const getPreviousAnalyticsPeriodRange = useCallback((period: 'month' | 'quarter' | 'year', date: Date) => {
     const prevDate = new Date(date);
     switch (period) {
       case 'month':
@@ -349,27 +357,41 @@ export default function Dashboard() {
         break;
     }
     return getAnalyticsDateRange(period, prevDate);
-  };
+  }, [getAnalyticsDateRange]);
 
-  // Calculate analytics stats for current and previous periods
-  const currentAnalyticsRange = getAnalyticsDateRange(analyticsPeriodState.type, analyticsPeriodState.date);
-  const previousAnalyticsRange = getPreviousAnalyticsPeriodRange(analyticsPeriodState.type, analyticsPeriodState.date);
+  // Calculate analytics stats for current and previous periods - memoized
+  const currentAnalyticsRange = useMemo(() => getAnalyticsDateRange(analyticsPeriodState.type, analyticsPeriodState.date), [analyticsPeriodState.type, analyticsPeriodState.date, getAnalyticsDateRange]);
+  const previousAnalyticsRange = useMemo(() => getPreviousAnalyticsPeriodRange(analyticsPeriodState.type, analyticsPeriodState.date), [analyticsPeriodState.type, analyticsPeriodState.date, getPreviousAnalyticsPeriodRange]);
 
-  const currentAnalyticsStats = calculatePeriodStats(transactions, currentAnalyticsRange);
-  const previousAnalyticsStats = calculatePeriodStats(transactions, previousAnalyticsRange);
+  const currentAnalyticsStats = useMemo(() => calculatePeriodStats(transactions, currentAnalyticsRange), [transactions, currentAnalyticsRange, calculatePeriodStats]);
+  const previousAnalyticsStats = useMemo(() => calculatePeriodStats(transactions, previousAnalyticsRange), [transactions, previousAnalyticsRange, calculatePeriodStats]);
 
-  // Calculate percentage changes for analytics
-  const analyticsOrdersChange = percentageChange(currentAnalyticsStats.count, previousAnalyticsStats.count);
-  const analyticsRevenueChange = percentageChange(currentAnalyticsStats.revenue, previousAnalyticsStats.revenue);
-  const analyticsProfitChange = percentageChange(currentAnalyticsStats.profit, previousAnalyticsStats.profit);
+  // Calculate percentage changes for analytics - memoized
+  const analyticsOrdersChange = useMemo(() => percentageChange(currentAnalyticsStats.count, previousAnalyticsStats.count), [currentAnalyticsStats.count, previousAnalyticsStats.count, percentageChange]);
+  const analyticsRevenueChange = useMemo(() => percentageChange(currentAnalyticsStats.revenue, previousAnalyticsStats.revenue), [currentAnalyticsStats.revenue, previousAnalyticsStats.revenue, percentageChange]);
+  const analyticsProfitChange = useMemo(() => percentageChange(currentAnalyticsStats.profit, previousAnalyticsStats.profit), [currentAnalyticsStats.profit, previousAnalyticsStats.profit, percentageChange]);
   
-  const currentProfitMargin = currentAnalyticsStats.revenue > 0 
+  const currentProfitMargin = useMemo(() => currentAnalyticsStats.revenue > 0 
     ? (currentAnalyticsStats.profit / currentAnalyticsStats.revenue) * 100 
-    : 0;
-  const previousProfitMargin = previousAnalyticsStats.revenue > 0 
+    : 0, [currentAnalyticsStats.revenue, currentAnalyticsStats.profit]);
+  const previousProfitMargin = useMemo(() => previousAnalyticsStats.revenue > 0 
     ? (previousAnalyticsStats.profit / previousAnalyticsStats.revenue) * 100 
-    : 0;
-  const analyticsMarginChange = percentageChange(currentProfitMargin, previousProfitMargin);
+    : 0, [previousAnalyticsStats.revenue, previousAnalyticsStats.profit]);
+  const analyticsMarginChange = useMemo(() => percentageChange(currentProfitMargin, previousProfitMargin), [currentProfitMargin, previousProfitMargin, percentageChange]);
+
+  // Business Health metrics - memoized
+  const avgOrderValue = useMemo(() => {
+    if (transactions.length === 0) return '0.00';
+    const totalRevenue = transactions.reduce((sum, t) => sum + t.selling_price, 0);
+    return (totalRevenue / transactions.length).toFixed(2);
+  }, [transactions]);
+
+  const businessProfitMargin = useMemo(() => {
+    if (transactions.length === 0) return '0';
+    const totalProfit = transactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0);
+    const totalRevenue = transactions.reduce((sum, t) => sum + t.selling_price, 0);
+    return totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0';
+  }, [transactions]);
 
   if (loading) {
     return (
@@ -522,18 +544,13 @@ export default function Dashboard() {
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Avg. Order Value</span>
               <span className="text-xl sm:text-2xl font-bold text-green-400">
-                ${transactions.length > 0 
-                  ? (transactions.reduce((sum, t) => sum + t.selling_price, 0) / transactions.length).toFixed(2)
-                  : '0.00'}
+                ${avgOrderValue}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Profit Margin</span>
               <span className="text-xl sm:text-2xl font-bold text-purple-400">
-                {transactions.length > 0 
-                  ? ((transactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0) / 
-                     transactions.reduce((sum, t) => sum + t.selling_price, 0)) * 100).toFixed(1)
-                  : '0'}%
+                {businessProfitMargin}%
               </span>
             </div>
           </div>

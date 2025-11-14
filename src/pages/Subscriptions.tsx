@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   Plus, 
   Search, 
@@ -188,14 +188,253 @@ export default function Subscriptions() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    if (archiveViewMode === 'subscriptions') {
-      applyFilters();
-    } else {
-      applyArchiveFilters();
+  // Create lookup maps for O(1) access - MUST be defined before useMemo hooks that use them
+  const clientsMap = useMemo(() => {
+    const map = new Map<string, Client>();
+    clients.forEach(client => map.set(client.id, client));
+    return map;
+  }, [clients]);
+
+  const servicesMap = useMemo(() => {
+    const map = new Map<string, Service>();
+    services.forEach(service => map.set(service.id, service));
+    return map;
+  }, [services]);
+
+  const serviceGroupsMap = useMemo(() => {
+    const map = new Map<string, ServiceGroup>();
+    serviceGroups.forEach(group => map.set(group.baseName, group));
+    return map;
+  }, [serviceGroups]);
+
+  // Memoized filtered subscriptions - uses the maps above
+  const filteredSubscriptionsMemo = useMemo(() => {
+    if (archiveViewMode !== 'subscriptions') return [];
+    
+    let filtered = [...subscriptions];
+
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      
+      filtered = filtered.filter(sub => {
+        // Search in service name - use Map for O(1) lookup
+        const service = servicesMap.get(sub.serviceId);
+        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
+        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
+        
+        // Search in client name - use Map for O(1) lookup
+        const client = clientsMap.get(sub.clientId);
+        const clientName = client ? client.name : '';
+        const clientMatch = clientName.toLowerCase().includes(searchLower);
+        
+        // Search in notes
+        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
+        
+        return serviceMatch || clientMatch || notesMatch;
+      });
     }
+
+    // Apply client filter
+    if (selectedClientId) {
+      filtered = filtered.filter(sub => sub.clientId === selectedClientId);
+    }
+
+    // Apply service filter
+    if (selectedServiceId) {
+      filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
+    } else if (selectedServiceGroup && selectedPeriod) {
+      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
+    } else if (selectedServiceGroup) {
+      const group = serviceGroupsMap.get(selectedServiceGroup);
+      if (group) {
+        const serviceIdsSet = new Set(group.services.map(s => s.id));
+        filtered = filtered.filter(sub => serviceIdsSet.has(sub.serviceId));
+      }
+    }
+
+    // Apply view filter
+    const now = getNowInTunisia();
+    switch (viewMode) {
+      case 'active':
+        filtered = filtered.filter(sub => sub.status === 'active' || sub.status === 'overdue');
+        break;
+      case 'completed':
+        filtered = filtered.filter(sub => sub.status === 'completed');
+        break;
+      case 'dueToday':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt) return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          return renewalDate.toDateString() === now.toDateString();
+        });
+        break;
+      case 'dueIn3Days':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt) return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          const diffTime = renewalDate.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return diffDays > 0 && diffDays <= 3;
+        });
+        break;
+      case 'overdue':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          return renewalDate < now;
+        });
+        break;
+      case 'overdueNormal':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          if (renewalDate >= now) return false;
+          
+          if (sub.resourcePoolId) {
+            const pool = poolCache.get(sub.resourcePoolId);
+            if (pool && !pool.is_alive) return false;
+          }
+          return true;
+        });
+        break;
+      case 'overdueDeadPool':
+        filtered = filtered.filter(sub => {
+          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
+          const renewalDate = new Date(sub.nextRenewalAt);
+          if (renewalDate >= now) return false;
+          
+          if (sub.resourcePoolId) {
+            const pool = poolCache.get(sub.resourcePoolId);
+            if (pool && !pool.is_alive) return true;
+          }
+          return false;
+        });
+        break;
+    }
+
+    // Sort subscriptions - use Map for O(1) lookup
+    filtered.sort((a, b) => {
+      if (!a.nextRenewalAt && !b.nextRenewalAt) return 0;
+      if (!a.nextRenewalAt) return 1;
+      if (!b.nextRenewalAt) return -1;
+      
+      const dateA = new Date(a.nextRenewalAt);
+      const dateB = new Date(b.nextRenewalAt);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      
+      const serviceA = servicesMap.get(a.serviceId);
+      const serviceB = servicesMap.get(b.serviceId);
+      const serviceNameA = serviceA ? formatServiceTitleWithDuration(serviceA.product_service, serviceA.duration || '1 month') : '';
+      const serviceNameB = serviceB ? formatServiceTitleWithDuration(serviceB.product_service, serviceB.duration || '1 month') : '';
+      if (serviceNameA !== serviceNameB) return serviceNameA.localeCompare(serviceNameB);
+      
+      const clientA = clientsMap.get(a.clientId)?.name || '';
+      const clientB = clientsMap.get(b.clientId)?.name || '';
+      return clientA.localeCompare(clientB);
+    });
+
+    return filtered;
+  }, [subscriptions, debouncedSearchTerm, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, viewMode, poolCache, servicesMap, clientsMap, serviceGroupsMap, archiveViewMode]);
+
+  // Group subscriptions function - must be defined before groupedSubscriptionsMemo
+  const groupSubscriptions = useCallback((subs: Subscription[], groupMode: 'client' | 'service'): GroupedSubscriptions[] => {
+    const groups = new Map<string, GroupedSubscriptions>();
+
+    subs.forEach(sub => {
+      let key: string;
+      let title: string;
+
+      if (groupMode === 'client') {
+        key = sub.clientId;
+        title = clientsMap.get(sub.clientId)?.name || 'Unknown Client';
+    } else {
+        key = sub.serviceId;
+        title = servicesMap.get(sub.serviceId)?.product_service || 'Unknown Service';
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          title,
+          subscriptions: [],
+          counts: { active: 0, completed: 0, overdue: 0, archived: 0 }
+        });
+      }
+
+      const group = groups.get(key)!;
+      group.subscriptions.push(sub);
+      
+      if (sub.status === 'active') group.counts.active++;
+      else if (sub.status === 'completed') group.counts.completed++;
+      else if (sub.status === 'overdue') group.counts.overdue++;
+      else if (sub.status === 'archived') group.counts.archived++;
+    });
+
+    // Sort groups alphabetically
+    return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [clientsMap, servicesMap]);
+
+  // Memoized grouped subscriptions
+  const groupedSubscriptionsMemo = useMemo(() => {
+    if (groupBy === 'none' || archiveViewMode !== 'subscriptions') return [];
+    return groupSubscriptions(filteredSubscriptionsMemo, groupBy);
+  }, [filteredSubscriptionsMemo, groupBy, archiveViewMode, groupSubscriptions]);
+
+  // Memoized archived subscriptions filter
+  const filteredArchivedSubscriptionsMemo = useMemo(() => {
+    if (archiveViewMode !== 'archive') return [];
+    
+    let filtered = [...archivedSubscriptions];
+
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(sub => {
+        const service = servicesMap.get(sub.serviceId);
+        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
+        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
+        
+        const client = clientsMap.get(sub.clientId);
+        const clientName = client ? client.name : '';
+        const clientMatch = clientName.toLowerCase().includes(searchLower);
+        
+        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
+        
+        return serviceMatch || clientMatch || notesMatch;
+      });
+    }
+
+    if (selectedClientId) {
+      filtered = filtered.filter(sub => sub.clientId === selectedClientId);
+    }
+
+    if (selectedServiceId) {
+      filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
+    } else if (selectedServiceGroup && selectedPeriod) {
+      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
+    } else if (selectedServiceGroup) {
+      const group = serviceGroupsMap.get(selectedServiceGroup);
+      if (group) {
+        const serviceIdsSet = new Set(group.services.map(s => s.id));
+        filtered = filtered.filter(sub => serviceIdsSet.has(sub.serviceId));
+      }
+    }
+
+    filtered.sort((a, b) => {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+
+    return filtered;
+  }, [archivedSubscriptions, debouncedSearchTerm, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, servicesMap, clientsMap, serviceGroupsMap, archiveViewMode]);
+
+  useEffect(() => {
+    setFilteredSubscriptions(filteredSubscriptionsMemo);
+    setGroupedSubscriptions(groupedSubscriptionsMemo);
+    setFilteredArchivedSubscriptions(filteredArchivedSubscriptionsMemo);
     saveFiltersToURL();
-  }, [subscriptions, archivedSubscriptions, viewMode, groupBy, selectedClientId, selectedServiceId, selectedServiceGroup, selectedPeriod, debouncedSearchTerm, archiveViewMode, poolCache]);
+  }, [filteredSubscriptionsMemo, groupedSubscriptionsMemo, filteredArchivedSubscriptionsMemo]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -562,7 +801,7 @@ export default function Subscriptions() {
     }
   };
 
-  const fetchClientsAndServices = async () => {
+  const fetchClientsAndServices = useCallback(async () => {
     try {
       // Get unique client and service IDs from subscriptions
       const clientIds = [...new Set(subscriptions.map(s => s.clientId))];
@@ -591,244 +830,7 @@ export default function Subscriptions() {
     } catch (error) {
       console.error('Error fetching clients and services:', error);
     }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...subscriptions];
-
-    // Apply search filter
-    if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase();
-      
-      filtered = filtered.filter(sub => {
-        // Search in service name
-        const service = services.find(s => s.id === sub.serviceId);
-        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
-        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
-        
-        // Search in client name
-        const client = clients.find(c => c.id === sub.clientId);
-        const clientName = client ? client.name : '';
-        const clientMatch = clientName.toLowerCase().includes(searchLower);
-        
-        // Search in notes
-        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
-        
-        return serviceMatch || clientMatch || notesMatch;
-      });
-    }
-
-    // Apply client filter
-    if (selectedClientId) {
-      filtered = filtered.filter(sub => sub.clientId === selectedClientId);
-    }
-
-    // Apply service filter (either by specific service ID or by service group + period)
-    if (selectedServiceId) {
-      filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
-    } else if (selectedServiceGroup && selectedPeriod) {
-      // Filter by specific service group and period combination
-      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
-    } else if (selectedServiceGroup) {
-      // Filter by service group (all periods for that service)
-      const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
-      if (group) {
-        const serviceIds = group.services.map(s => s.id);
-        filtered = filtered.filter(sub => serviceIds.includes(sub.serviceId));
-      }
-    }
-
-    // Apply view filter
-    const now = getNowInTunisia();
-    switch (viewMode) {
-      case 'active':
-        filtered = filtered.filter(sub => sub.status === 'active' || sub.status === 'overdue');
-        break;
-      case 'completed':
-        filtered = filtered.filter(sub => sub.status === 'completed');
-        break;
-      case 'dueToday':
-        filtered = filtered.filter(sub => {
-          if (!sub.nextRenewalAt) return false;
-          const renewalDate = new Date(sub.nextRenewalAt);
-          return renewalDate.toDateString() === now.toDateString();
-        });
-        break;
-      case 'dueIn3Days':
-        filtered = filtered.filter(sub => {
-          if (!sub.nextRenewalAt) return false;
-          const renewalDate = new Date(sub.nextRenewalAt);
-          const diffTime = renewalDate.getTime() - now.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return diffDays > 0 && diffDays <= 3;
-        });
-        break;
-      case 'overdue':
-        filtered = filtered.filter(sub => {
-          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
-          const renewalDate = new Date(sub.nextRenewalAt);
-          return renewalDate < now;
-        });
-        break;
-      case 'overdueNormal':
-        filtered = filtered.filter(sub => {
-          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
-          const renewalDate = new Date(sub.nextRenewalAt);
-          if (renewalDate >= now) return false;
-          
-          // Check if it's NOT overdue from dead pool
-          if (sub.resourcePoolId) {
-            const pool = poolCache.get(sub.resourcePoolId);
-            if (pool && !pool.is_alive) {
-              return false; // This is overdue from dead pool, exclude it
-            }
-          }
-          return true;
-        });
-        break;
-      case 'overdueDeadPool':
-        filtered = filtered.filter(sub => {
-          if (!sub.nextRenewalAt || sub.status === 'completed') return false;
-          const renewalDate = new Date(sub.nextRenewalAt);
-          if (renewalDate >= now) return false;
-          
-          // Check if it's overdue from dead pool
-          if (sub.resourcePoolId) {
-            const pool = poolCache.get(sub.resourcePoolId);
-            if (pool && !pool.is_alive) {
-              return true; // This is overdue from dead pool
-            }
-          }
-          return false; // Not overdue from dead pool
-        });
-        break;
-    }
-
-    // Sort subscriptions
-    filtered.sort((a, b) => {
-      // Sort by next renewal date (nulls last)
-      if (!a.nextRenewalAt && !b.nextRenewalAt) return 0;
-      if (!a.nextRenewalAt) return 1;
-      if (!b.nextRenewalAt) return -1;
-      
-      const dateA = new Date(a.nextRenewalAt);
-      const dateB = new Date(b.nextRenewalAt);
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateA.getTime() - dateB.getTime();
-      }
-      
-      // Then by service name, then client name
-      const serviceA = services.find(s => s.id === a.serviceId);
-      const serviceB = services.find(s => s.id === b.serviceId);
-      const serviceNameA = serviceA ? formatServiceTitleWithDuration(serviceA.product_service, serviceA.duration || '1 month') : '';
-      const serviceNameB = serviceB ? formatServiceTitleWithDuration(serviceB.product_service, serviceB.duration || '1 month') : '';
-      if (serviceNameA !== serviceNameB) return serviceNameA.localeCompare(serviceNameB);
-      
-      const clientA = clients.find(c => c.id === a.clientId)?.name || '';
-      const clientB = clients.find(c => c.id === b.clientId)?.name || '';
-      return clientA.localeCompare(clientB);
-    });
-
-    setFilteredSubscriptions(filtered);
-
-    // Apply grouping if needed
-    if (groupBy !== 'none') {
-      const grouped = groupSubscriptions(filtered, groupBy);
-      setGroupedSubscriptions(grouped);
-    } else {
-      setGroupedSubscriptions([]);
-    }
-  };
-
-  const applyArchiveFilters = () => {
-    let filtered = [...archivedSubscriptions];
-
-    // Apply search filter
-    if (debouncedSearchTerm) {
-      const searchLower = debouncedSearchTerm.toLowerCase();
-      
-      filtered = filtered.filter(sub => {
-        // Search in service name
-        const service = services.find(s => s.id === sub.serviceId);
-        const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
-        const serviceMatch = serviceName.toLowerCase().includes(searchLower);
-        
-        // Search in client name
-        const client = clients.find(c => c.id === sub.clientId);
-        const clientName = client ? client.name : '';
-        const clientMatch = clientName.toLowerCase().includes(searchLower);
-        
-        // Search in notes
-        const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
-        
-        return serviceMatch || clientMatch || notesMatch;
-      });
-    }
-
-    // Apply client filter
-    if (selectedClientId) {
-      filtered = filtered.filter(sub => sub.clientId === selectedClientId);
-    }
-
-    // Apply service filter (either by specific service ID or by service group + period)
-    if (selectedServiceId) {
-      filtered = filtered.filter(sub => sub.serviceId === selectedServiceId);
-    } else if (selectedServiceGroup && selectedPeriod) {
-      // Filter by specific service group and period combination
-      filtered = filtered.filter(sub => sub.serviceId === selectedPeriod);
-    } else if (selectedServiceGroup) {
-      // Filter by service group (all periods for that service)
-      const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
-      if (group) {
-        const serviceIds = group.services.map(s => s.id);
-        filtered = filtered.filter(sub => serviceIds.includes(sub.serviceId));
-      }
-    }
-
-    // Sort archived subscriptions by archive date (most recent first)
-    filtered.sort((a, b) => {
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
-
-    setFilteredArchivedSubscriptions(filtered);
-  };
-
-  const groupSubscriptions = (subs: Subscription[], groupMode: 'client' | 'service'): GroupedSubscriptions[] => {
-    const groups = new Map<string, GroupedSubscriptions>();
-
-    subs.forEach(sub => {
-      let key: string;
-      let title: string;
-
-      if (groupMode === 'client') {
-        key = sub.clientId;
-        title = clients.find(c => c.id === sub.clientId)?.name || 'Unknown Client';
-      } else {
-        key = sub.serviceId;
-        title = services.find(s => s.id === sub.serviceId)?.product_service || 'Unknown Service';
-      }
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          key,
-          title,
-          subscriptions: [],
-          counts: { active: 0, completed: 0, overdue: 0, archived: 0 }
-        });
-      }
-
-      const group = groups.get(key)!;
-      group.subscriptions.push(sub);
-      
-      if (sub.status === 'active') group.counts.active++;
-      else if (sub.status === 'completed') group.counts.completed++;
-      else if (sub.status === 'overdue') group.counts.overdue++;
-      else if (sub.status === 'archived') group.counts.archived++;
-    });
-
-    // Sort groups alphabetically
-    return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title));
-  };
+  }, [subscriptions]);
 
   const resetFilters = () => {
     setViewMode('all');

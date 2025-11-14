@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import TransactionModal from '../components/TransactionModal';
@@ -13,14 +13,15 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedService, setSelectedService] = useState('');
-  const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('all');
+  // Default to last 30 days instead of 'all' for better performance
+  const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('month');
   const [currentDate, setCurrentDate] = useState(getNowInTunisia());
 
   useEffect(() => {
     fetchData();
-  }, [currentDate, period]);
+  }, [fetchData]);
 
-  const getDateRange = () => {
+  const getDateRange = useCallback(() => {
     if (period === 'all') {
       return { from: '', to: '' }; // No date filtering for 'all'
     }
@@ -54,7 +55,7 @@ export default function Transactions() {
       default:
         return { from: '', to: '' };
     }
-  };
+  }, [period, currentDate]);
 
   const handlePeriodChange = (newPeriod: 'all' | 'day' | 'week' | 'month') => {
     setPeriod(newPeriod);
@@ -79,7 +80,7 @@ export default function Transactions() {
     setCurrentDate(date);
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const dateRange = getDateRange();
       let transactionsQuery = supabase
@@ -119,7 +120,7 @@ export default function Transactions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getDateRange]);
 
   const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'services'>) => {
     try {
@@ -196,19 +197,32 @@ export default function Transactions() {
     }
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = transaction.services?.product_service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.notes.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesService = selectedService === '' || transaction.service_id === selectedService;
-    const currentDateRange = getDateRange();
-    const matchesDate = period === 'all' || (transaction.date >= currentDateRange.from && transaction.date <= currentDateRange.to);
-    
-    return matchesSearch && matchesService && matchesDate;
-  });
+  // Create service lookup map for O(1) lookups
+  const serviceMap = useMemo(() => {
+    const map = new Map<string, Service>();
+    services.forEach(service => map.set(service.id, service));
+    return map;
+  }, [services]);
 
-  const totalProfit = filteredTransactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0);
-  const totalRevenue = filteredTransactions.reduce((sum, t) => sum + t.selling_price, 0);
-  const totalCosts = filteredTransactions.reduce((sum, t) => sum + t.cost_at_sale, 0);
+  // Memoize filtered transactions
+  const filteredTransactions = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    const dateRange = getDateRange();
+    
+    return transactions.filter(transaction => {
+      const matchesSearch = transaction.services?.product_service.toLowerCase().includes(searchLower) ||
+                           (transaction.notes || '').toLowerCase().includes(searchLower);
+      const matchesService = selectedService === '' || transaction.service_id === selectedService;
+      const matchesDate = period === 'all' || (transaction.date >= dateRange.from && transaction.date <= dateRange.to);
+      
+      return matchesSearch && matchesService && matchesDate;
+    });
+  }, [transactions, searchTerm, selectedService, period, getDateRange]);
+
+  // Memoize totals
+  const totalProfit = useMemo(() => filteredTransactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0), [filteredTransactions]);
+  const totalRevenue = useMemo(() => filteredTransactions.reduce((sum, t) => sum + t.selling_price, 0), [filteredTransactions]);
+  const totalCosts = useMemo(() => filteredTransactions.reduce((sum, t) => sum + t.cost_at_sale, 0), [filteredTransactions]);
 
   if (loading) {
     return (
