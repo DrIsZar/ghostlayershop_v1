@@ -1,28 +1,96 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import ServicesManager from './pages/ServicesManager';
-import Transactions from './pages/Transactions';
-import Subscriptions from './pages/Subscriptions';
-import Inventory from './pages/Inventory';
-import Reports from './pages/Reports';
-import Clients from './pages/Clients';
-import Settings from './pages/Settings';
+
+// Lazy load all page components for code splitting
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ServicesManager = lazy(() => import('./pages/ServicesManager'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Clients = lazy(() => import('./pages/Clients'));
+const Settings = lazy(() => import('./pages/Settings'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-900">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p className="text-gray-400 text-lg">Loading...</p>
+    </div>
+  </div>
+);
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="services" element={<ServicesManager />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="subscriptions" element={<Subscriptions />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="clients" element={<Clients />} />
-          <Route path="settings" element={<Settings />} />
+          <Route 
+            index 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Dashboard />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="services" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ServicesManager />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="transactions" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Transactions />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="subscriptions" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Subscriptions />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="inventory" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Inventory />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="reports" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Reports />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="clients" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Clients />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="settings" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
+            } 
+          />
         </Route>
       </Routes>
     </Router>

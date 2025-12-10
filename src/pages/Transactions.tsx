@@ -16,6 +16,8 @@ export default function Transactions() {
   // Default to last 30 days instead of 'all' for better performance
   const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('month');
   const [currentDate, setCurrentDate] = useState(getNowInTunisia());
+  // Pagination for large lists
+  const [displayLimit, setDisplayLimit] = useState(100);
 
   useEffect(() => {
     fetchData();
@@ -219,6 +221,16 @@ export default function Transactions() {
     });
   }, [transactions, searchTerm, selectedService, period, getDateRange]);
 
+  // Paginated transactions for display
+  const displayedTransactions = useMemo(() => {
+    return filteredTransactions.slice(0, displayLimit);
+  }, [filteredTransactions, displayLimit]);
+
+  // Reset display limit when filters change
+  useEffect(() => {
+    setDisplayLimit(100);
+  }, [searchTerm, selectedService, period]);
+
   // Memoize totals
   const totalProfit = useMemo(() => filteredTransactions.reduce((sum, t) => sum + (t.selling_price - t.cost_at_sale), 0), [filteredTransactions]);
   const totalRevenue = useMemo(() => filteredTransactions.reduce((sum, t) => sum + t.selling_price, 0), [filteredTransactions]);
@@ -410,7 +422,7 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {filteredTransactions.map((transaction) => {
+              {displayedTransactions.map((transaction) => {
                 const profit = transaction.selling_price - transaction.cost_at_sale;
                 return (
                   <tr key={transaction.id} className="hover:bg-gray-700/30 transition-colors">
@@ -479,6 +491,16 @@ export default function Transactions() {
                   Add Your First Transaction
                 </button>
               )}
+            </div>
+          )}
+          {filteredTransactions.length > displayLimit && (
+            <div className="p-4 text-center border-t border-gray-700/50">
+              <button
+                onClick={() => setDisplayLimit(prev => prev + 100)}
+                className="ghost-button"
+              >
+                Load More ({filteredTransactions.length - displayLimit} remaining)
+              </button>
             </div>
           )}
         </div>

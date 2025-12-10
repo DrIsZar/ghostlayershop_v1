@@ -99,6 +99,8 @@ export default function Subscriptions() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Pagination for large lists
+  const [displayLimit, setDisplayLimit] = useState(50);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -650,9 +652,19 @@ export default function Subscriptions() {
   // Reset selected card index when filters change and resize card refs array
   useEffect(() => {
     setSelectedCardIndex(-1);
+    setDisplayLimit(50); // Reset pagination when filters change
     const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
     cardRefs.current = new Array(currentSubs.length).fill(null);
   }, [filteredSubscriptions, filteredArchivedSubscriptions, archiveViewMode]);
+
+  // Paginated subscriptions for display
+  const displayedSubscriptions = useMemo(() => {
+    return filteredSubscriptions.slice(0, displayLimit);
+  }, [filteredSubscriptions, displayLimit]);
+
+  const displayedArchivedSubscriptions = useMemo(() => {
+    return filteredArchivedSubscriptions.slice(0, displayLimit);
+  }, [filteredArchivedSubscriptions, displayLimit]);
 
   const loadFiltersFromURL = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1660,7 +1672,7 @@ export default function Subscriptions() {
           // Ungrouped view - Mobile viewport optimized
           <div className="w-full px-2 sm:px-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {filteredSubscriptions.map((subscription, index) => {
+              {displayedSubscriptions.map((subscription, index) => {
                 const isSelected = selectedCardIndex === index;
                 return (
                   <div 
@@ -1685,6 +1697,16 @@ export default function Subscriptions() {
                 );
               })}
             </div>
+            {filteredSubscriptions.length > displayLimit && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setDisplayLimit(prev => prev + 50)}
+                  className="ghost-button"
+                >
+                  Load More ({filteredSubscriptions.length - displayLimit} remaining)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1825,7 +1847,7 @@ export default function Subscriptions() {
             ) : (
               <div className="w-full px-2 sm:px-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                  {filteredArchivedSubscriptions.map((subscription, index) => {
+                  {displayedArchivedSubscriptions.map((subscription, index) => {
                     const isSelected = selectedCardIndex === index;
                     return (
                       <div 
@@ -1851,6 +1873,16 @@ export default function Subscriptions() {
                     );
                   })}
                 </div>
+                {filteredArchivedSubscriptions.length > displayLimit && (
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => setDisplayLimit(prev => prev + 50)}
+                      className="ghost-button"
+                    >
+                      Load More ({filteredArchivedSubscriptions.length - displayLimit} remaining)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

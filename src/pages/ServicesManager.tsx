@@ -32,6 +32,8 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
           src={serviceLogo} 
           alt={`${serviceName || 'Service'} logo`} 
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.style.display = 'none';

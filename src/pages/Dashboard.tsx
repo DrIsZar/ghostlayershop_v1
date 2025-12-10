@@ -43,10 +43,10 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Limit initial query to last 90 days for better performance
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+      // Limit initial query to last 30 days for better performance
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
       const [transactionsResult, servicesResult] = await Promise.all([
         supabase
@@ -60,7 +60,7 @@ export default function Dashboard() {
               duration
             )
           `)
-          .gte('date', ninetyDaysAgoStr)
+          .gte('date', thirtyDaysAgoStr)
           .order('date', { ascending: false }),
         supabase
           .from('services')

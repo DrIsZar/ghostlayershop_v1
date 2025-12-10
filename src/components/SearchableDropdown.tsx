@@ -28,7 +28,7 @@ export interface SearchableDropdownProps {
   'data-testid'?: string;
 }
 
-export default function SearchableDropdown({
+const SearchableDropdown = React.memo(function SearchableDropdown({
   options,
   value,
   onChange,
@@ -486,4 +486,8 @@ export default function SearchableDropdown({
       )}
     </div>
   );
-}
+});
+
+SearchableDropdown.displayName = 'SearchableDropdown';
+
+export default SearchableDropdown;
