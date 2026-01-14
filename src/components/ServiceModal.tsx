@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, Trash2 } from 'lucide-react';
-import { Service, categories } from '../lib/supabase';
+import { Service, categories, ServiceType } from '../lib/supabase';
 import { uploadServiceLogo, validateLogoFile } from '../lib/fileUtils';
 import SearchableDropdown from './SearchableDropdown';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { useCurrency } from '../lib/currency';
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface ServiceModalProps {
 }
 
 export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoChange }: ServiceModalProps) {
+  const { formatCurrency, currency } = useCurrency();
   const [formData, setFormData] = useState({
     product_service: '',
     category: 'Software',
@@ -21,7 +23,8 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
     info_needed: '',
     cost: 0,
     selling_price: 0,
-    logo_url: ''
+    logo_url: '',
+    service_type: 'family_invite' as ServiceType
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
@@ -39,7 +42,8 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
         info_needed: service.info_needed,
         cost: service.cost,
         selling_price: service.selling_price,
-        logo_url: service.logo_url || ''
+        logo_url: service.logo_url || '',
+        service_type: service.service_type || 'family_invite'
       });
       setLogoPreview(service.logo_url || '');
       setLogoUrlInput(service.logo_url || '');
@@ -54,7 +58,8 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
         info_needed: '',
         cost: 0,
         selling_price: 0,
-        logo_url: ''
+        logo_url: '',
+        service_type: 'family_invite' as ServiceType
       });
       setLogoPreview('');
       setLogoFile(null);
@@ -368,6 +373,23 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           </div>
 
           <div>
+            <SearchableDropdown
+              label="Service Type"
+              options={[
+                { value: 'family_invite', label: 'Family/Invite (Pools)' },
+                { value: 'personal_upgrade', label: 'Personal Upgrade (Personal Accounts)' }
+              ]}
+              value={formData.service_type}
+              onChange={(value) => setFormData({ ...formData, service_type: value as ServiceType })}
+              placeholder="Select service type"
+              allowClear={false}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Family/Invite services appear in Pools. Personal Upgrade services appear in Personal Accounts.
+            </p>
+          </div>
+
+          <div>
             <label className="block text-sm font-semibold text-gray-300 mb-2">Duration</label>
             <input
               type="text"
@@ -393,7 +415,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost ({currency})</label>
               <input
                 type="number"
                 step="0.01"
@@ -413,7 +435,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ({currency})</label>
               <input
                 type="number"
                 step="0.01"
@@ -436,7 +458,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
             <div className="text-sm font-medium text-gray-300 mb-1">Profit Preview:</div>
             <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              ${profit.toFixed(2)}
+              {formatCurrency(profit)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {profit >= 0 ? 'Positive profit margin' : 'Negative profit - adjust pricing'}

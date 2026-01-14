@@ -22,6 +22,8 @@ import {
 import { ResourcePool, ResourcePoolSeat, PoolStats } from '../types/inventory';
 import { getPoolWithSeats, getPoolStats, updateResourcePool, deleteResourcePool, assignSeat, unassignSeat } from '../lib/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { getProviderLogo } from '../lib/fileUtils';
+import { Image } from 'lucide-react';
 import { copyToClipboard } from '../lib/toast';
 import SeatAssignmentModal from './SeatAssignmentModal';
 import PoolEditModal from './PoolEditModal';
@@ -268,8 +270,28 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gray-700 rounded-xl flex items-center justify-center text-2xl">
-              {PROVIDER_ICONS[pool.provider] || '📦'}
+            <div className="w-12 h-12 bg-gray-700 rounded-xl overflow-hidden flex items-center justify-center">
+              {(() => {
+                const providerLogo = getProviderLogo(pool.provider);
+                return providerLogo ? (
+                  <img 
+                    src={providerLogo} 
+                    alt={`${pool.provider} logo`} 
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                ) : null;
+              })()}
+              <div className={`w-full h-full flex items-center justify-center text-2xl ${getProviderLogo(pool.provider) ? 'hidden' : ''}`}>
+                {PROVIDER_ICONS[pool.provider] || '📦'}
+              </div>
             </div>
             <div>
               <h2 className="text-xl font-semibold text-white capitalize">

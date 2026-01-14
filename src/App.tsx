@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import { CurrencyProvider } from './lib/currency';
 
 // Lazy load all page components for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -24,9 +25,10 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
+    <CurrencyProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
           <Route 
             index 
             element={
@@ -94,6 +96,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+    </CurrencyProvider>
   );
 }
 

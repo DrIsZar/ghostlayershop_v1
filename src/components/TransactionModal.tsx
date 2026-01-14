@@ -7,6 +7,7 @@ import ClientModal from './ClientModal';
 import SearchableDropdown from './SearchableDropdown';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 import { getTodayInTunisia } from '../lib/dateUtils';
+import { useCurrency } from '../lib/currency';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface TransactionModalProps {
 }
 
 export default function TransactionModal({ isOpen, onClose, onSave, transaction, services }: TransactionModalProps) {
+  const { formatCurrency, currency } = useCurrency();
   const [formData, setFormData] = useState({
     service_id: '',
     client_id: '',
@@ -198,7 +200,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost at Sale ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost at Sale ({currency})</label>
               <input
                 type="number"
                 step="0.01"
@@ -211,7 +213,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ($)</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ({currency})</label>
               <input
                 type="number"
                 step="0.01"
@@ -245,7 +247,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
             <div className="text-sm font-medium text-gray-300 mb-1">Profit:</div>
             <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              ${profit.toFixed(2)}
+              {formatCurrency(profit)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {profit >= 0 ? 'Positive profit' : 'Negative profit - check pricing'}

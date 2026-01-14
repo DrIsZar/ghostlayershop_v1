@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MoreVertical, 
   Eye, 
@@ -21,6 +21,8 @@ import { ResourcePool } from '../types/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS } from '../constants/provisioning';
 import { copyToClipboard } from '../lib/toast';
 import { updateResourcePool } from '../lib/inventory';
+import { getProviderLogo } from '../lib/fileUtils';
+import { Image } from 'lucide-react';
 
 interface PoolCardProps {
   pool: ResourcePool;
@@ -35,6 +37,32 @@ interface PoolCardProps {
 export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, isArchived = false }: PoolCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
+  const [providerLogo, setProviderLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Try to get logo synchronously first
+    const logo = getProviderLogo(pool.provider);
+    setProviderLogo(logo);
+    
+    // If not found, try async lookup
+    if (!logo) {
+      getProviderLogoAsync(pool.provider).then(setProviderLogo).catch(() => {});
+    }
+    
+    // Listen for logo updates
+    const handleLogoUpdate = () => {
+      const newLogo = getProviderLogo(pool.provider);
+      if (newLogo) setProviderLogo(newLogo);
+    };
+    
+    window.addEventListener('logoUpdated', handleLogoUpdate);
+    window.addEventListener('storage', handleLogoUpdate);
+    
+    return () => {
+      window.removeEventListener('logoUpdated', handleLogoUpdate);
+      window.removeEventListener('storage', handleLogoUpdate);
+    };
+  }, [pool.provider]);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -142,8 +170,26 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
       <div className="p-3 sm:p-4 border-b border-gray-700/30">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg flex items-center justify-center text-sm sm:text-lg lg:text-xl flex-shrink-0">
-              {PROVIDER_ICONS[pool.provider] || '📦'}
+            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+              {providerLogo ? (
+                <img 
+                  src={providerLogo} 
+                  alt={`${pool.provider} logo`} 
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.classList.remove('hidden');
+                    setProviderLogo(null);
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full flex items-center justify-center text-sm sm:text-lg lg:text-xl ${providerLogo ? 'hidden' : ''}`}>
+                {PROVIDER_ICONS[pool.provider] || '📦'}
+              </div>
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white capitalize truncate">

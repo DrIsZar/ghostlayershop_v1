@@ -7,6 +7,7 @@ import SearchableDropdown from './SearchableDropdown';
 import { toast } from '../lib/toast';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 import { getTodayInTunisia, getNowInTunisia, addDaysInTunisia, formatDateForInput } from '../lib/dateUtils';
+import { getProvidersByServiceType } from '../lib/fileUtils';
 
 interface PoolFormModalProps {
   isOpen: boolean;
@@ -48,6 +49,9 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
       });
       setMaxSeatsInput('1');
       setErrors({});
+      
+      // Fetch providers for family/invite services
+      getProvidersByServiceType('family_invite').then(setProviders);
     }
   }, [isOpen]);
 
@@ -204,7 +208,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     };
   }, [isOpen, isLoading, onClose]);
 
-  const providerOptions = Object.keys(SERVICE_PROVISIONING).map(provider => ({
+  const providerOptions = providers.map(provider => ({
     value: provider,
     label: provider.charAt(0).toUpperCase() + provider.slice(1).replace('_', ' ')
   }));

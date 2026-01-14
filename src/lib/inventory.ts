@@ -9,7 +9,11 @@ import {
   CreatePoolData, 
   UpdatePoolData, 
   PoolFilter, 
-  SeatFilter 
+  SeatFilter,
+  PersonalAccount,
+  CreatePersonalAccountData,
+  UpdatePersonalAccountData,
+  PersonalAccountFilter
 } from '../types/inventory';
 import { getNowInTunisia, getStartOfDayInTunisia, addDaysInTunisia, getNowISOInTunisia } from './dateUtils';
 
@@ -923,4 +927,46 @@ export async function searchPoolsBySeatEmail(searchTerm: string): Promise<{ data
   const poolIds = Array.from(new Set((seats || []).map(seat => seat.pool_id)));
   
   return { data: poolIds, error: null };
+}
+
+// Personal Accounts CRUD operations
+export async function listPersonalAccounts(filter?: PersonalAccountFilter) {
+  let query = supabase.from('personal_accounts').select('*');
+  
+  if (filter?.provider) {
+    query = query.eq('provider', filter.provider);
+  }
+  if (filter?.status) {
+    query = query.eq('status', filter.status);
+  }
+  if (filter?.assigned_to_client_id) {
+    query = query.eq('assigned_to_client_id', filter.assigned_to_client_id);
+  }
+  
+  return query.order('created_at', { ascending: false });
+}
+
+export async function getPersonalAccount(id: string) {
+  return supabase.from('personal_accounts').select('*').eq('id', id).single();
+}
+
+export async function createPersonalAccount(data: CreatePersonalAccountData) {
+  return supabase.from('personal_accounts').insert(data).select('*').single();
+}
+
+export async function updatePersonalAccount(id: string, data: UpdatePersonalAccountData) {
+  return supabase
+    .from('personal_accounts')
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('*')
+    .single();
+}
+
+export async function deletePersonalAccount(id: string) {
+  return supabase.from('personal_accounts').delete().eq('id', id);
+}
+
+export async function refreshPersonalAccountStatus() {
+  return supabase.rpc('fn_refresh_personal_account_status');
 }

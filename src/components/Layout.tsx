@@ -13,6 +13,7 @@ import {
   Clock,
   Archive
 } from 'lucide-react';
+import CurrencyToggle from './CurrencyToggle';
 
 export default function Layout() {
   const location = useLocation();
@@ -22,6 +23,9 @@ export default function Layout() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Hide currency toggle on subscriptions page (no currency values displayed)
+  const showCurrencyToggle = location.pathname !== '/subscriptions';
   
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -102,6 +106,14 @@ export default function Layout() {
           </button>
         </div>
         
+        {/* Currency Toggle in Sidebar (Mobile) */}
+        {/* Currency Toggle in Sidebar (Mobile) */}
+        {showCurrencyToggle && (
+          <div className="px-3 py-3 border-b border-gray-700 lg:hidden">
+            <CurrencyToggle />
+          </div>
+        )}
+        
         {/* Navigation */}
         <nav className="px-3 pb-4 overflow-y-auto" style={{
           height: 'calc(100vh - 80px - env(safe-area-inset-top) - 0.5rem)',
@@ -132,6 +144,19 @@ export default function Layout() {
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen bg-gray-900 lg:ml-64">
+        {/* Currency Toggle - Desktop Header (Fixed Position) */}
+        {showCurrencyToggle && (
+          <div 
+            className="hidden lg:flex fixed top-0 right-0 z-50"
+            style={{
+              top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
+              right: `calc(1rem + env(safe-area-inset-right))`
+            }}
+          >
+            <CurrencyToggle />
+          </div>
+        )}
+        
         <main className="h-full p-4 lg:p-6" style={{
           paddingTop: `calc(80px + env(safe-area-inset-top) + 0.5rem)`,
           paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,

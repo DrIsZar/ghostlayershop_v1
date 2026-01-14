@@ -10,6 +10,7 @@ import { SERVICE_PROVISIONING } from '../constants/provisioning';
 import { getResourcePool, getPoolSeats, unlinkSubscriptionFromPool, linkSubscriptionToPool, assignSeat } from '../lib/inventory';
 import { ResourcePool, ResourcePoolSeat } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { getProviderLogo } from '../lib/fileUtils';
 import PoolEditModal from './PoolEditModal';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 
@@ -755,8 +756,28 @@ export default function SubscriptionEditModal({
               <div className="space-y-3">
                 {/* Pool Info */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center text-lg">
-                    {PROVIDER_ICONS[resourcePool.provider] || '📦'}
+                  <div className="w-8 h-8 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
+                    {(() => {
+                      const providerLogo = getProviderLogo(resourcePool.provider);
+                      return providerLogo ? (
+                        <img 
+                          src={providerLogo} 
+                          alt={`${resourcePool.provider} logo`} 
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null;
+                    })()}
+                    <div className={`w-full h-full flex items-center justify-center text-lg ${getProviderLogo(resourcePool.provider) ? 'hidden' : ''}`}>
+                      {PROVIDER_ICONS[resourcePool.provider] || '📦'}
+                    </div>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

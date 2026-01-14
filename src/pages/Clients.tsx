@@ -5,8 +5,10 @@ import { supabase } from '../lib/supabase';
 import type { Client, ClientStatistics } from '../types/client';
 import ClientModal from '../components/ClientModal';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { useCurrency } from '../lib/currency';
 
 export default function Clients() {
+  const { formatCurrency } = useCurrency();
   const [clients, setClients] = useState<(Client & Partial<ClientStatistics>)[]>([]);
   const [filteredClients, setFilteredClients] = useState<(Client & Partial<ClientStatistics>)[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -267,7 +269,7 @@ export default function Clients() {
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
               <p className="text-2xl font-bold text-white">
-                ${clients.reduce((sum, c) => sum + (c.total_spent || 0), 0).toFixed(2)}
+                {formatCurrency(clients.reduce((sum, c) => sum + (c.total_spent || 0), 0))}
               </p>
             </div>
           </div>
@@ -281,7 +283,7 @@ export default function Clients() {
             <div>
               <p className="text-gray-400 text-sm">Avg. per Client</p>
               <p className="text-2xl font-bold text-white">
-                ${clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length).toFixed(2) : '0.00'}
+                {formatCurrency(clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length) : 0)}
               </p>
             </div>
           </div>

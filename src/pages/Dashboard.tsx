@@ -4,8 +4,10 @@ import { supabase, Transaction, Service } from '../lib/supabase';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { toast, copyToClipboard } from '../lib/toast';
 import { getNowInTunisia } from '../lib/dateUtils';
+import { useCurrency } from '../lib/currency';
 
 export default function Dashboard() {
+  const { formatCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -381,9 +383,9 @@ export default function Dashboard() {
 
   // Business Health metrics - memoized
   const avgOrderValue = useMemo(() => {
-    if (transactions.length === 0) return '0.00';
+    if (transactions.length === 0) return 0;
     const totalRevenue = transactions.reduce((sum, t) => sum + t.selling_price, 0);
-    return (totalRevenue / transactions.length).toFixed(2);
+    return totalRevenue / transactions.length;
   }, [transactions]);
 
   const businessProfitMargin = useMemo(() => {
@@ -468,7 +470,7 @@ export default function Dashboard() {
           <div className="space-y-5">
             <div>
               <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
-                ${currentStats.profit.toFixed(2)}
+                {formatCurrency(currentStats.profit)}
               </p>
               <p className="text-sm text-gray-400">
                 Period Profit
@@ -486,7 +488,7 @@ export default function Dashboard() {
               </div>
               <div className="text-center sm:text-left">
                 <p className="text-xl sm:text-2xl font-bold text-green-400">
-                  ${currentStats.revenue.toFixed(2)}
+                  {formatCurrency(currentStats.revenue)}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Revenue</p>
               </div>
@@ -508,7 +510,7 @@ export default function Dashboard() {
                 {mainDashboardView === 'daily' ? 'Today' : 'This Month'}
               </span>
               <span className={`text-xl sm:text-2xl font-bold ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${currentStats.profit.toFixed(2)}
+                {formatCurrency(currentStats.profit)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
@@ -516,7 +518,7 @@ export default function Dashboard() {
                 {mainDashboardView === 'daily' ? 'Yesterday' : 'Last Month'}
               </span>
               <span className={`text-xl sm:text-2xl font-bold ${previousStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${previousStats.profit.toFixed(2)}
+                {formatCurrency(previousStats.profit)}
               </span>
             </div>
             <div className="flex justify-between items-center pt-3 border-t border-gray-700/50">
@@ -544,7 +546,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Avg. Order Value</span>
               <span className="text-xl sm:text-2xl font-bold text-green-400">
-                ${avgOrderValue}
+                {formatCurrency(avgOrderValue)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
@@ -622,14 +624,14 @@ export default function Dashboard() {
                         <span className="text-gray-400 font-medium">{item.count} orders</span>
                         <span className="hidden sm:inline text-gray-600">•</span>
                         <span className="text-gray-400 font-medium">
-                          ${((item.profit / item.count) || 0).toFixed(2)} avg. profit
+                          {formatCurrency((item.profit / item.count) || 0)} avg. profit
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
                     <p className={`font-bold text-lg sm:text-xl ${item.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      ${item.profit.toFixed(2)}
+                      {formatCurrency(item.profit)}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">total profit</p>
                   </div>
@@ -665,7 +667,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`font-bold text-lg sm:text-xl ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        ${profit.toFixed(2)}
+                        {formatCurrency(profit)}
                       </p>
                     </div>
                   </div>
@@ -814,7 +816,7 @@ export default function Dashboard() {
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-400 mb-2">Total Revenue</p>
               <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-                ${currentAnalyticsStats.revenue.toFixed(2)}
+                {formatCurrency(currentAnalyticsStats.revenue)}
               </p>
               <p className="text-sm text-gray-400">
                 <span className={`font-semibold ${analyticsRevenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -827,7 +829,7 @@ export default function Dashboard() {
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-400 mb-2">Net Profit</p>
               <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-                ${currentAnalyticsStats.profit.toFixed(2)}
+                {formatCurrency(currentAnalyticsStats.profit)}
               </p>
               <p className="text-sm text-gray-400">
                 <span className={`font-semibold ${analyticsProfitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>

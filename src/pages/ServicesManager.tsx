@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Search, Download, Package, ChevronDown, ChevronRigh
 import { supabase, Service } from '../lib/supabase';
 import ServiceModal from '../components/ServiceModal';
 import { getServiceLogo, migrateExistingLogos } from '../lib/fileUtils';
+import { useCurrency } from '../lib/currency';
 
 // ServiceLogo component for reactive logo display
 interface ServiceLogoProps {
@@ -49,6 +50,7 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
 };
 
 export default function ServicesManager() {
+  const { formatCurrency } = useCurrency();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -346,7 +348,7 @@ export default function ServicesManager() {
         </div>
         <div className="ghost-card p-6">
           <h3 className="text-lg font-semibold text-white mb-2">Potential Profit</h3>
-          <p className="text-3xl font-bold text-green-500">${totalProfit.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-green-500">{formatCurrency(totalProfit)}</p>
         </div>
         <div className="ghost-card p-6">
           <h3 className="text-lg font-semibold text-white mb-2">Avg. Margin</h3>
@@ -469,13 +471,13 @@ export default function ServicesManager() {
                         <td className="px-6 py-4">
                           <span className="text-gray-300 font-mono text-sm bg-gray-800/50 px-3 py-1.5 rounded border border-gray-600/50 flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            ${service.cost.toFixed(2)}
+                            {formatCurrency(service.cost)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-gray-300 font-mono text-sm bg-gray-800/50 px-3 py-1.5 rounded border border-gray-600/50 flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            ${service.selling_price.toFixed(2)}
+                            {formatCurrency(service.selling_price)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -485,7 +487,7 @@ export default function ServicesManager() {
                               : 'bg-red-500/20 text-red-400 border-red-500/30'
                           }`}>
                             <DollarSign className="h-3 w-3" />
-                            ${profit.toFixed(2)}
+                            {formatCurrency(profit)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

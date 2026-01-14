@@ -3,6 +3,7 @@ import { Archive, Users, AlertTriangle, CheckCircle } from 'lucide-react';
 import { ResourcePool } from '../types/inventory';
 import { getAvailablePoolsForService, getAvailableSeatsInPool, linkSubscriptionToPool, assignSeat, assignNextFreeSeat } from '../lib/inventory';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS } from '../constants/provisioning';
+import { getProviderLogo } from '../lib/fileUtils';
 import SearchableDropdown from './SearchableDropdown';
 
 interface LinkResourceSectionProps {
@@ -207,10 +208,14 @@ export function LinkResourceSection({
     );
   }
 
-  const poolOptions = availablePools.map(pool => ({
-    value: pool.id,
-    label: `${PROVIDER_ICONS[pool.provider] || '📦'} ${pool.login_email} (${pool.used_seats}/${pool.max_seats} seats) - ${getTimeUntilExpiry(pool.end_at)}`
-  }));
+  const poolOptions = availablePools.map(pool => {
+    const providerLogo = getProviderLogo(pool.provider);
+    const displayIcon = providerLogo ? '🖼️' : (PROVIDER_ICONS[pool.provider] || '📦');
+    return {
+      value: pool.id,
+      label: `${displayIcon} ${pool.login_email} (${pool.used_seats}/${pool.max_seats} seats) - ${getTimeUntilExpiry(pool.end_at)}`
+    };
+  });
 
   const seatOptions = availableSeats.map(seat => ({
     value: seat.id,

@@ -15,6 +15,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // The RLS policies should allow access for authenticated users
 // If you need authentication, you can enable it in Supabase dashboard
 
+export type ServiceType = 'personal_upgrade' | 'family_invite';
+
 export interface Service {
   id: string;
   product_service: string;
@@ -24,6 +26,7 @@ export interface Service {
   cost: number;
   selling_price: number;
   logo_url?: string;
+  service_type?: ServiceType;
   created_at: string;
   updated_at: string;
 }

@@ -4,8 +4,10 @@ import { supabase, Transaction, Service } from '../lib/supabase';
 import TransactionModal from '../components/TransactionModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { getNowInTunisia } from '../lib/dateUtils';
+import { useCurrency } from '../lib/currency';
 
 export default function Transactions() {
+  const { formatCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +21,7 @@ export default function Transactions() {
   // Pagination for large lists
   const [displayLimit, setDisplayLimit] = useState(100);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
+  // Helper functions defined first
   const getDateRange = useCallback(() => {
     if (period === 'all') {
       return { from: '', to: '' }; // No date filtering for 'all'
@@ -58,29 +57,6 @@ export default function Transactions() {
         return { from: '', to: '' };
     }
   }, [period, currentDate]);
-
-  const handlePeriodChange = (newPeriod: 'all' | 'day' | 'week' | 'month') => {
-    setPeriod(newPeriod);
-    setCurrentDate(getNowInTunisia()); // Reset to current date when changing period
-  };
-
-  const handleNavigate = (direction: 'prev' | 'next') => {
-    if (period === 'all') return; // No navigation for 'all' period
-    
-    const date = new Date(currentDate);
-    switch (period) {
-      case 'day':
-        date.setDate(date.getDate() + (direction === 'next' ? 1 : -1));
-        break;
-      case 'week':
-        date.setDate(date.getDate() + (direction === 'next' ? 7 : -7));
-        break;
-      case 'month':
-        date.setMonth(date.getMonth() + (direction === 'next' ? 1 : -1));
-        break;
-    }
-    setCurrentDate(date);
-  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -123,6 +99,33 @@ export default function Transactions() {
       setLoading(false);
     }
   }, [getDateRange]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handlePeriodChange = (newPeriod: 'all' | 'day' | 'week' | 'month') => {
+    setPeriod(newPeriod);
+    setCurrentDate(getNowInTunisia()); // Reset to current date when changing period
+  };
+
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (period === 'all') return; // No navigation for 'all' period
+    
+    const date = new Date(currentDate);
+    switch (period) {
+      case 'day':
+        date.setDate(date.getDate() + (direction === 'next' ? 1 : -1));
+        break;
+      case 'week':
+        date.setDate(date.getDate() + (direction === 'next' ? 7 : -7));
+        break;
+      case 'month':
+        date.setMonth(date.getMonth() + (direction === 'next' ? 1 : -1));
+        break;
+    }
+    setCurrentDate(date);
+  };
 
   const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'updated_at' | 'services'>) => {
     try {
@@ -284,7 +287,7 @@ export default function Transactions() {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">${totalRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(totalRevenue)}</p>
             </div>
           </div>
         </div>
@@ -295,7 +298,7 @@ export default function Transactions() {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Costs</p>
-              <p className="text-2xl font-bold text-white">${totalCosts.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(totalCosts)}</p>
             </div>
           </div>
         </div>
@@ -307,7 +310,7 @@ export default function Transactions() {
             <div>
               <p className="text-gray-400 text-sm">Net Profit</p>
               <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${totalProfit.toFixed(2)}
+                {formatCurrency(totalProfit)}
               </p>
             </div>
           </div>
@@ -440,10 +443,10 @@ export default function Transactions() {
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
                       {transaction.services?.duration}
                     </td>
-                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">${transaction.cost_at_sale.toFixed(2)}</td>
-                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">${transaction.selling_price.toFixed(2)}</td>
+                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">{formatCurrency(transaction.cost_at_sale)}</td>
+                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">{formatCurrency(transaction.selling_price)}</td>
                     <td className={`px-4 md:px-6 py-4 font-bold text-sm ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      ${profit.toFixed(2)}
+                      {formatCurrency(profit)}
                     </td>
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm max-w-xs truncate">
                       {transaction.notes || '-'}

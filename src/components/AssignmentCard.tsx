@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Mail, User, Package, Clock } from 'lucide-react';
 import { AssignmentWithDetails } from '../types/inventory';
 import { PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
+import { getProviderLogo } from '../lib/fileUtils';
 
 interface AssignmentCardProps {
   assignment: AssignmentWithDetails;
@@ -56,8 +57,28 @@ export function AssignmentCard({ assignment }: AssignmentCardProps) {
       <div className="p-3 sm:p-4 border-b border-gray-700/30">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg flex items-center justify-center text-sm sm:text-lg flex-shrink-0">
-              {PROVIDER_ICONS[assignment.resource_pools.provider] || '📦'}
+            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+              {(() => {
+                const providerLogo = getProviderLogo(assignment.resource_pools.provider);
+                return providerLogo ? (
+                  <img 
+                    src={providerLogo} 
+                    alt={`${assignment.resource_pools.provider} logo`} 
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                ) : null;
+              })()}
+              <div className={`w-full h-full flex items-center justify-center text-sm sm:text-lg ${getProviderLogo(assignment.resource_pools.provider) ? 'hidden' : ''}`}>
+                {PROVIDER_ICONS[assignment.resource_pools.provider] || '📦'}
+              </div>
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white">

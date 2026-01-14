@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingUp, DollarSign, Users, Package, Download, Target, AlertTriangle, TrendingDown, Archive, Clock } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
@@ -6,6 +6,7 @@ import { clientsDb } from '../lib/clients';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { listResourcePools } from '../lib/inventory';
 import { ResourcePool } from '../types/inventory';
+import { useCurrency } from '../lib/currency';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -64,6 +65,7 @@ interface ReportData {
 }
 
 export default function Reports() {
+  const { formatCurrency } = useCurrency();
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
@@ -72,94 +74,61 @@ export default function Reports() {
   const [, setClients] = useState<Client[]>([]);
   const [showLowProfitAlert, setShowLowProfitAlert] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      // Get date range based on period
-      const { from, to } = getDateRange();
-      
-      const [transactionsResult, servicesResult, clientsResult, poolsResult] = await Promise.all([
-        supabase
-          .from('transactions')
-          .select(`
-            *,
-            services (
-              id,
-              product_service,
-              category,
-              duration
-            ),
-            client:clients (
-              id,
-              name,
-              type
-            )
-          `)
-          .gte('date', from)
-          .lte('date', to)
-          .order('date', { ascending: false }),
-        supabase
-          .from('services')
-          .select('*')
-          .order('product_service'),
-        clientsDb.getAll(),
-        listResourcePools()
-      ]);
-
-      if (transactionsResult.error) throw transactionsResult.error;
-      if (servicesResult.error) throw servicesResult.error;
-      if (poolsResult.error) throw poolsResult.error;
-
-      const transactionsData = transactionsResult.data || [];
-      const servicesData = servicesResult.data || [];
-      const clientsData = clientsResult || [];
-      const poolsData = poolsResult.data || [];
-
-      setTransactions(transactionsData);
-      setServices(servicesData);
-      setClients(clientsData);
-
-      // Process data for reports - memoized
-      const processedData = processReportData(transactionsData, servicesData, clientsData, poolsData);
-      setReportData(processedData);
-      
-      // Check for low profit margin alerts
-      if (processedData.lowProfitServices.length > 0) {
-        setShowLowProfitAlert(true);
-      }
-    } catch (error) {
-      console.error('Error fetching report data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [period, processReportData]);
-
-  const getDateRange = () => {
+  // Helper functions defined first
+  const getMonthlyData = useCallback((transactions: Transaction[]) => {
+    const months = [];
     const now = new Date();
-    const from = new Date();
     
-    switch (period) {
-      case 'month':
-        from.setMonth(now.getMonth() - 1);
-        break;
-      case 'quarter':
-        from.setMonth(now.getMonth() - 3);
-        break;
-      case 'year':
-        from.setFullYear(now.getFullYear() - 1);
-        break;
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.unshift(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
     }
+
+    const monthlyData = months.map(month => {
+      const monthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        const monthYear = transactionDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        return monthYear === month;
+      });
+
+      const revenue = monthTransactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
+      const profit = monthTransactions.reduce((sum, t) => sum + ((t.selling_price || 0) - (t.cost_at_sale || 0)), 0);
+
+      return {
+        month,
+        revenue,
+        profit,
+        transactions: monthTransactions.length
+      };
+    });
+
+    return monthlyData;
+  }, []);
+
+  const analyzeProfitTrends = useCallback((monthlyData: Array<{ month: string; revenue: number; profit: number; transactions: number }>) => {
+    if (monthlyData.length < 2) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
+    
+    const recent = monthlyData.slice(-3);
+    const previous = monthlyData.slice(-6, -3);
+    
+    const recentAvg = recent.reduce((sum, m) => sum + m.profit, 0) / recent.length;
+    const previousAvg = previous.reduce((sum, m) => sum + m.profit, 0) / previous.length;
+    
+    if (previousAvg === 0) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
+    
+    const percentage = ((recentAvg - previousAvg) / previousAvg) * 100;
+    
+    let trend: 'up' | 'down' | 'stable';
+    if (percentage > 5) trend = 'up';
+    else if (percentage < -5) trend = 'down';
+    else trend = 'stable';
     
     return {
-      from: from.toISOString().split('T')[0],
-      to: now.toISOString().split('T')[0]
+      trend,
+      percentage: Math.abs(percentage),
+      period: '3 months'
     };
-  };
+  }, []);
 
   const processReportData = useCallback((
     transactions: Transaction[],
@@ -353,81 +322,115 @@ export default function Reports() {
         expiringPools
       }
     };
-  }, []);
+  }, [getMonthlyData, analyzeProfitTrends]);
 
-  const analyzeProfitTrends = (monthlyData: Array<{ month: string; revenue: number; profit: number; transactions: number }>) => {
-    if (monthlyData.length < 2) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
+  const getDateRange = useCallback(() => {
+    const now = new Date();
+    const from = new Date();
     
-    const recent = monthlyData.slice(-3);
-    const previous = monthlyData.slice(-6, -3);
-    
-    const recentAvg = recent.reduce((sum, m) => sum + m.profit, 0) / recent.length;
-    const previousAvg = previous.reduce((sum, m) => sum + m.profit, 0) / previous.length;
-    
-    if (previousAvg === 0) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
-    
-    const percentage = ((recentAvg - previousAvg) / previousAvg) * 100;
-    
-    let trend: 'up' | 'down' | 'stable';
-    if (percentage > 5) trend = 'up';
-    else if (percentage < -5) trend = 'down';
-    else trend = 'stable';
+    switch (period) {
+      case 'month':
+        from.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        from.setMonth(now.getMonth() - 3);
+        break;
+      case 'year':
+        from.setFullYear(now.getFullYear() - 1);
+        break;
+    }
     
     return {
-      trend,
-      percentage: Math.abs(percentage),
-      period: '3 months'
+      from: from.toISOString().split('T')[0],
+      to: now.toISOString().split('T')[0]
     };
-  };
+  }, [period]);
 
-  const getMonthlyData = (transactions: Transaction[]) => {
-    const months = [];
-    const now = new Date();
-    
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.unshift(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Get date range based on period
+      const { from, to } = getDateRange();
+      
+      const [transactionsResult, servicesResult, clientsResult, poolsResult] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select(`
+            *,
+            services (
+              id,
+              product_service,
+              category,
+              duration
+            ),
+            client:clients (
+              id,
+              name,
+              type
+            )
+          `)
+          .gte('date', from)
+          .lte('date', to)
+          .order('date', { ascending: false }),
+        supabase
+          .from('services')
+          .select('*')
+          .order('product_service'),
+        clientsDb.getAll(),
+        listResourcePools()
+      ]);
+
+      if (transactionsResult.error) throw transactionsResult.error;
+      if (servicesResult.error) throw servicesResult.error;
+      if (poolsResult.error) throw poolsResult.error;
+
+      const transactionsData = transactionsResult.data || [];
+      const servicesData = servicesResult.data || [];
+      const clientsData = clientsResult || [];
+      const poolsData = poolsResult.data || [];
+
+      setTransactions(transactionsData);
+      setServices(servicesData);
+      setClients(clientsData);
+
+      // Process data for reports - memoized
+      const processedData = processReportData(transactionsData, servicesData, clientsData, poolsData);
+      setReportData(processedData);
+      
+      // Check for low profit margin alerts
+      if (processedData.lowProfitServices.length > 0) {
+        setShowLowProfitAlert(true);
+      }
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+    } finally {
+      setLoading(false);
     }
+  }, [getDateRange, processReportData]);
 
-    const monthlyData = months.map(month => {
-      const monthTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        const monthYear = transactionDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        return monthYear === month;
-      });
-
-      const revenue = monthTransactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
-      const profit = monthTransactions.reduce((sum, t) => sum + ((t.selling_price || 0) - (t.cost_at_sale || 0)), 0);
-
-      return {
-        month,
-        revenue,
-        profit,
-        transactions: monthTransactions.length
-      };
-    });
-
-    return monthlyData;
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const exportReport = () => {
     if (!reportData) return;
     
     const csvContent = [
       ['Metric', 'Value'],
-      ['Total Revenue', `$${reportData.totalRevenue.toFixed(2)}`],
-      ['Total Profit', `$${reportData.totalProfit.toFixed(2)}`],
+      ['Total Revenue', formatCurrency(reportData.totalRevenue)],
+      ['Total Profit', formatCurrency(reportData.totalProfit)],
       ['Total Transactions', reportData.totalTransactions],
       ['Total Clients', reportData.totalClients],
       ['Total Services', reportData.totalServices],
       ['Average Profit Margin', `${reportData.averageProfitMargin.toFixed(2)}%`],
-      ['Average Transaction Value', `$${reportData.averageTransactionValue.toFixed(2)}`],
+      ['Average Transaction Value', formatCurrency(reportData.averageTransactionValue)],
       [''],
       ['Top Services', 'Revenue', 'Profit', 'Count'],
-      ...reportData.topServices.map(s => [s.name, `$${s.revenue.toFixed(2)}`, `$${s.profit.toFixed(2)}`, s.count]),
+      ...reportData.topServices.map(s => [s.name, formatCurrency(s.revenue), formatCurrency(s.profit), s.count]),
       [''],
       ['Top Clients', 'Total Spent', 'Transactions', 'Type'],
-      ...reportData.topClients.map(c => [c.name, `$${c.totalSpent.toFixed(2)}`, c.transactions, c.type])
+      ...reportData.topClients.map(c => [c.name, formatCurrency(c.totalSpent), c.transactions, c.type])
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -604,7 +607,7 @@ export default function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Revenue</p>
-              <p className="text-lg lg:text-2xl font-bold text-white">${reportData.totalRevenue.toLocaleString()}</p>
+              <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.totalRevenue)}</p>
             </div>
             <DollarSign className="h-6 w-6 lg:h-8 lg:w-8 text-green-500" />
           </div>
@@ -614,7 +617,7 @@ export default function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Profit</p>
-              <p className="text-lg lg:text-2xl font-bold text-white">${reportData.totalProfit.toLocaleString()}</p>
+              <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.totalProfit)}</p>
             </div>
             <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 text-blue-500" />
           </div>
@@ -647,7 +650,7 @@ export default function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Avg Transaction</p>
-              <p className="text-lg lg:text-2xl font-bold text-white">${reportData.averageTransactionValue.toFixed(0)}</p>
+              <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.averageTransactionValue)}</p>
             </div>
             <Target className="h-6 w-6 lg:h-8 lg:w-8 text-indigo-500" />
           </div>
@@ -900,7 +903,7 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-green-400 font-bold text-sm lg:text-base">${client.totalSpent.toLocaleString()}</p>
+                  <p className="text-green-400 font-bold text-sm lg:text-base">{formatCurrency(client.totalSpent)}</p>
                   <p className="text-gray-400 text-xs lg:text-sm">{client.transactions} transactions</p>
                 </div>
               </div>
@@ -1007,8 +1010,8 @@ export default function Reports() {
                 {reportData.topServices.map((service, index) => (
                   <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                     <td className="text-white py-2 lg:py-3 text-xs lg:text-sm">{service.name}</td>
-                    <td className="text-right text-green-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">${service.revenue.toLocaleString()}</td>
-                    <td className="text-right text-blue-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">${service.profit.toLocaleString()}</td>
+                    <td className="text-right text-green-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.revenue)}</td>
+                    <td className="text-right text-blue-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.profit)}</td>
                     <td className="text-right text-gray-300 py-2 lg:py-3 text-xs lg:text-sm font-medium">{service.count}</td>
                   </tr>
                 ))}
@@ -1068,7 +1071,7 @@ export default function Reports() {
               <div key={index} className="p-3 bg-gray-800/50 rounded-lg">
                 <p className="text-white font-medium text-sm">{service.name}</p>
                 <p className="text-red-400 text-sm">Margin: {service.margin.toFixed(1)}%</p>
-                <p className="text-gray-400 text-xs">Revenue: ${service.revenue.toLocaleString()}</p>
+                <p className="text-gray-400 text-xs">Revenue: {formatCurrency(service.revenue)}</p>
               </div>
             ))}
           </div>

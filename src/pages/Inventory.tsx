@@ -12,22 +12,26 @@ import {
   RotateCcw,
   Archive,
   HelpCircle,
-  Keyboard
+  Keyboard,
+  User
 } from 'lucide-react';
-import { ResourcePool, PoolFilter } from '../types/inventory';
-import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail } from '../lib/inventory';
+import { ResourcePool, PoolFilter, PersonalAccount } from '../types/inventory';
+import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail, listPersonalAccounts, createPersonalAccount, updatePersonalAccount, deletePersonalAccount, refreshPersonalAccountStatus } from '../lib/inventory';
 import { PoolCard } from '../components/PoolCard';
 import { PoolFormModal } from '../components/PoolFormModal';
 import { PoolDetailModal } from '../components/PoolDetailModal';
 import PoolEditModal from '../components/PoolEditModal';
+import { PersonalAccountCard } from '../components/PersonalAccountCard';
+import { PersonalAccountFormModal } from '../components/PersonalAccountFormModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+import { getProviderLogo } from '../lib/fileUtils';
 
-type ViewMode = 'pools' | 'archive';
+type ViewMode = 'pools' | 'archive' | 'personal';
 
 export default function Inventory() {
-  const [viewMode, setViewMode] = useState<ViewMode>('pools');
+  const [viewMode, setViewMode] = useState<ViewMode>('personal');
   const [pools, setPools] = useState<ResourcePool[]>([]);
   const [filteredPools, setFilteredPools] = useState<ResourcePool[]>([]);
   const [archivedPools, setArchivedPools] = useState<ResourcePool[]>([]);
@@ -37,6 +41,14 @@ export default function Inventory() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPool, setSelectedPool] = useState<ResourcePool | null>(null);
+  
+  // Personal accounts state
+  const [personalAccounts, setPersonalAccounts] = useState<PersonalAccount[]>([]);
+  const [filteredPersonalAccounts, setFilteredPersonalAccounts] = useState<PersonalAccount[]>([]);
+  const [isPersonalAccountModalOpen, setIsPersonalAccountModalOpen] = useState(false);
+  const [selectedPersonalAccount, setSelectedPersonalAccount] = useState<PersonalAccount | null>(null);
+  const [personalAccountSearchTerm, setPersonalAccountSearchTerm] = useState('');
+  const [personalAccountFilters, setPersonalAccountFilters] = useState<{ provider?: string; status?: string }>({});
   
   // Filter state
   const [filters, setFilters] = useState<PoolFilter>({});
@@ -117,6 +129,16 @@ export default function Inventory() {
   useEffect(() => {
     applyArchiveFilters();
   }, [archivedPools, archiveFilters, debouncedSearchTerm, matchingPoolIdsBySeat]);
+
+  useEffect(() => {
+    if (viewMode === 'personal') {
+      fetchPersonalAccounts();
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    applyPersonalAccountFilters();
+  }, [personalAccounts, personalAccountSearchTerm, personalAccountFilters]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -402,6 +424,69 @@ export default function Inventory() {
     }
   };
 
+  // Personal Accounts functions
+  const fetchPersonalAccounts = async () => {
+    try {
+      setLoading(true);
+      await refreshPersonalAccountStatus();
+      const { data, error } = await listPersonalAccounts();
+      if (error) throw error;
+      setPersonalAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching personal accounts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyPersonalAccountFilters = () => {
+    let filtered = [...personalAccounts];
+
+    if (personalAccountSearchTerm) {
+      const searchLower = personalAccountSearchTerm.toLowerCase();
+      filtered = filtered.filter(account => {
+        const providerMatch = account.provider.toLowerCase().includes(searchLower);
+        const emailMatch = account.login_email.toLowerCase().includes(searchLower);
+        const notesMatch = account.notes?.toLowerCase().includes(searchLower) || false;
+        return providerMatch || emailMatch || notesMatch;
+      });
+    }
+
+    if (personalAccountFilters.provider) {
+      filtered = filtered.filter(account => account.provider === personalAccountFilters.provider);
+    }
+    if (personalAccountFilters.status) {
+      filtered = filtered.filter(account => account.status === personalAccountFilters.status);
+    }
+
+    // Sort by created date (newest first)
+    filtered.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setFilteredPersonalAccounts(filtered);
+  };
+
+  const handlePersonalAccountCreated = (account: PersonalAccount) => {
+    setPersonalAccounts(prev => [account, ...prev]);
+  };
+
+  const handlePersonalAccountUpdated = (account: PersonalAccount) => {
+    setPersonalAccounts(prev => prev.map(a => a.id === account.id ? account : a));
+  };
+
+  const handlePersonalAccountDelete = async (accountId: string) => {
+    if (!confirm('Are you sure you want to delete this personal account?')) return;
+    
+    try {
+      const { error } = await deletePersonalAccount(accountId);
+      if (error) throw error;
+      setPersonalAccounts(prev => prev.filter(a => a.id !== accountId));
+    } catch (error) {
+      console.error('Error deleting personal account:', error);
+    }
+  };
+
 
 
   const getStats = () => {
@@ -456,12 +541,20 @@ export default function Inventory() {
         </div>
         <div className="flex-shrink-0 flex gap-2">
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              if (viewMode === 'personal') {
+                setIsPersonalAccountModalOpen(true);
+              } else {
+                setIsModalOpen(true);
+              }
+            }}
             className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
-            title="Create new pool (N or C)"
+            title={viewMode === 'personal' ? 'Create new personal account' : 'Create new pool (N or C)'}
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline">New Pool</span>
+            <span className="hidden xs:inline">
+              {viewMode === 'personal' ? 'Add Account' : 'New Pool'}
+            </span>
             <span className="xs:hidden">New</span>
           </button>
           <button
@@ -476,6 +569,17 @@ export default function Inventory() {
 
       {/* View Tabs */}
       <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+        <button
+          onClick={() => setViewMode('personal')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            viewMode === 'personal'
+              ? 'bg-green-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <User className="w-4 h-4 inline mr-2" />
+          Personal Accounts
+        </button>
         <button
           onClick={() => setViewMode('pools')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -535,10 +639,14 @@ export default function Inventory() {
                   label="Provider"
                   options={[
                     { value: '', label: 'All providers' },
-                    ...Object.keys(SERVICE_PROVISIONING).map(provider => ({
-                      value: provider,
-                      label: `${PROVIDER_ICONS[provider] || '📦'} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
-                    }))
+                    ...Object.keys(SERVICE_PROVISIONING).map(provider => {
+                      const providerLogo = getProviderLogo(provider);
+                      const displayIcon = providerLogo ? '🖼️' : (PROVIDER_ICONS[provider] || '📦');
+                      return {
+                        value: provider,
+                        label: `${displayIcon} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
+                      };
+                    })
                   ]}
                   value={filters.provider || ''}
                   onChange={(value) => setFilters(prev => ({ ...prev, provider: value || undefined }))}
@@ -755,10 +863,14 @@ export default function Inventory() {
                   label="Provider"
                   options={[
                     { value: '', label: 'All providers' },
-                    ...Object.keys(SERVICE_PROVISIONING).map(provider => ({
-                      value: provider,
-                      label: `${PROVIDER_ICONS[provider] || '📦'} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
-                    }))
+                    ...Object.keys(SERVICE_PROVISIONING).map(provider => {
+                      const providerLogo = getProviderLogo(provider);
+                      const displayIcon = providerLogo ? '🖼️' : (PROVIDER_ICONS[provider] || '📦');
+                      return {
+                        value: provider,
+                        label: `${displayIcon} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
+                      };
+                    })
                   ]}
                   value={archiveFilters.provider || ''}
                   onChange={(value) => setArchiveFilters(prev => ({ ...prev, provider: value || undefined }))}
@@ -898,6 +1010,182 @@ export default function Inventory() {
         </>
       )}
 
+      {viewMode === 'personal' && (
+        <>
+          {/* Personal Accounts Filter Toolbar */}
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[300px]">
+                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <input
+                    type="text"
+                    placeholder="Search by provider, email, or notes..."
+                    value={personalAccountSearchTerm}
+                    onChange={(e) => setPersonalAccountSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                  />
+                  {personalAccountSearchTerm && (
+                    <button
+                      onClick={() => setPersonalAccountSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Provider Filter */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="Provider"
+                  options={[
+                    { value: '', label: 'All providers' },
+                    ...Object.keys(SERVICE_PROVISIONING).filter(p => SERVICE_PROVISIONING[p] !== null).map(provider => {
+                      const providerLogo = getProviderLogo(provider);
+                      const displayIcon = providerLogo ? '🖼️' : (PROVIDER_ICONS[provider] || '📦');
+                      return {
+                        value: provider,
+                        label: `${displayIcon} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`
+                      };
+                    })
+                  ]}
+                  value={personalAccountFilters.provider || ''}
+                  onChange={(value) => setPersonalAccountFilters(prev => ({ ...prev, provider: value || undefined }))}
+                  placeholder="All providers"
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => setPersonalAccountFilters(prev => ({ ...prev, provider: undefined }))}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="Status"
+                  options={[
+                    { value: '', label: 'All statuses' },
+                    { value: 'available', label: 'Available' },
+                    { value: 'assigned', label: 'Assigned' },
+                    { value: 'expired', label: 'Expired' }
+                  ]}
+                  value={personalAccountFilters.status || ''}
+                  onChange={(value) => setPersonalAccountFilters(prev => ({ ...prev, status: value || undefined }))}
+                  placeholder="All statuses"
+                  className="min-w-[140px]"
+                  allowClear={true}
+                  onClear={() => setPersonalAccountFilters(prev => ({ ...prev, status: undefined }))}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setPersonalAccountSearchTerm('');
+                    setPersonalAccountFilters({});
+                  }}
+                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Accounts Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Total Accounts</p>
+                  <p className="text-2xl font-bold text-white">{personalAccounts.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Available</p>
+                  <p className="text-2xl font-bold text-white">
+                    {personalAccounts.filter(a => a.status === 'available').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Expired</p>
+                  <p className="text-2xl font-bold text-white">
+                    {personalAccounts.filter(a => a.status === 'expired').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Accounts List */}
+          <div className="space-y-4">
+            {filteredPersonalAccounts.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No personal accounts found</h3>
+                <p className="text-gray-400 mb-4">
+                  {personalAccounts.length === 0 
+                    ? "Add your first personal account to get started." 
+                    : "No accounts match your current filters."
+                  }
+                </p>
+                <button
+                  onClick={() => setIsPersonalAccountModalOpen(true)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Add Personal Account
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {filteredPersonalAccounts.map(account => (
+                  <PersonalAccountCard
+                    key={account.id}
+                    account={account}
+                    onView={(acc) => {
+                      setSelectedPersonalAccount(acc);
+                      // You can create a detail modal similar to PoolDetailModal if needed
+                    }}
+                    onEdit={(acc) => {
+                      setSelectedPersonalAccount(acc);
+                      setIsPersonalAccountModalOpen(true);
+                    }}
+                    onDelete={handlePersonalAccountDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Keyboard Shortcuts Help Modal */}
       {showKeyboardHelp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
@@ -995,6 +1283,18 @@ export default function Inventory() {
           setIsEditModalOpen(false);
           setSelectedPool(null);
         }}
+      />
+
+      {/* Personal Account Form Modal */}
+      <PersonalAccountFormModal
+        isOpen={isPersonalAccountModalOpen}
+        onClose={() => {
+          setIsPersonalAccountModalOpen(false);
+          setSelectedPersonalAccount(null);
+        }}
+        account={selectedPersonalAccount}
+        onAccountCreated={handlePersonalAccountCreated}
+        onAccountUpdated={handlePersonalAccountUpdated}
       />
     </div>
   );

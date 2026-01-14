@@ -135,3 +135,39 @@ export interface AssignmentFilter {
   assigned_after?: string;
   assigned_before?: string;
 }
+
+export type PersonalAccountStatus = 'available' | 'assigned' | 'expired';
+
+export interface PersonalAccount {
+  id: string;
+  provider: string;
+  login_email: string;
+  login_secret?: string | null;
+  notes?: string | null;
+  created_at: string;
+  expiry_date?: string | null;
+  status: PersonalAccountStatus;
+  assigned_to_client_id?: string | null;
+  assigned_at?: string | null;
+  updated_at: string;
+}
+
+export interface CreatePersonalAccountData {
+  provider: string;
+  login_email: string;
+  login_secret?: string;
+  notes?: string;
+  expiry_date?: string;
+}
+
+export interface UpdatePersonalAccountData extends Partial<CreatePersonalAccountData> {
+  status?: PersonalAccountStatus;
+  assigned_to_client_id?: string | null;
+  assigned_at?: string | null;
+}
+
+export interface PersonalAccountFilter {
+  provider?: string;
+  status?: PersonalAccountStatus;
+  assigned_to_client_id?: string;
+}
