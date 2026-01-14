@@ -30,6 +30,17 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [maxSeatsInput, setMaxSeatsInput] = useState<string>('1');
+  const [providers, setProviders] = useState<string[]>([]);
+
+  // Initialize providers on mount and when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      getProvidersByServiceType('family_invite').then(setProviders).catch(() => {
+        // Fallback to all providers if there's an error
+        setProviders(Object.keys(SERVICE_PROVISIONING).filter(p => SERVICE_PROVISIONING[p] !== null));
+      });
+    }
+  }, [isOpen]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -49,9 +60,6 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
       });
       setMaxSeatsInput('1');
       setErrors({});
-      
-      // Fetch providers for family/invite services
-      getProvidersByServiceType('family_invite').then(setProviders);
     }
   }, [isOpen]);
 
@@ -208,7 +216,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     };
   }, [isOpen, isLoading, onClose]);
 
-  const providerOptions = providers.map(provider => ({
+  const providerOptions = (providers.length > 0 ? providers : Object.keys(SERVICE_PROVISIONING).filter(p => SERVICE_PROVISIONING[p] !== null)).map(provider => ({
     value: provider,
     label: provider.charAt(0).toUpperCase() + provider.slice(1).replace('_', ' ')
   }));
