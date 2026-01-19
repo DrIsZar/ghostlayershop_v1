@@ -10,6 +10,7 @@ const Transactions = lazy(() => import('./pages/Transactions'));
 const Subscriptions = lazy(() => import('./pages/Subscriptions'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Reports = lazy(() => import('./pages/Reports'));
+const CashFlow = lazy(() => import('./pages/CashFlow'));
 const Clients = lazy(() => import('./pages/Clients'));
 const Settings = lazy(() => import('./pages/Settings'));
 
@@ -29,73 +30,81 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
-          <Route 
-            index 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Dashboard />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="services" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <ServicesManager />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="transactions" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Transactions />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="subscriptions" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Subscriptions />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="inventory" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Inventory />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="reports" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Reports />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="clients" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Clients />
-              </Suspense>
-            } 
-          />
-          <Route 
-            path="settings" 
-            element={
-              <Suspense fallback={<PageLoader />}>
-                <Settings />
-              </Suspense>
-            } 
-          />
-        </Route>
-      </Routes>
-    </Router>
+            <Route
+              index
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Dashboard />
+                </Suspense>
+              }
+            />
+            <Route
+              path="services"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <ServicesManager />
+                </Suspense>
+              }
+            />
+            <Route
+              path="transactions"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Transactions />
+                </Suspense>
+              }
+            />
+            <Route
+              path="subscriptions"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Subscriptions />
+                </Suspense>
+              }
+            />
+            <Route
+              path="inventory"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Inventory />
+                </Suspense>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Reports />
+                </Suspense>
+              }
+            />
+            <Route
+              path="cashflow"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <CashFlow />
+                </Suspense>
+              }
+            />
+            <Route
+              path="clients"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Clients />
+                </Suspense>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Settings />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Routes>
+      </Router>
     </CurrencyProvider>
   );
 }

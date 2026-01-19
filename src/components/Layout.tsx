@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Clock,
-  Archive
+  Archive,
+  TrendingUp
 } from 'lucide-react';
 import CurrencyToggle from './CurrencyToggle';
 
@@ -46,6 +47,7 @@ export default function Layout() {
     { name: 'Subscriptions', href: '/subscriptions', icon: Clock },
     { name: 'Inventory', href: '/inventory', icon: Archive },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
+    { name: 'Cash Flow', href: '/cashflow', icon: TrendingUp },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];

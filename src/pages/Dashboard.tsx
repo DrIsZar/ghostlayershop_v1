@@ -5,11 +5,17 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { toast, copyToClipboard } from '../lib/toast';
 import { getNowInTunisia } from '../lib/dateUtils';
 import { useCurrency } from '../lib/currency';
+import { subscriptionService } from '../lib/subscriptionService';
+import { Subscription } from '../types/subscription';
+import { generateCashFlowForecast, calculateCurrentCashPosition } from '../lib/cashFlowForecast';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   type PeriodState = {
     type: 'week' | 'month' | 'year';
@@ -50,7 +56,7 @@ export default function Dashboard() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-      const [transactionsResult, servicesResult] = await Promise.all([
+      const [transactionsResult, servicesResult, subscriptionsData, clientsResult] = await Promise.all([
         supabase
           .from('transactions')
           .select(`
@@ -66,14 +72,21 @@ export default function Dashboard() {
           .order('date', { ascending: false }),
         supabase
           .from('services')
-          .select('*')
+          .select('*'),
+        subscriptionService.listSubscriptions(),
+        supabase
+          .from('clients')
+          .select('id, name')
       ]);
 
       if (transactionsResult.error) throw transactionsResult.error;
       if (servicesResult.error) throw servicesResult.error;
+      if (clientsResult.error) throw clientsResult.error;
 
       setTransactions(transactionsResult.data || []);
       setServices(servicesResult.data || []);
+      setSubscriptions(subscriptionsData || []);
+      setClients(clientsResult.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.show('Failed to load data', { type: 'error' });
@@ -394,6 +407,21 @@ export default function Dashboard() {
     const totalRevenue = transactions.reduce((sum, t) => sum + t.selling_price, 0);
     return totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0';
   }, [transactions]);
+  // Calculate 7-day cash flow forecast
+  const cashFlowForecast = useMemo(() => {
+    if (transactions.length === 0 || services.length === 0) return null;
+
+    return generateCashFlowForecast(transactions, subscriptions, services, clients, {
+      days: 7,
+      includeOneTimeSales: true,
+      optimismFactor: 1.0
+    });
+  }, [transactions, subscriptions, services, clients]);
+
+  const currentCashPosition = useMemo(() =>
+    calculateCurrentCashPosition(transactions),
+    [transactions]
+  );
 
   if (loading) {
     return (
@@ -456,7 +484,7 @@ export default function Dashboard() {
 
       {/* Stats Cards - Dynamic Daily/Monthly Overview */}
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 lg:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 lg:mb-8">
         {/* Dynamic Overview */}
         <div className="ghost-card p-5 sm:p-6">
           <div className="flex items-center justify-between mb-5">
@@ -554,6 +582,56 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Cash Flow Quick View */}
+        <div className="ghost-card p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-semibold text-gray-300">Cash Flow</h3>
+            <TrendingUp className="h-5 w-5 text-white flex-shrink-0" />
+          </div>
+          {cashFlowForecast ? (
+            <div className="space-y-4">
+              <div>
+                <p className={`text-3xl sm:text-4xl font-bold mb-2 ${currentCashPosition >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(currentCashPosition)}
+                </p>
+                <p className="text-xs text-gray-400">Current Balance</p>
+              </div>
+              <div className="pt-3 border-t border-gray-700/50 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">7-day Projection</span>
+                  <span className={`text-sm font-bold ${cashFlowForecast.summary.endingBalance >= currentCashPosition ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatCurrency(cashFlowForecast.summary.endingBalance)}
+                  </span>
+                </div>
+                {cashFlowForecast.summary.cashRunwayDays !== null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Cash Runway</span>
+                    <span className="text-sm font-bold text-white">
+                      {cashFlowForecast.summary.cashRunwayDays}d
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">MRR</span>
+                  <span className="text-sm font-bold text-green-400">
+                    {formatCurrency(cashFlowForecast.summary.monthlyRecurringRevenue)}
+                  </span>
+                </div>
+              </div>
+              <Link
+                to="/cashflow"
+                className="block text-center mt-3 text-xs text-white hover:text-green-400 transition-colors"
+              >
+                View Full Analysis →
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400 text-sm">Loading forecast...</p>
+            </div>
+          )}
         </div>
       </div>
 
