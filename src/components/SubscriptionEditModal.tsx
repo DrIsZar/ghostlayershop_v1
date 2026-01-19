@@ -37,9 +37,9 @@ interface Client {
   email: string;
 }
 
-export default function SubscriptionEditModal({ 
-  isOpen, 
-  onClose, 
+export default function SubscriptionEditModal({
+  isOpen,
+  onClose,
   subscription,
   onUpdate,
   onDelete
@@ -80,9 +80,9 @@ export default function SubscriptionEditModal({
         strategy: subscription.strategy,
         intervalDays: subscription.intervalDays || 30,
         notes: subscription.notes || '',
-        customNextRenewalAt: subscription.customNextRenewalAt ? 
+        customNextRenewalAt: subscription.customNextRenewalAt ?
           subscription.customNextRenewalAt.split('T')[0] : '',
-        targetEndAt: subscription.targetEndAt ? 
+        targetEndAt: subscription.targetEndAt ?
           subscription.targetEndAt.split('T')[0] : ''
       });
       fetchResourcePoolInfo();
@@ -113,14 +113,14 @@ export default function SubscriptionEditModal({
   useEffect(() => {
     const fetchData = async () => {
       if (!isOpen) return;
-      
+
       try {
         // Fetch services
         const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('id, product_service, logo_url, duration, cost, selling_price')
           .order('product_service');
-        
+
         if (servicesError) throw servicesError;
         setServices(servicesData || []);
 
@@ -129,7 +129,7 @@ export default function SubscriptionEditModal({
           .from('clients')
           .select('id, name, email')
           .order('name');
-        
+
         if (clientsError) throw clientsError;
         setClients(clientsData || []);
       } catch (error) {
@@ -207,9 +207,9 @@ export default function SubscriptionEditModal({
 
   const handleSave = async () => {
     if (!subscription) return;
-    
+
     if (!validateForm()) return;
-    
+
     console.log('🔄 Updating subscription:', subscription.id, 'with data:', formData);
     setIsLoading(true);
     try {
@@ -244,27 +244,27 @@ export default function SubscriptionEditModal({
         // Otherwise use regular update
         updated = await subscriptionService.updateSubscription(subscription.id, updateData);
       }
-      
+
       console.log('✅ Subscription updated successfully:', updated);
-      
+
       // Check if there's a pending pool selection and link it
       if (pendingPoolId) {
         console.log('🔗 Pending pool detected, performing linking...');
         await performPoolLinking(
-          pendingPoolId, 
-          pendingSeatId, 
-          subscription.id, 
+          pendingPoolId,
+          pendingSeatId,
+          subscription.id,
           formData.notes || `customer-${subscription.id.slice(0, 8)}`
         );
         console.log('✅ Pool linked successfully');
-        
+
         // Refresh subscription to get updated pool info
         const refreshedSub = await subscriptionService.getSubscription(subscription.id);
         onUpdate(refreshedSub);
       } else {
         onUpdate(updated);
       }
-      
+
       onClose();
     } catch (error) {
       console.error('❌ Error updating subscription:', error);
@@ -285,11 +285,11 @@ export default function SubscriptionEditModal({
       // Call the service to delete the subscription
       await subscriptionService.delete(subscription.id);
       console.log('Subscription service delete completed for:', subscription.id);
-      
+
       // Notify parent component
       onDelete(subscription.id);
       console.log('Parent component notified of deletion:', subscription.id);
-      
+
       // Close the modal
       onClose();
     } catch (error) {
@@ -302,10 +302,10 @@ export default function SubscriptionEditModal({
 
   const handleUnlinkPool = async () => {
     if (!subscription?.resourcePoolId) return;
-    
+
     const poolInfo = resourcePool ? `${resourcePool.provider.replace('_', ' ').toUpperCase()} (${resourcePool.login_email})` : 'the resource pool';
     const seatInfo = assignedSeat ? ` and free up seat #${assignedSeat.seat_index}` : '';
-    
+
     if (!confirm(`Are you sure you want to unlink this subscription from ${poolInfo}?${seatInfo}\n\nThis action will:\n• Remove the pool assignment from this subscription\n• Free up the assigned seat for other subscriptions\n• Cannot be undone automatically`)) {
       return;
     }
@@ -313,15 +313,15 @@ export default function SubscriptionEditModal({
     try {
       setIsLoading(true);
       const result = await unlinkSubscriptionFromPool(subscription.id);
-      
+
       if (result.error) {
         throw new Error(result.error.message || 'Failed to unlink resource pool');
       }
-      
+
       // Update local state
       setResourcePool(null);
       setAssignedSeat(null);
-      
+
       // Update the subscription in parent component
       if (subscription) {
         const updatedSubscription = {
@@ -342,7 +342,7 @@ export default function SubscriptionEditModal({
   // Helper function to perform actual pool linking
   const performPoolLinking = async (poolId: string, seatId: string, subscriptionId: string, customerEmail: string) => {
     console.log('Performing pool linking:', { poolId, seatId, subscriptionId, customerEmail });
-    
+
     let result;
     if (seatId) {
       // Assign specific seat first, then link
@@ -351,12 +351,12 @@ export default function SubscriptionEditModal({
         email: customerEmail || undefined,
         subscriptionId: subscriptionId,
       });
-      
+
       if (assignError) {
         console.error('Specific seat assignment error:', assignError);
         throw new Error(`Seat assignment failed: ${assignError.message || 'Unknown error'}`);
       }
-      
+
       console.log('Assigned specific seat:', seatData?.id);
       result = await linkSubscriptionToPool(subscriptionId, poolId, seatData?.id);
     } else {
@@ -367,14 +367,14 @@ export default function SubscriptionEditModal({
         subscriptionId: subscriptionId,
       });
     }
-    
+
     const { error } = result;
-    
+
     if (error) {
       console.error('Subscription linking error:', error);
       throw new Error(`Failed to link subscription to pool: ${error.message || 'Unknown error'}`);
     }
-    
+
     console.log('Successfully linked resource pool');
     return result;
   };
@@ -403,17 +403,17 @@ export default function SubscriptionEditModal({
 
   const handleLinkAndSave = async () => {
     if (!subscription || !pendingPoolId) return;
-    
+
     console.log('Link and Save triggered');
     setIsLoading(true);
-    
+
     try {
       // First, save subscription changes
       if (!validateForm()) {
         setIsLoading(false);
         return;
       }
-      
+
       const updateData: Partial<Subscription> = {
         serviceId: formData.serviceId,
         clientId: formData.clientId,
@@ -440,23 +440,23 @@ export default function SubscriptionEditModal({
       } else {
         updated = await subscriptionService.updateSubscription(subscription.id, updateData);
       }
-      
+
       console.log('✅ Subscription updated successfully:', updated);
-      
+
       // Now perform pool linking
       await performPoolLinking(
-        pendingPoolId, 
-        pendingSeatId, 
-        subscription.id, 
+        pendingPoolId,
+        pendingSeatId,
+        subscription.id,
         formData.notes || `customer-${subscription.id.slice(0, 8)}`
       );
-      
+
       console.log('✅ Pool linked successfully');
-      
+
       // Refresh subscription data
       const refreshedSub = await subscriptionService.getSubscription(subscription.id);
       onUpdate(refreshedSub);
-      
+
       // Close all modals
       onClose();
     } catch (error) {
@@ -517,7 +517,7 @@ export default function SubscriptionEditModal({
       'workspace': 'workspace',
       'google workspace': 'google_workspace',
     };
-    
+
     for (const [key, provider] of Object.entries(providerMap)) {
       if (serviceName.includes(key)) {
         return provider;
@@ -558,7 +558,7 @@ export default function SubscriptionEditModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div 
+      <div
         className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl"
         role="dialog"
         aria-modal="true"
@@ -580,302 +580,300 @@ export default function SubscriptionEditModal({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
-          {/* Service Selection */}
-          <div>
-            <SearchableDropdown
-              label="Service"
-              icon={<Package className="w-4 h-4" />}
-              options={serviceOptions}
-              value={formData.serviceId}
-              onChange={(value) => handleInputChange('serviceId', value)}
-              placeholder="Select a service"
-              searchPlaceholder="Search services..."
-              error={errors.serviceId}
-              showSearchThreshold={5}
-            />
-          </div>
+            {/* Service Selection */}
+            <div>
+              <SearchableDropdown
+                label="Service"
+                icon={<Package className="w-4 h-4" />}
+                options={serviceOptions}
+                value={formData.serviceId}
+                onChange={(value) => handleInputChange('serviceId', value)}
+                placeholder="Select a service"
+                searchPlaceholder="Search services..."
+                error={errors.serviceId}
+                showSearchThreshold={5}
+              />
+            </div>
 
-          {/* Client Selection */}
-          <div>
-            <SearchableDropdown
-              label="Client"
-              icon={<User className="w-4 h-4" />}
-              options={clientOptions}
-              value={formData.clientId}
-              onChange={(value) => handleInputChange('clientId', value)}
-              placeholder="Select a client"
-              searchPlaceholder="Search clients..."
-              error={errors.clientId}
-              showSearchThreshold={5}
-            />
-          </div>
+            {/* Client Selection */}
+            <div>
+              <SearchableDropdown
+                label="Client"
+                icon={<User className="w-4 h-4" />}
+                options={clientOptions}
+                value={formData.clientId}
+                onChange={(value) => handleInputChange('clientId', value)}
+                placeholder="Select a client"
+                searchPlaceholder="Search clients..."
+                error={errors.clientId}
+                showSearchThreshold={5}
+              />
+            </div>
 
-          {/* Start Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-            {errors.startDate && (
-              <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>
-            )}
-          </div>
-
-          {/* Strategy Selection */}
-          <div>
-            <SearchableDropdown
-              label="Renewal Strategy"
-              icon={<Clock className="w-4 h-4" />}
-              options={[
-                { value: 'MONTHLY', label: 'Monthly' },
-                { value: 'EVERY_N_DAYS', label: 'Every N Days' }
-              ]}
-              value={formData.strategy}
-              onChange={(value) => handleInputChange('strategy', value as RenewalStrategyKey)}
-              placeholder="Select strategy"
-              error={errors.strategy}
-              showSearchThreshold={10}
-            />
-          </div>
-
-          {/* Interval Days (for EVERY_N_DAYS strategy) */}
-          {formData.strategy === 'EVERY_N_DAYS' && (
+            {/* Start Date */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
-                <Clock className="w-4 h-4 inline mr-2" />
-                Renewal Interval (days)
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Start Date
               </label>
               <input
-                type="number"
-                min="1"
-                value={formData.intervalDays}
-                onChange={(e) => handleInputChange('intervalDays', parseInt(e.target.value))}
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleInputChange('startDate', e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                placeholder="30"
+              />
+              {errors.startDate && (
+                <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>
+              )}
+            </div>
+
+            {/* Strategy Selection */}
+            <div>
+              <SearchableDropdown
+                label="Renewal Strategy"
+                icon={<Clock className="w-4 h-4" />}
+                options={[
+                  { value: 'MONTHLY', label: 'Monthly' },
+                  { value: 'EVERY_N_DAYS', label: 'Every N Days' }
+                ]}
+                value={formData.strategy}
+                onChange={(value) => handleInputChange('strategy', value as RenewalStrategyKey)}
+                placeholder="Select strategy"
+                error={errors.strategy}
+                showSearchThreshold={10}
               />
             </div>
-          )}
 
-          {/* Target End Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Target End Date
-            </label>
-            <input
-              type="date"
-              value={formData.targetEndAt}
-              onChange={(e) => handleInputChange('targetEndAt', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Optional end date for the subscription
-            </p>
-          </div>
-
-          {/* Custom Next Renewal Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Custom Next Renewal Date
-            </label>
-            <input
-              type="date"
-              value={formData.customNextRenewalAt}
-              onChange={(e) => handleInputChange('customNextRenewalAt', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Set a custom renewal date or leave empty to use automatic renewal
-            </p>
-          </div>
-
-          {/* Login */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Mail className="w-4 h-4 inline mr-2" />
-              Login Email
-            </label>
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              placeholder="customer@example.com or customer@example.com:password"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Customer login for this subscription (used for seat assignment)
-            </p>
-          </div>
-
-          {/* Resource Pool Information */}
-          {resourcePool && (
-              <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                  <Archive className="w-4 h-4" />
-                  Linked Resource Pool
-                </h4>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPoolEditModal(true)}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-white/10 rounded transition-colors"
-                  >
-                    <Edit className="w-3 h-3" />
-                    Edit Pool
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSwitchPool}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded transition-colors"
-                  >
-                    <Edit className="w-3 h-3" />
-                    Switch Pool
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleUnlinkPool}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                  >
-                    <Unlink className="w-3 h-3" />
-                    Unlink
-                  </button>
-                </div>
+            {/* Interval Days (for EVERY_N_DAYS strategy) */}
+            {formData.strategy === 'EVERY_N_DAYS' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  <Clock className="w-4 h-4 inline mr-2" />
+                  Renewal Interval (days)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.intervalDays}
+                  onChange={(e) => handleInputChange('intervalDays', parseInt(e.target.value))}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  placeholder="30"
+                />
               </div>
-              
-              <div className="space-y-3">
-                {/* Pool Info */}
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
-                    {(() => {
-                      const providerLogo = getProviderLogo(resourcePool.provider);
-                      return providerLogo ? (
-                        <img 
-                          src={providerLogo} 
-                          alt={`${resourcePool.provider} logo`} 
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null;
-                    })()}
-                    <div className={`w-full h-full flex items-center justify-center text-lg ${getProviderLogo(resourcePool.provider) ? 'hidden' : ''}`}>
-                      {PROVIDER_ICONS[resourcePool.provider] || '📦'}
+            )}
+
+            {/* Target End Date */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Target End Date
+              </label>
+              <input
+                type="date"
+                value={formData.targetEndAt}
+                onChange={(e) => handleInputChange('targetEndAt', e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                Optional end date for the subscription
+              </p>
+            </div>
+
+            {/* Custom Next Renewal Date */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Custom Next Renewal Date
+              </label>
+              <input
+                type="date"
+                value={formData.customNextRenewalAt}
+                onChange={(e) => handleInputChange('customNextRenewalAt', e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                Set a custom renewal date or leave empty to use automatic renewal
+              </p>
+            </div>
+
+            {/* Login */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                <Mail className="w-4 h-4 inline mr-2" />
+                Login Email
+              </label>
+              <input
+                type="text"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                placeholder="customer@example.com or customer@example.com:password"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                Customer login for this subscription (used for seat assignment)
+              </p>
+            </div>
+
+            {/* Resource Pool Information */}
+            {resourcePool && (
+              <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                    <Archive className="w-4 h-4" />
+                    Linked Resource Pool
+                  </h4>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPoolEditModal(true)}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-white/10 rounded transition-colors"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Edit Pool
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSwitchPool}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded transition-colors"
+                    >
+                      <Edit className="w-3 h-3" />
+                      Switch Pool
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUnlinkPool}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                    >
+                      <Unlink className="w-3 h-3" />
+                      Unlink
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Pool Info */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center">
+                      {(() => {
+                        const providerLogo = getProviderLogo(resourcePool.provider);
+                        return providerLogo ? (
+                          <img
+                            src={providerLogo}
+                            alt={`${resourcePool.provider} logo`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null;
+                      })()}
+                      <div className={`w-full h-full flex items-center justify-center text-lg ${getProviderLogo(resourcePool.provider) ? 'hidden' : ''}`}>
+                        {PROVIDER_ICONS[resourcePool.provider] || '📦'}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">
+                          {resourcePool.provider.replace('_', ' ').toUpperCase()}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${resourcePool.status === 'active' ? 'bg-white/10 text-white' :
+                            resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
+                              'bg-red-900/30 text-red-400'
+                          }`}>
+                          {STATUS_LABELS[resourcePool.status] || resourcePool.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} •
+                        {resourcePool.login_email}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">
-                        {resourcePool.provider.replace('_', ' ').toUpperCase()}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        resourcePool.status === 'active' ? 'bg-white/10 text-white' :
-                        resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
-                        'bg-red-900/30 text-red-400'
-                      }`}>
-                        {STATUS_LABELS[resourcePool.status] || resourcePool.status}
-                      </span>
+
+                  {/* Seat Assignment */}
+                  {assignedSeat && (
+                    <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
+                      <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-medium">
+                          Seat #{assignedSeat.seat_index}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
+                        </span>
+                      </div>
+                      {assignedSeat.assigned_email && (
+                        <p className="text-sm text-gray-400 mt-1">
+                          Email: {assignedSeat.assigned_email}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-400">
-                      {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} • 
-                      {resourcePool.login_email}
+                  )}
+
+                  {/* Pool Stats */}
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">Seats:</span>
+                      <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">Expires:</span>
+                      <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">Status:</span>
+                      <div className={`w-2 h-2 rounded-full ${resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
+                        }`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Resource Pool Linking */}
+            {showResourceLinking && subscription && selectedService && (
+              <div
+                ref={linkResourceSectionRef}
+                className="border-2 border-blue-500 rounded-xl p-1 -m-1 animate-pulse"
+              >
+                <LinkResourceSection
+                  serviceProvider={getServiceProvider()}
+                  subscriptionId={subscription.id}
+                  customerEmail={formData.notes || `customer-${subscription.id.slice(0, 8)}`}
+                  onResourceLinked={handleResourceLinked}
+                  onPoolSelectionChange={handlePoolSelectionChange}
+                  onLinkAndSave={handleLinkAndSave}
+                />
+              </div>
+            )}
+
+            {/* Link Resource Pool Button (if no pool linked) */}
+            {!resourcePool && !showResourceLinking && selectedService && (
+              <div className="p-4 bg-zinc-800/50 border border-white/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-200 font-medium">Resource Pool Linking</p>
+                    <p className="text-xs text-blue-200 mt-1">
+                      Link this subscription to a resource pool for seat management
                     </p>
                   </div>
-                </div>
-
-                {/* Seat Assignment */}
-                {assignedSeat && (
-                  <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
-                    <h5 className="text-xs font-medium text-gray-300 mb-2">Assigned Seat</h5>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-medium">
-                        Seat #{assignedSeat.seat_index}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        Assigned: {assignedSeat.assigned_at ? new Date(assignedSeat.assigned_at).toLocaleDateString() : 'Unknown'}
-                      </span>
-                    </div>
-                    {assignedSeat.assigned_email && (
-                      <p className="text-sm text-gray-400 mt-1">
-                        Email: {assignedSeat.assigned_email}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Pool Stats */}
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">Seats:</span>
-                    <span className="text-white">{resourcePool.used_seats}/{resourcePool.max_seats}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">Expires:</span>
-                    <span className="text-white">{new Date(resourcePool.end_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">Status:</span>
-                    <div className={`w-2 h-2 rounded-full ${
-                      resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
-                    }`} />
-                  </div>
+                  <button
+                    onClick={handleSwitchPool}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Link Pool
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Resource Pool Linking */}
-          {showResourceLinking && subscription && selectedService && (
-            <div 
-              ref={linkResourceSectionRef}
-              className="border-2 border-blue-500 rounded-xl p-1 -m-1 animate-pulse"
-            >
-              <LinkResourceSection
-                serviceProvider={getServiceProvider()}
-                subscriptionId={subscription.id}
-                customerEmail={formData.notes || `customer-${subscription.id.slice(0, 8)}`}
-                onResourceLinked={handleResourceLinked}
-                onPoolSelectionChange={handlePoolSelectionChange}
-                onLinkAndSave={handleLinkAndSave}
-              />
-            </div>
-          )}
-
-          {/* Link Resource Pool Button (if no pool linked) */}
-          {!resourcePool && !showResourceLinking && selectedService && (
-            <div className="p-4 bg-zinc-800/50 border border-white/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-200 font-medium">Resource Pool Linking</p>
-                  <p className="text-xs text-blue-200 mt-1">
-                    Link this subscription to a resource pool for seat management
-                  </p>
-                </div>
-                <button
-                  onClick={handleSwitchPool}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
-                >
-                  Link Pool
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
           </div>
         </div>
@@ -886,7 +884,7 @@ export default function SubscriptionEditModal({
             ref={saveButtonRef}
             onClick={handleSave}
             disabled={isLoading}
-            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            className="flex-1 ghost-button-primary px-6 py-3 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -903,14 +901,14 @@ export default function SubscriptionEditModal({
           <button
             onClick={handleDelete}
             disabled={isLoading}
-            className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+            className="px-4 py-3 ghost-button-danger flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" />
             Delete
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+            className="px-6 py-3 ghost-button-secondary"
           >
             Cancel
           </button>

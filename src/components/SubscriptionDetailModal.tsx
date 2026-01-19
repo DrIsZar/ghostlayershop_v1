@@ -18,9 +18,9 @@ interface SubscriptionDetailModalProps {
   onEdit?: (subscription: Subscription) => void;
 }
 
-export default function SubscriptionDetailModal({ 
-  isOpen, 
-  onClose, 
+export default function SubscriptionDetailModal({
+  isOpen,
+  onClose,
   subscription,
   onUpdate,
   onDelete,
@@ -54,7 +54,7 @@ export default function SubscriptionDetailModal({
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('logoUpdated', handleLogoUpdate);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('logoUpdated', handleLogoUpdate);
@@ -96,7 +96,7 @@ export default function SubscriptionDetailModal({
   }, [subscription]);
 
 
-const fetchSubscriptionData = async () => {
+  const fetchSubscriptionData = async () => {
     if (!subscription) return;
 
     try {
@@ -106,7 +106,7 @@ const fetchSubscriptionData = async () => {
         .select('product_service, duration, logo_url')
         .eq('id', subscription.serviceId)
         .single();
-      
+
       if (service) {
         setServiceName(service.product_service);
         setServiceDuration(service.duration || '');
@@ -123,7 +123,7 @@ const fetchSubscriptionData = async () => {
         .select('name')
         .eq('id', subscription.clientId)
         .single();
-      
+
       if (client) {
         setClientName(client.name);
       }
@@ -223,11 +223,11 @@ const fetchSubscriptionData = async () => {
 
     const isCompleted = subscription.status === 'completed';
     const isOverdue = subscription.status === 'overdue';
-    const confirmMessage = isCompleted 
+    const confirmMessage = isCompleted
       ? `Archive this completed subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
       : isOverdue
-      ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
-      : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
+        ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+        : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
 
     if (!confirm(confirmMessage)) return;
 
@@ -293,11 +293,11 @@ const fetchSubscriptionData = async () => {
       // Call the service to delete the subscription
       await subscriptionService.delete(subscription.id);
       console.log('Subscription service delete completed for:', subscription.id);
-      
+
       // Notify parent component
       onDelete(subscription.id);
       console.log('Parent component notified of deletion:', subscription.id);
-      
+
       // Close the modal
       onClose();
     } catch (error) {
@@ -310,7 +310,7 @@ const fetchSubscriptionData = async () => {
 
   const handleCopyNotes = async () => {
     if (!subscription?.notes) return;
-    
+
     try {
       await navigator.clipboard.writeText(subscription.notes);
       // You could add a toast notification here if you have a toast system
@@ -355,10 +355,10 @@ const fetchSubscriptionData = async () => {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600">
               {serviceLogo ? (
-                <img 
+                <img
                   key={`${serviceName}_${logoRefreshTrigger}`} // Force re-render with new key
-                  src={serviceLogo} 
-                  alt={`${serviceName} logo`} 
+                  src={serviceLogo}
+                  alt={`${serviceName} logo`}
                   className="w-full h-full object-cover"
                   loading="lazy"
                   decoding="async"
@@ -426,15 +426,15 @@ const fetchSubscriptionData = async () => {
           {/* Timeline Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white">Timeline</h3>
-            
+
             {/* Main Countdown */}
             {(subscription.nextRenewalAt || subscription.targetEndAt) && (
               <div className="p-4 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 rounded-xl border border-blue-800">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-300 flex items-center">
                     <Clock className="w-4 h-4 mr-2 text-white" />
-                    {subscription.customNextRenewalAt ? 'Custom renewal' : 
-                     subscription.targetEndAt ? 'Subscription ends' : 'Next renewal'}
+                    {subscription.customNextRenewalAt ? 'Custom renewal' :
+                      subscription.targetEndAt ? 'Subscription ends' : 'Next renewal'}
                   </span>
                   {(subscription.nextRenewalAt || subscription.targetEndAt) && (
                     <span className="text-xs font-medium text-white bg-blue-900/50 px-2 py-1 rounded-full">
@@ -442,14 +442,14 @@ const fetchSubscriptionData = async () => {
                     </span>
                   )}
                 </div>
-                
+
                 <div className="text-2xl font-bold text-white mb-3 text-center">
                   {countdown}
                 </div>
-                
+
                 {(subscription.nextRenewalAt || subscription.targetEndAt) && (
                   <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div 
+                    <div
                       className={`h-2 rounded-full transition-all duration-500 ease-out ${getProgressBarColor(computeRenewalProgress(subscription).pct)} shadow-sm`}
                       style={{ width: `${Math.min(computeRenewalProgress(subscription).pct, 100)}%` }}
                     />
@@ -470,7 +470,7 @@ const fetchSubscriptionData = async () => {
                     {formatDate(subscription.targetEndAt)}
                   </span>
                 </div>
-                
+
                 {/* Timeline Dates */}
                 <div className="flex justify-between items-center mb-3 text-xs text-gray-400">
                   <div className="text-center">
@@ -479,7 +479,7 @@ const fetchSubscriptionData = async () => {
                   </div>
                   <div className="flex-1 mx-4">
                     <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-                      <div 
+                      <div
                         className={`h-2 rounded-full transition-all duration-500 ease-out ${getProgressBarColor(computeCycleProgress(subscription).pct)} shadow-sm`}
                         style={{ width: `${Math.min(computeCycleProgress(subscription).pct, 100)}%` }}
                       />
@@ -490,11 +490,11 @@ const fetchSubscriptionData = async () => {
                     <div>{formatDate(subscription.targetEndAt)}</div>
                   </div>
                 </div>
-                
+
                 <div className="text-xl font-bold text-white mb-3 text-center">
                   {fullPeriodCountdown}
                 </div>
-                
+
                 {/* Timeline Stats */}
                 <div className="grid grid-cols-2 gap-3 text-xs mb-3">
                   <div className="bg-gray-800/50 rounded-lg p-2 text-center">
@@ -520,7 +520,7 @@ const fetchSubscriptionData = async () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Progress Percentage */}
                 <div className="text-center">
                   <span className="text-xs font-medium text-white">
@@ -549,14 +549,14 @@ const fetchSubscriptionData = async () => {
                 <span className="text-gray-400">Started:</span>
                 <span className="text-white">{formatDate(subscription.startedAt)}</span>
               </div>
-              
+
               {subscription.nextRenewalAt && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">Next Renewal:</span>
                   <span className="text-white">{formatDate(subscription.nextRenewalAt)}</span>
                 </div>
               )}
-              
+
               {subscription.targetEndAt && (
                 <div className="flex justify-between">
                   <span className="text-gray-400">End Date:</span>
@@ -569,83 +569,83 @@ const fetchSubscriptionData = async () => {
           {/* Quick Actions */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
-              
-              <div className="grid grid-cols-2 gap-2">
-                {(subscription.status === 'active' || subscription.status === 'overdue') && (
-                  <>
-                    <button
-                      onClick={handleRenew}
-                      disabled={isLoading}
-                      className="p-2 bg-white hover:bg-gray-100 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Renew
-                    </button>
-                    
-                    <button
-                      onClick={handleComplete}
-                      disabled={isLoading}
-                      className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Complete
-                    </button>
-                  </>
-                )}
-                
-                {subscription.status === 'active' && (
-                  <button
-                    onClick={handleMarkOverdue}
-                    disabled={isLoading}
-                    className="p-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
-                  >
-                    <AlertTriangle className="w-4 h-4" />
-                    Mark Overdue
-                  </button>
-                )}
-                
-                {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (
-                  <button
-                    onClick={handleArchive}
-                    disabled={isLoading}
-                    className="p-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-14 0h14" />
-                    </svg>
-                    Archive
-                  </button>
-                )}
 
-                {(subscription.status === 'completed' || subscription.status === 'paused' || subscription.status === 'canceled') && (
+            <div className="grid grid-cols-2 gap-2">
+              {(subscription.status === 'active' || subscription.status === 'overdue') && (
+                <>
                   <button
-                    onClick={handleRevert}
+                    onClick={handleRenew}
                     disabled={isLoading}
-                    className="p-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                    className="p-2 ghost-button text-black text-sm flex items-center gap-2 justify-center"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    Revert
+                    Renew
                   </button>
-                )}
 
-                {subscription.status === 'archived' && (
                   <button
-                    onClick={handleRevert}
+                    onClick={handleComplete}
                     disabled={isLoading}
-                    className="p-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                    className="p-2 ghost-button-primary text-sm flex items-center gap-2 justify-center"
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    Unarchive
+                    <CheckCircle className="w-4 h-4" />
+                    Complete
                   </button>
-                )}
+                </>
+              )}
 
-              </div>
+              {subscription.status === 'active' && (
+                <button
+                  onClick={handleMarkOverdue}
+                  disabled={isLoading}
+                  className="p-2 ghost-button-danger text-sm flex items-center gap-2 justify-center"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Mark Overdue
+                </button>
+              )}
+
+              {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (
+                <button
+                  onClick={handleArchive}
+                  disabled={isLoading}
+                  className="p-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-14 0h14" />
+                  </svg>
+                  Archive
+                </button>
+              )}
+
+              {(subscription.status === 'completed' || subscription.status === 'paused' || subscription.status === 'canceled') && (
+                <button
+                  onClick={handleRevert}
+                  disabled={isLoading}
+                  className="p-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Revert
+                </button>
+              )}
+
+              {subscription.status === 'archived' && (
+                <button
+                  onClick={handleRevert}
+                  disabled={isLoading}
+                  className="p-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Unarchive
+                </button>
+              )}
+
             </div>
+          </div>
 
           {/* Subscription Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white">Subscription Information</h3>
-            
+
             <div className="space-y-4">
               {/* Notes */}
               <div className="p-4 bg-gray-800/50 rounded-lg">
@@ -692,7 +692,7 @@ const fetchSubscriptionData = async () => {
                   )}
                 </div>
               </div>
-              
+
               {/* Show Custom Renewal Date if set */}
               {subscription.customNextRenewalAt && (
                 <div className="p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg">
@@ -710,29 +710,28 @@ const fetchSubscriptionData = async () => {
           {/* Events Timeline */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white">Event History</h3>
-            
+
             <div className="space-y-3">
               {events.map((event) => (
                 <div key={event.id} className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-lg">
-                  <div className={`w-3 h-3 rounded-full mt-1 ${
-                    event.type === 'renewed' ? 'bg-white' :
-                    event.type === 'created' ? 'bg-white' :
-                    event.type === 'completed' ? 'bg-white' :
-                    event.type === 'overdue' ? 'bg-red-500' :
-                    event.type === 'custom_date_set' ? 'bg-purple-500' :
-                    event.type === 'archived' ? 'bg-gray-500' :
-                    event.type === 'reverted' ? 'bg-orange-500' :
-                    'bg-gray-500'
-                  }`} />
+                  <div className={`w-3 h-3 rounded-full mt-1 ${event.type === 'renewed' ? 'bg-white' :
+                      event.type === 'created' ? 'bg-white' :
+                        event.type === 'completed' ? 'bg-white' :
+                          event.type === 'overdue' ? 'bg-red-500' :
+                            event.type === 'custom_date_set' ? 'bg-purple-500' :
+                              event.type === 'archived' ? 'bg-gray-500' :
+                                event.type === 'reverted' ? 'bg-orange-500' :
+                                  'bg-gray-500'
+                    }`} />
                   <div className="flex-1">
                     <div className="text-white font-medium capitalize">
-                      {event.type === 'renewed' ? `Renewal #${event.meta?.renewalNumber || 'N/A'}` : 
-                       event.type.replace('_', ' ')}
+                      {event.type === 'renewed' ? `Renewal #${event.meta?.renewalNumber || 'N/A'}` :
+                        event.type.replace('_', ' ')}
                     </div>
                     <div className="text-gray-400 text-sm">
                       {formatDate(event.at)}
                     </div>
-                    
+
                     {/* Show detailed info for renewal events */}
                     {event.type === 'renewed' && event.meta && (
                       <div className="mt-2 space-y-1 text-xs text-gray-300">
@@ -762,7 +761,7 @@ const fetchSubscriptionData = async () => {
                         )}
                       </div>
                     )}
-                    
+
                     {/* Show info for custom date events */}
                     {event.type === 'custom_date_set' && event.meta && (
                       <div className="mt-2 text-xs text-gray-300">
@@ -803,7 +802,7 @@ const fetchSubscriptionData = async () => {
                   </button>
                 </div>
               ))}
-              
+
               {events.length === 0 && (
                 <div className="p-4 bg-gray-800/50 rounded-lg text-center text-gray-400">
                   No events recorded yet.
@@ -817,14 +816,14 @@ const fetchSubscriptionData = async () => {
             <button
               onClick={handleDelete}
               disabled={isLoading}
-              className="px-4 py-3 bg-red-800 hover:bg-red-900 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+              className="px-4 py-3 ghost-button-danger flex items-center gap-2"
             >
               <Trash2 className="w-4 h-4" />
               Delete
             </button>
             <button
               onClick={onClose}
-              className="ml-auto px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+              className="ml-auto px-4 py-3 ghost-button-secondary"
             >
               Close
             </button>

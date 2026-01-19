@@ -18,12 +18,12 @@ interface SeatAssignmentModalProps {
   onSeatUpdated: () => void;
 }
 
-export default function SeatAssignmentModal({ 
-  isOpen, 
-  onClose, 
-  seat, 
-  poolId, 
-  onSeatUpdated 
+export default function SeatAssignmentModal({
+  isOpen,
+  onClose,
+  seat,
+  poolId,
+  onSeatUpdated
 }: SeatAssignmentModalProps) {
   const [formData, setFormData] = useState({
     assigned_email: '',
@@ -69,9 +69,9 @@ export default function SeatAssignmentModal({
         clientsDb.getAll(),
         subscriptionService.listSubscriptions()
       ]);
-      
+
       setClients(clientsData || []);
-      
+
       // Fetch service names for subscriptions
       const subscriptionsWithNames = await Promise.all(
         (subscriptionsData || []).map(async (subscription) => {
@@ -82,10 +82,10 @@ export default function SeatAssignmentModal({
               .select('product_service')
               .eq('id', subscription.serviceId)
               .single();
-            
+
             // Get client name
             const client = clientsData?.find(c => c.id === subscription.clientId);
-            
+
             return {
               ...subscription,
               service_name: service?.product_service || 'Unknown Service',
@@ -102,7 +102,7 @@ export default function SeatAssignmentModal({
           }
         })
       );
-      
+
       setSubscriptions(subscriptionsWithNames);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -128,7 +128,7 @@ export default function SeatAssignmentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm() || !seat) return;
 
     setLoading(true);
@@ -150,7 +150,7 @@ export default function SeatAssignmentModal({
           assignedAt: new Date(formData.assigned_at).toISOString(),
         });
       }
-      
+
       onSeatUpdated();
       onClose();
     } catch (error) {
@@ -180,12 +180,12 @@ export default function SeatAssignmentModal({
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // If client changes, clear subscription selection since available subscriptions will be different
       if (field === 'assigned_client_id') {
         newData.assigned_subscription_id = '';
       }
-      
+
       // If subscription changes, update customer email to match the subscription's customer login
       if (field === 'assigned_subscription_id' && value) {
         const selectedSubscription = subscriptions.find(sub => sub.id === value);
@@ -193,10 +193,10 @@ export default function SeatAssignmentModal({
           newData.assigned_email = selectedSubscription.customer_login;
         }
       }
-      
+
       return newData;
     });
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -323,14 +323,14 @@ export default function SeatAssignmentModal({
               label="Link to Subscription (Optional)"
               icon={<Link className="w-4 h-4" />}
               options={(() => {
-                const filteredSubscriptions = subscriptions.filter(subscription => 
+                const filteredSubscriptions = subscriptions.filter(subscription =>
                   !formData.assigned_client_id || subscription.clientId === formData.assigned_client_id
                 );
-                
+
                 const options = [
                   { value: '', label: 'Select a subscription...' }
                 ];
-                
+
                 if (filteredSubscriptions.length === 0 && formData.assigned_client_id) {
                   options.push({
                     value: '',
@@ -343,7 +343,7 @@ export default function SeatAssignmentModal({
                     label: `${subscription.service_name} (${subscription.customer_login})`
                   })));
                 }
-                
+
                 return options;
               })()}
               value={formData.assigned_subscription_id}
@@ -371,16 +371,16 @@ export default function SeatAssignmentModal({
                 type="button"
                 onClick={handleUnassign}
                 disabled={loading}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-6 py-3 ghost-button-danger flex items-center gap-2"
               >
                 Unassign Seat
               </button>
             )}
-            
+
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 ghost-button-primary flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

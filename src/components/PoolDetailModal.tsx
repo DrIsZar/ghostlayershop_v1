@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Copy, 
-  Eye, 
-  EyeOff, 
-  Users, 
-  Clock, 
-  Mail, 
-  Lock, 
+import {
+  X,
+  Copy,
+  Eye,
+  EyeOff,
+  Users,
+  Clock,
+  Mail,
+  Lock,
   FileText,
   Edit,
   Trash2,
@@ -71,7 +71,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
   const fetchPoolDetails = async () => {
     if (!pool) return;
-    
+
     setLoading(true);
     try {
       console.log('Fetching pool details for pool:', pool.id);
@@ -79,10 +79,10 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
         getPoolWithSeats(pool.id),
         getPoolStats(pool.id)
       ]);
-      
+
       console.log('Pool result:', poolResult);
       console.log('Stats result:', statsResult);
-      
+
       if (poolResult.data) {
         console.log('Setting pool with seats:', poolResult.data);
         setPoolWithSeats(poolResult.data);
@@ -119,7 +119,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
     const endDate = new Date(pool.end_at);
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'Expired';
     if (diffDays === 0) return 'Expires today';
     if (diffDays === 1) return 'Expires tomorrow';
@@ -134,7 +134,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
     const endDate = new Date(pool.end_at);
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'text-red-400';
     if (diffDays <= 1) return 'text-red-400';
     if (diffDays <= 3) return 'text-amber-400';
@@ -231,7 +231,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
   const handleDelete = async () => {
     if (!pool) return;
-    
+
     if (confirm('Are you sure you want to delete this pool? This action cannot be undone.')) {
       try {
         await deleteResourcePool(pool.id);
@@ -274,9 +274,9 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
               {(() => {
                 const providerLogo = getProviderLogo(pool.provider);
                 return providerLogo ? (
-                  <img 
-                    src={providerLogo} 
-                    alt={`${pool.provider} logo`} 
+                  <img
+                    src={providerLogo}
+                    alt={`${pool.provider} logo`}
                     className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -302,16 +302,16 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {/* Status Badge */}
             <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(pool.status)}`}>
               {STATUS_LABELS[pool.status] || pool.status}
             </span>
-            
+
             {/* Alive Indicator */}
             <div className={`w-3 h-3 rounded-full ${pool.is_alive ? 'bg-white' : 'bg-red-500'}`} />
-            
+
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
@@ -347,7 +347,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  
+
                   {pool.login_secret && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-400 w-16">Password:</span>
@@ -393,7 +393,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                       <span className="text-sm text-white font-medium">{stats.total_seats - stats.used_seats}</span>
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
-                      <div 
+                      <div
                         className="bg-white h-2 rounded-full transition-all duration-300"
                         style={{ width: `${(stats.used_seats / stats.total_seats) * 100}%` }}
                       />
@@ -476,28 +476,28 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
             <div className="flex gap-3 pt-4 border-t border-gray-700">
               <button
                 onClick={handleToggleStatus}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-4 py-2 ghost-button-secondary flex items-center gap-2"
               >
                 {pool.status === 'paused' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                 {pool.status === 'paused' ? 'Resume' : 'Pause'}
               </button>
               <button
                 onClick={handleToggleAlive}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-4 py-2 ghost-button-secondary flex items-center gap-2"
               >
                 {pool.is_alive ? <HeartOff className="w-4 h-4" /> : <Heart className="w-4 h-4" />}
                 {pool.is_alive ? 'Mark Dead' : 'Mark Alive'}
               </button>
               <button
                 onClick={() => setEditModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-4 py-2 ghost-button-primary flex items-center gap-2"
               >
                 <Edit className="w-4 h-4" />
                 Edit
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                className="px-4 py-2 ghost-button-danger flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete
