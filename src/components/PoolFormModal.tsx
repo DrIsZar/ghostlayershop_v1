@@ -16,6 +16,24 @@ interface PoolFormModalProps {
 }
 
 export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalProps) {
+  const resetForm = () => {
+    const startDate = getNowInTunisia();
+    const endDate = addDaysInTunisia(startDate, 30);
+
+    setFormData({
+      provider: '',
+      pool_type: 'admin_console',
+      login_email: '',
+      login_secret: '',
+      notes: '',
+      start_at: formatDateForInput(startDate),
+      end_at: formatDateForInput(endDate),
+      max_seats: 1,
+    });
+    setMaxSeatsInput('1');
+    setErrors({});
+  };
+
   const [formData, setFormData] = useState<CreatePoolData>({
     provider: '',
     pool_type: 'admin_console',
@@ -47,19 +65,22 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     if (isOpen) {
       const startDate = getNowInTunisia();
       const endDate = addDaysInTunisia(startDate, 30); // 30 days from now
-      
-      setFormData({
-        provider: '',
-        pool_type: 'admin_console',
-        login_email: '',
-        login_secret: '',
-        notes: '',
-        start_at: formatDateForInput(startDate),
-        end_at: formatDateForInput(endDate),
-        max_seats: 1,
-      });
-      setMaxSeatsInput('1');
-      setErrors({});
+
+      // Only reset if form is empty (first time opening)
+      if (!formData.provider && !formData.login_email && !formData.login_secret) {
+        setFormData({
+          provider: '',
+          pool_type: 'admin_console',
+          login_email: '',
+          login_secret: '',
+          notes: '',
+          start_at: formatDateForInput(startDate),
+          end_at: formatDateForInput(endDate),
+          max_seats: 1,
+        });
+        setMaxSeatsInput('1');
+        setErrors({});
+      }
     }
   }, [isOpen]);
 
@@ -68,11 +89,11 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     if (formData.provider && SERVICE_PROVISIONING[formData.provider] && formData.start_at && formData.start_at.trim() !== '') {
       const config = SERVICE_PROVISIONING[formData.provider];
       const startDate = new Date(formData.start_at);
-      
+
       // Check if the date is valid and config has valid values
       if (!isNaN(startDate.getTime()) && config && typeof config.defaultSeats === 'number' && !isNaN(config.defaultSeats)) {
         const endDate = new Date(startDate.getTime() + config.defaultDurationDays * 24 * 60 * 60 * 1000);
-        
+
         setFormData(prev => ({
           ...prev,
           pool_type: config.poolType,
@@ -86,7 +107,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
   const handleInputChange = (field: keyof CreatePoolData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -96,7 +117,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
   const handleMaxSeatsChange = (value: string) => {
     // Allow empty string for editing
     setMaxSeatsInput(value);
-    
+
     // Update formData only if value is a valid number
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue > 0) {
@@ -105,7 +126,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
       // Allow empty temporarily, but keep formData valid
       // We'll validate on blur
     }
-    
+
     // Clear error when user starts typing
     if (errors.max_seats) {
       setErrors(prev => ({ ...prev, max_seats: '' }));
@@ -150,7 +171,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     } else if (new Date(formData.end_at) <= new Date(formData.start_at)) {
       newErrors.end_at = 'End date must be after start date';
     }
-    
+
     // Validate max_seats - ensure input is converted to number first
     const seatsNum = parseInt(maxSeatsInput);
     if (isNaN(seatsNum) || seatsNum < 1) {
@@ -169,16 +190,17 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await createResourcePool(formData);
       if (error) throw error;
-      
+
       toast.show('Pool created successfully', { type: 'success' });
       onPoolCreated(data);
+      resetForm(); // Reset form after successful submission
       onClose();
     } catch (error) {
       console.error('Error creating pool:', error);
@@ -186,6 +208,11 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClose = () => {
+    resetForm(); // Reset form when user cancels
+    onClose();
   };
 
   // Keyboard shortcuts: Enter to save, Escape to close
@@ -206,7 +233,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
         }
       } else if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        handleClose();
       }
     };
 
@@ -230,7 +257,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div 
+      <div
         className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -238,7 +265,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">Create New Pool</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
           >
             <X className="w-5 h-5" />
@@ -424,7 +451,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
             >
               Cancel
