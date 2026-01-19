@@ -90,7 +90,7 @@ export default function Layout() {
           minHeight: 'calc(80px + env(safe-area-inset-top) + 0.5rem)'
         }}>
           <div className="flex items-center gap-3">
-            <img src="/images/upgrade-tn-logo.png" alt="Upgrade TN" className="h-10 w-10 flex-shrink-0 object-contain" />
+            <img src="/upgrade-tn-logo.png" alt="Upgrade TN" className="h-10 w-10 flex-shrink-0 object-contain" />
             <div>
               <h1 className="text-lg font-bold text-white">Upgrade TN</h1>
               <p className="text-xs text-gray-400">Dashboard</p>
