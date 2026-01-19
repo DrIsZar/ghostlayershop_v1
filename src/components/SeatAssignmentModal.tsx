@@ -263,7 +263,7 @@ export default function SeatAssignmentModal({
               <Mail className="w-4 h-4 inline mr-2" />
               Customer Login *
               {formData.assigned_subscription_id && (
-                <span className="ml-2 text-xs text-blue-400">
+                <span className="ml-2 text-xs text-white">
                   (auto-filled from subscription)
                 </span>
               )}
@@ -358,7 +358,7 @@ export default function SeatAssignmentModal({
               </p>
             )}
             {formData.assigned_subscription_id && (
-              <p className="mt-1 text-sm text-blue-400">
+              <p className="mt-1 text-sm text-white">
                 Customer email will be automatically filled from the selected subscription
               </p>
             )}

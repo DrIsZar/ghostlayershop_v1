@@ -386,7 +386,7 @@ const fetchSubscriptionData = async () => {
             {onEdit && subscription && (
               <button
                 onClick={() => onEdit(subscription)}
-                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors"
+                className="p-2 text-white hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors"
                 title="Edit subscription"
               >
                 <Edit className="w-5 h-5" />
@@ -432,12 +432,12 @@ const fetchSubscriptionData = async () => {
               <div className="p-4 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 rounded-xl border border-blue-800">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-300 flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                    <Clock className="w-4 h-4 mr-2 text-white" />
                     {subscription.customNextRenewalAt ? 'Custom renewal' : 
                      subscription.targetEndAt ? 'Subscription ends' : 'Next renewal'}
                   </span>
                   {(subscription.nextRenewalAt || subscription.targetEndAt) && (
-                    <span className="text-xs font-medium text-blue-400 bg-blue-900/50 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium text-white bg-blue-900/50 px-2 py-1 rounded-full">
                       {formatDate(subscription.nextRenewalAt || subscription.targetEndAt!)}
                     </span>
                   )}
@@ -463,10 +463,10 @@ const fetchSubscriptionData = async () => {
               <div className="p-4 bg-gradient-to-r from-green-900/20 to-emerald-900/20 rounded-xl border border-green-800">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-300 flex items-center">
-                    <Calendar className="w-4 h-4 mr-2 text-green-500" />
+                    <Calendar className="w-4 h-4 mr-2 text-white" />
                     Full Period Timeline
                   </span>
-                  <span className="text-xs font-medium text-green-400 bg-green-900/50 px-2 py-1 rounded-full">
+                  <span className="text-xs font-medium text-white bg-white/10 px-2 py-1 rounded-full">
                     {formatDate(subscription.targetEndAt)}
                   </span>
                 </div>
@@ -523,7 +523,7 @@ const fetchSubscriptionData = async () => {
                 
                 {/* Progress Percentage */}
                 <div className="text-center">
-                  <span className="text-xs font-medium text-green-400">
+                  <span className="text-xs font-medium text-white">
                     {Math.round(computeCycleProgress(subscription).pct)}% complete
                   </span>
                 </div>
@@ -576,7 +576,7 @@ const fetchSubscriptionData = async () => {
                     <button
                       onClick={handleRenew}
                       disabled={isLoading}
-                      className="p-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
+                      className="p-2 bg-white hover:bg-gray-100 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
                     >
                       <RefreshCw className="w-4 h-4" />
                       Renew
@@ -715,9 +715,9 @@ const fetchSubscriptionData = async () => {
               {events.map((event) => (
                 <div key={event.id} className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-lg">
                   <div className={`w-3 h-3 rounded-full mt-1 ${
-                    event.type === 'renewed' ? 'bg-green-500' :
-                    event.type === 'created' ? 'bg-blue-500' :
-                    event.type === 'completed' ? 'bg-blue-500' :
+                    event.type === 'renewed' ? 'bg-white' :
+                    event.type === 'created' ? 'bg-white' :
+                    event.type === 'completed' ? 'bg-white' :
                     event.type === 'overdue' ? 'bg-red-500' :
                     event.type === 'custom_date_set' ? 'bg-purple-500' :
                     event.type === 'archived' ? 'bg-gray-500' :

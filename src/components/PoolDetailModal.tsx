@@ -104,9 +104,9 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
   const getStatusColor = (status: string) => {
     const colors = {
-      active: 'bg-green-900/30 text-green-400 border-green-700/50',
+      active: 'bg-white/10 text-white border-white/50',
       paused: 'bg-slate-900/30 text-slate-400 border-slate-700/50',
-      completed: 'bg-indigo-900/30 text-indigo-400 border-indigo-700/50',
+      completed: 'bg-zinc-800/50 text-white border-white/50',
       overdue: 'bg-amber-900/30 text-amber-400 border-amber-700/50',
       expired: 'bg-red-900/30 text-red-400 border-red-700/50',
     };
@@ -144,7 +144,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
   const getSeatStatusIcon = (status: string) => {
     switch (status) {
       case 'assigned':
-        return <CheckCircle className="w-4 h-4 text-green-400" />;
+        return <CheckCircle className="w-4 h-4 text-white" />;
       case 'reserved':
         return <Clock className="w-4 h-4 text-amber-400" />;
       case 'available':
@@ -157,7 +157,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
   const getSeatStatusColor = (status: string) => {
     switch (status) {
       case 'assigned':
-        return 'bg-green-900/30 text-green-400 border-green-700/50';
+        return 'bg-white/10 text-white border-white/50';
       case 'reserved':
         return 'bg-amber-900/30 text-amber-400 border-amber-700/50';
       case 'available':
@@ -310,7 +310,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
             </span>
             
             {/* Alive Indicator */}
-            <div className={`w-3 h-3 rounded-full ${pool.is_alive ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-3 h-3 rounded-full ${pool.is_alive ? 'bg-white' : 'bg-red-500'}`} />
             
             <button
               onClick={onClose}
@@ -323,7 +323,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <div className="p-6 space-y-6">
@@ -394,7 +394,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
                     </div>
                     <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
                       <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        className="bg-white h-2 rounded-full transition-all duration-300"
                         style={{ width: `${(stats.used_seats / stats.total_seats) * 100}%` }}
                       />
                     </div>

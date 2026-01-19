@@ -83,7 +83,7 @@ export const formatDate = (isoString: string): string => {
 export const getStatusBadge = (status: Subscription['status']) => {
   switch (status) {
     case 'active':
-      return { text: 'Active', bgColor: 'bg-green-900/30', color: 'text-green-400' };
+      return { text: 'Active', bgColor: 'bg-white/10', color: 'text-white' };
     case 'completed':
       return { text: 'Completed', bgColor: 'bg-blue-900/30', color: 'text-blue-400' };
     case 'overdue':
@@ -91,7 +91,7 @@ export const getStatusBadge = (status: Subscription['status']) => {
     case 'archived':
       return { text: 'Archived', bgColor: 'bg-gray-900/30', color: 'text-gray-400' };
     default:
-      return { text: 'Unknown', bgColor: 'bg-gray-900/30', color: 'text-green-400' };
+      return { text: 'Unknown', bgColor: 'bg-gray-900/30', color: 'text-white' };
   }
 };
 
@@ -125,7 +125,7 @@ export const getProgressBarColor = (percentage: number): string => {
   if (percentage >= 75) return 'bg-orange-500';
   if (percentage >= 50) return 'bg-yellow-500';
   if (percentage >= 25) return 'bg-blue-500';
-  return 'bg-green-500';
+  return 'bg-white';
 };
 
 // Check if subscription can be renewed

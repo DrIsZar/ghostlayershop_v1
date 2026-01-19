@@ -1,79 +1,85 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/images/logo.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png?v=8">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png?v=8">
-    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon-180x180.png?v=8">
-    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png?v=8">
-    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png?v=8">
-    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png?v=8">
-    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-76x76.png?v=8">
-    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-76x76.png?v=8">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="GhostLayer">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="apple-touch-fullscreen" content="yes">
-    <meta name="apple-mobile-web-app-orientations" content="portrait">
-    <meta name="apple-touch-startup-image" content="/apple-touch-icon-180x180.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
-    <style>
-      /* Font display optimization */
-      @font-face {
-        font-family: 'Inter';
-        font-display: swap;
-      }
-    </style>
-    <title>GhostLayer Shop Dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Register service worker for PWA functionality
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js?v=3')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New content is available, reload the page
-                    window.location.reload();
-                  }
-                });
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/images/logo.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png?v=8">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png?v=8">
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon-180x180.png?v=8">
+  <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png?v=8">
+  <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png?v=8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png?v=8">
+  <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-76x76.png?v=8">
+  <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-76x76.png?v=8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Upgrade TN">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="apple-touch-startup-image" content="/apple-touch-icon-180x180.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  </noscript>
+  <style>
+    /* Font display optimization */
+    @font-face {
+      font-family: 'Inter';
+      font-display: swap;
+    }
+  </style>
+  <title>Upgrade TN Dashboard</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Register service worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js?v=3')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content is available, reload the page
+                  window.location.reload();
+                }
               });
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
             });
-        });
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // Add error handling for resource loading
+    window.addEventListener('error', (event) => {
+      if (event.target !== window) {
+        console.warn('Resource loading error:', event.target.src || event.target.href, event.type);
       }
+    });
 
-      // Add error handling for resource loading
-      window.addEventListener('error', (event) => {
-        if (event.target !== window) {
-          console.warn('Resource loading error:', event.target.src || event.target.href, event.type);
-        }
-      });
+    // Add unhandled promise rejection handling
+    window.addEventListener('unhandledrejection', (event) => {
+      console.warn('Unhandled promise rejection:', event.reason);
+    });
+  </script>
+</body>
 
-      // Add unhandled promise rejection handling
-      window.addEventListener('unhandledrejection', (event) => {
-        console.warn('Unhandled promise rejection:', event.reason);
-      });
-    </script>
-  </body>
 </html>

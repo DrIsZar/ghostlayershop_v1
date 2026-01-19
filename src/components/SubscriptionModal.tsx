@@ -525,7 +525,7 @@ export default function SubscriptionModal({
               showSearchThreshold={5}
             />
             {selectedService && selectedService.duration && (
-              <p className="mt-1 text-sm text-blue-400">
+              <p className="mt-1 text-sm text-white">
                 This service will create a {parseServiceDuration(selectedService.duration)}-month subscription
               </p>
             )}
@@ -571,7 +571,7 @@ export default function SubscriptionModal({
                 <Calendar className="w-4 h-4 inline mr-2" />
                 Subscription End Date
               </label>
-              <div className="px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-green-400 font-semibold">
+              <div className="px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white font-semibold">
                 {new Date(calculatedEndDate).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
@@ -621,7 +621,7 @@ export default function SubscriptionModal({
                 How many days between renewals?
               </p>
               {selectedService?.duration && formData.strategy === 'EVERY_N_DAYS' && (
-                <p className="mt-1 text-sm text-blue-400">
+                <p className="mt-1 text-sm text-white">
                   Suggested: {parseServiceDuration(selectedService.duration) * 30} days ({parseServiceDuration(selectedService.duration)} months) to match service duration
                 </p>
               )}
@@ -659,7 +659,7 @@ export default function SubscriptionModal({
                     type="button"
                     onClick={handleSwitchPool}
                     disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded transition-colors"
                   >
                     <Edit className="w-3 h-3" />
                     Switch Pool
@@ -708,7 +708,7 @@ export default function SubscriptionModal({
                         {resourcePool.provider.replace('_', ' ').toUpperCase()}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
+                        resourcePool.status === 'active' ? 'bg-white/10 text-white' :
                         resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
                         'bg-red-900/30 text-red-400'
                       }`}>
@@ -755,7 +755,7 @@ export default function SubscriptionModal({
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">Status:</span>
                     <div className={`w-2 h-2 rounded-full ${
-                      resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
+                      resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
                     }`} />
                   </div>
                 </div>
@@ -787,7 +787,7 @@ export default function SubscriptionModal({
           )}
 
           {/* Info Section */}
-          <div className="p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg text-blue-300 text-sm">
+          <div className="p-3 bg-zinc-800/50 border border-white/50 rounded-lg text-gray-200 text-sm">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 mt-0.5" />
               <div>

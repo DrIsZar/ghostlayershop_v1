@@ -326,13 +326,13 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
             w-full py-3 pr-10 bg-gray-800 border border-gray-600 rounded-lg text-base min-h-[48px]
             transition-all duration-200 ease-in-out
             ${icon ? 'pl-10' : 'pl-4'}
-            focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20
+            focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20
             disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed
             disabled:border-gray-700
             ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
             ${selectedOption ? 'text-white' : 'text-gray-400'}
             hover:border-gray-500 hover:bg-gray-750
-            ${isOpen ? 'border-green-500 ring-2 ring-green-500/20' : ''}
+            ${isOpen ? 'border-white ring-2 ring-green-500/20' : ''}
           `}
           data-testid={dataTestId}
           aria-autocomplete="list"
@@ -409,7 +409,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-base min-h-[44px] focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all duration-200"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-base min-h-[44px] focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 transition-all duration-200"
                   aria-label="Search options"
                 />
                 {searchTerm && (
@@ -453,11 +453,11 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                   className={`
                     px-4 py-3 text-base cursor-pointer transition-all duration-200 min-h-[48px] flex items-center
                     relative group
-                    ${index === highlightedIndex ? 'bg-green-500 text-black font-medium' : 'hover:bg-gray-700 hover:text-white'}
+                    ${index === highlightedIndex ? 'bg-white text-black font-medium' : 'hover:bg-gray-700 hover:text-white'}
                     ${option.disabled ? 'text-gray-500 cursor-not-allowed opacity-60' : 'text-white'}
-                    ${option.value === value ? 'bg-green-900/30 text-green-400 border-l-4 border-green-500' : ''}
+                    ${option.value === value ? 'bg-white/10 text-white border-l-4 border-white' : ''}
                     active:bg-gray-600
-                    focus:outline-none focus:bg-gray-700 focus:ring-2 focus:ring-green-500/20
+                    focus:outline-none focus:bg-gray-700 focus:ring-2 focus:ring-white/20
                   `}
                   onMouseUp={(e) => {
                     e.preventDefault();
@@ -475,7 +475,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                 >
                   <span className="flex-1 truncate">{option.label}</span>
                   {option.value === value && (
-                    <div className="ml-2 w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                    <div className="ml-2 w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
                   )}
                 </div>
               ))

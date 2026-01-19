@@ -65,7 +65,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('logoUpdated', handleLogoUpdate);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('logoUpdated', handleLogoUpdate);
@@ -82,7 +82,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
           .select('product_service, duration')
           .eq('id', subscription.serviceId)
           .single();
-        
+
         if (serviceData) {
           setServiceName(serviceData.product_service);
           setServiceDuration(serviceData.duration);
@@ -96,7 +96,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
           .select('name')
           .eq('id', subscription.clientId)
           .single();
-        
+
         if (clientData) {
           setClientName(clientData.name);
         }
@@ -210,11 +210,11 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
     setShowMenu(false);
     const isCompleted = subscription.status === 'completed';
     const isOverdue = subscription.status === 'overdue';
-    const confirmMessage = isCompleted 
+    const confirmMessage = isCompleted
       ? `Archive this completed subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
       : isOverdue
-      ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
-      : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
+        ? `Archive this overdue subscription? This will change the status to "archived" and hide it from active views. You can unarchive it later.`
+        : `Archive this subscription? This will change the status to "archived" and stop all renewal tracking. You can revert this action later.`;
 
     if (confirm(confirmMessage)) {
       try {
@@ -229,26 +229,26 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
   const cycleProgress = computeCycleProgress(subscription);
   const renewalProgress = computeRenewalProgress(subscription);
   const targetDate = subscription.nextRenewalAt || subscription.targetEndAt;
-  
+
   // Check if subscription is overdue due to dead pool
   // Only apply dead pool styling if subscription has a resourcePoolId AND pool is fetched AND pool is dead
-  const isOverdueFromDeadPool = subscription.status === 'overdue' && 
-                                  subscription.resourcePoolId && 
-                                  resourcePool && 
-                                  !resourcePool.is_alive;
-  
+  const isOverdueFromDeadPool = subscription.status === 'overdue' &&
+    subscription.resourcePoolId &&
+    resourcePool &&
+    !resourcePool.is_alive;
+
   // Determine display text - show "Overdue" if linked to dead pool, otherwise show normal text
-  const displayText = isOverdueFromDeadPool 
-    ? 'Overdue' 
-    : subscription.customNextRenewalAt 
-      ? 'Custom renewal' 
-      : subscription.targetEndAt 
-        ? 'Subscription ends' 
+  const displayText = isOverdueFromDeadPool
+    ? 'Overdue'
+    : subscription.customNextRenewalAt
+      ? 'Custom renewal'
+      : subscription.targetEndAt
+        ? 'Subscription ends'
         : 'Next renewal';
-  
+
   // For overdue subscriptions linked to dead pools, ensure progress bar shows at 100%
-  const progressBarWidth = isOverdueFromDeadPool 
-    ? 100 
+  const progressBarWidth = isOverdueFromDeadPool
+    ? 100
     : Math.min(renewalProgress.pct, 100);
 
   // Calculate days used for completed subscriptions
@@ -265,15 +265,14 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
   const daysUsed = getDaysUsed();
 
   return (
-    <div 
+    <div
       onClick={() => onView(subscription)}
-      className={`w-full max-w-full rounded-2xl border transition-all duration-200 cursor-pointer group ${
-        subscription.status === 'completed' 
-          ? 'bg-gray-800/30 border-gray-700/50' 
-          : subscription.status === 'archived'
+      className={`w-full max-w-full rounded-2xl border transition-all duration-200 cursor-pointer group ${subscription.status === 'completed'
+        ? 'bg-gray-800/30 border-gray-700/50'
+        : subscription.status === 'archived'
           ? 'bg-gray-800/20 border-gray-700/30'
           : 'bg-gray-800/50 border-gray-700/50'
-      }`}
+        }`}
     >
       {/* Header - Mobile Viewport Optimized */}
       <div className="p-3 sm:p-4 border-b border-gray-700/30">
@@ -283,10 +282,10 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               {(() => {
                 const serviceLogo = getServiceLogo(serviceName);
                 return serviceLogo ? (
-                  <img 
+                  <img
                     key={`${serviceName}_${logoRefreshTrigger}`} // Force re-render with new key
-                    src={serviceLogo} 
-                    alt={`${serviceName} logo`} 
+                    src={serviceLogo}
+                    alt={`${serviceName} logo`}
                     className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -305,7 +304,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
+              <h3 className="text-sm sm:text-base font-semibold text-white group-hover:text-white transition-colors truncate">
                 {serviceName && serviceDuration ? formatServiceTitleWithDuration(serviceName, serviceDuration) : serviceName || 'Loading...'}
               </h3>
               <p className="text-xs sm:text-sm text-gray-400 truncate">
@@ -313,13 +312,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
             <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${getStrategyPillColor(subscription.strategy)}`}>
               {getStrategyDisplayName(subscription.strategy)}
             </span>
             <StatusBadge status={subscription.status} />
-            
+
             {/* 3-dots Menu */}
             <div className="relative" ref={menuRef}>
               <button
@@ -332,7 +331,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               >
                 <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
-            
+
               {showMenu && (
                 <div className="absolute right-0 top-8 sm:top-10 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[160px] sm:min-w-[180px]">
                   <button
@@ -357,7 +356,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
                     <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Edit</span>
                   </button>
-                  
+
                   {/* Status-specific actions */}
                   {(subscription.status === 'active' || subscription.status === 'overdue') && (
                     <>
@@ -373,21 +372,21 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
                       )}
                       <button
                         onClick={handleRenew}
-                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-green-400 hover:bg-gray-700 flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-white hover:bg-gray-700 flex items-center gap-2"
                       >
                         <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>Renew</span>
                       </button>
                       <button
                         onClick={handleComplete}
-                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-blue-400 hover:bg-gray-700 flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-xs sm:text-sm text-white hover:bg-gray-700 flex items-center gap-2"
                       >
                         <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>Complete</span>
                       </button>
                     </>
                   )}
-                  
+
                   {(subscription.status === 'active' || subscription.status === 'completed' || subscription.status === 'overdue') && (
                     <>
                       <div className="border-t border-gray-700 my-1" />
@@ -400,7 +399,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
                       </button>
                     </>
                   )}
-                  
+
                   <div className="border-t border-gray-700 my-1" />
                   <button
                     onClick={async (e) => {
@@ -431,36 +430,32 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
       <div className="p-3 sm:p-4 bg-gray-800/30 border-b border-gray-700/30">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs sm:text-sm font-medium text-gray-300 flex items-center">
-            <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${
-              isOverdueFromDeadPool ? 'text-red-500' : 'text-blue-500'
-            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${isOverdueFromDeadPool ? 'text-red-500' : 'text-white'
+              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="truncate">{displayText}</span>
           </span>
           {targetDate && (
-            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${
-              isOverdueFromDeadPool 
-                ? 'text-red-400 bg-red-900/30' 
-                : 'text-blue-400 bg-blue-900/30'
-            }`}>
+            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${isOverdueFromDeadPool
+              ? 'text-red-400 bg-red-900/30'
+              : 'text-white bg-zinc-800/50'
+              }`}>
               {formatDate(targetDate)}
             </span>
           )}
         </div>
-        
-        <div className={`text-lg sm:text-2xl font-bold mb-2 text-center ${
-          isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
-        }`}>
+
+        <div className={`text-lg sm:text-2xl font-bold mb-2 text-center ${isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
+          }`}>
           {isOverdueFromDeadPool ? 'Overdue' : countdown}
         </div>
-        
+
         {targetDate && (
           <div className="w-full bg-gray-700 rounded-full h-1 sm:h-1.5 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ease-out ${
-                isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(renewalProgress.pct)
-              }`}
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(renewalProgress.pct)
+                }`}
               style={{ width: `${progressBarWidth}%` }}
             />
           </div>
@@ -472,64 +467,56 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
         <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <span className="text-xs sm:text-sm font-medium text-gray-300 flex items-center">
-              <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${
-                isOverdueFromDeadPool ? 'text-red-500' : 'text-green-500'
-              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0 ${isOverdueFromDeadPool ? 'text-red-500' : 'text-white'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="truncate">Full Period Timeline</span>
             </span>
-            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${
-              isOverdueFromDeadPool 
-                ? 'text-red-400 bg-red-900/30' 
-                : 'text-green-400 bg-green-900/30'
-            }`}>
+            <span className={`text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0 ml-2 ${isOverdueFromDeadPool
+              ? 'text-red-400 bg-red-900/30'
+              : 'text-white bg-white/10'
+              }`}>
               {formatDate(subscription.targetEndAt)}
             </span>
           </div>
-          
+
           {/* Timeline Dates - Mobile Stacked */}
           <div className="space-y-1 sm:space-y-2 mb-2 sm:mb-3">
             <div className="flex justify-between text-xs text-gray-400">
               <span className="truncate">Start: {formatDate(subscription.startedAt)}</span>
-              <span className={`truncate ml-2 ${
-                isOverdueFromDeadPool ? 'text-red-400' : ''
-              }`}>
+              <span className={`truncate ml-2 ${isOverdueFromDeadPool ? 'text-red-400' : ''
+                }`}>
                 End: {formatDate(subscription.targetEndAt)}
               </span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-1 sm:h-1.5 overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ease-out ${
-                  isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(cycleProgress.pct)
-                }`}
+              <div
+                className={`h-full rounded-full transition-all duration-500 ease-out ${isOverdueFromDeadPool ? 'bg-red-500' : getProgressBarColor(cycleProgress.pct)
+                  }`}
                 style={{ width: `${Math.min(cycleProgress.pct, 100)}%` }}
               />
             </div>
           </div>
-          
+
           {/* Countdown Display */}
-          <div className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-center ${
-            isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
-          }`}>
+          <div className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-center ${isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
+            }`}>
             {fullPeriodCountdown}
           </div>
-          
+
           {/* Timeline Stats - Mobile Grid */}
           <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-xs">
-            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${
-              isOverdueFromDeadPool 
-                ? 'bg-red-900/20 border border-red-800/50' 
-                : 'bg-gray-700/50'
-            }`}>
-              <div className={`text-xs ${
-                isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${isOverdueFromDeadPool
+              ? 'bg-red-900/20 border border-red-800/50'
+              : 'bg-gray-700/50'
               }`}>
+              <div className={`text-xs ${isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+                }`}>
                 Elapsed
               </div>
-              <div className={`font-semibold text-xs sm:text-sm ${
-                isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
-              }`}>
+              <div className={`font-semibold text-xs sm:text-sm ${isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
+                }`}>
                 {(() => {
                   const now = getNowInTunisia();
                   const startDate = toTunisiaTime(new Date(subscription.startedAt));
@@ -538,19 +525,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
                 })()}
               </div>
             </div>
-            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${
-              isOverdueFromDeadPool 
-                ? 'bg-red-900/20 border border-red-800/50' 
-                : 'bg-gray-700/50'
-            }`}>
-              <div className={`text-xs ${
-                isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+            <div className={`rounded-lg p-1.5 sm:p-2 text-center ${isOverdueFromDeadPool
+              ? 'bg-red-900/20 border border-red-800/50'
+              : 'bg-gray-700/50'
               }`}>
+              <div className={`text-xs ${isOverdueFromDeadPool ? 'text-red-300' : 'text-gray-400'
+                }`}>
                 Remaining
               </div>
-              <div className={`font-semibold text-xs sm:text-sm ${
-                isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
-              }`}>
+              <div className={`font-semibold text-xs sm:text-sm ${isOverdueFromDeadPool ? 'text-red-300' : 'text-white'
+                }`}>
                 {(() => {
                   const now = getNowInTunisia();
                   const endDate = toTunisiaTime(new Date(subscription.targetEndAt));
@@ -560,12 +544,11 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               </div>
             </div>
           </div>
-          
+
           {/* Progress Percentage */}
           <div className="mt-1 sm:mt-2 text-center">
-            <span className={`text-xs font-medium ${
-              isOverdueFromDeadPool ? 'text-red-400' : 'text-green-400'
-            }`}>
+            <span className={`text-xs font-medium ${isOverdueFromDeadPool ? 'text-red-400' : 'text-white'
+              }`}>
               {Math.round(cycleProgress.pct)}% complete
             </span>
           </div>
@@ -616,7 +599,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
 
           {/* Renewal History Summary */}
           {subscription.iterationsDone !== undefined && subscription.iterationsDone > 0 && (
-            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-900/30 text-blue-400 rounded-full text-xs font-medium">
+            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-zinc-800/50 text-white rounded-full text-xs font-medium">
               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -626,7 +609,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
 
           {/* Days Used for Completed Subscriptions */}
           {subscription.status === 'completed' && daysUsed > 0 && (
-            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-900/30 text-purple-400 rounded-full text-xs font-medium">
+            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-zinc-800/50 text-white rounded-full text-xs font-medium">
               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -646,7 +629,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
 
           {/* Archived Badge */}
           {subscription.status === 'archived' && (
-            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-900/30 text-gray-400 rounded-full text-xs font-medium">
+            <div className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-zinc-800/50 text-zinc-400 rounded-full text-xs font-medium">
               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-14 0h14" />
               </svg>
@@ -669,7 +652,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               e.stopPropagation();
               onView(subscription);
             }}
-            className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
+            className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-zinc-800/30 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
           >
             <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden xs:inline">View</span>
@@ -679,7 +662,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
               e.stopPropagation();
               onEdit(subscription);
             }}
-            className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-green-400 hover:bg-green-900/20 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
+            className="flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
           >
             <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden xs:inline">Edit</span>

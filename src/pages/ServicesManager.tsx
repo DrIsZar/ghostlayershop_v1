@@ -19,7 +19,7 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
     return getServiceLogo(serviceName);
   }, [serviceName, refreshTrigger]);
 
-  const containerClass = size === 'large' 
+  const containerClass = size === 'large'
     ? "w-12 h-12 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border-2 border-gray-600 shadow-lg"
     : "w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600 shadow-sm";
 
@@ -28,10 +28,10 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
   return (
     <div className={containerClass}>
       {serviceLogo ? (
-        <img 
+        <img
           key={`${serviceName || 'unknown'}_${refreshTrigger}`} // Force re-render with new key
-          src={serviceLogo} 
-          alt={`${serviceName || 'Service'} logo`} 
+          src={serviceLogo}
+          alt={`${serviceName || 'Service'} logo`}
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
@@ -93,7 +93,7 @@ export default function ServicesManager() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('logoUpdated', handleLogoUpdate);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('logoUpdated', handleLogoUpdate);
@@ -110,7 +110,7 @@ export default function ServicesManager() {
 
       if (error) throw error;
       setServices(data || []);
-      
+
       // Trigger logo refresh after services are loaded to ensure logos are displayed
       if (data && data.length > 0) {
         setTimeout(() => {
@@ -151,7 +151,7 @@ export default function ServicesManager() {
           })
           .eq('id', editingService.id)
           .select();
-        
+
         if (error) {
           console.error('Update error details:', error);
           throw error;
@@ -166,17 +166,17 @@ export default function ServicesManager() {
             updated_at: new Date().toISOString()
           }])
           .select();
-        
+
         if (error) {
           console.error('Insert error details:', error);
           throw error;
         }
         if (data) console.log('Inserted service:', data);
       }
-      
+
       // Force logo refresh immediately after successful save
       setLogoRefreshTrigger(prev => prev + 1);
-      
+
       await fetchServices();
       setEditingService(null);
       setIsModalOpen(false);
@@ -188,13 +188,13 @@ export default function ServicesManager() {
 
   const handleDeleteService = async (id: string) => {
     if (!confirm('Are you sure you want to delete this service?')) return;
-    
+
     try {
       const { error } = await supabase
         .from('services')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
       fetchServices();
       setLogoRefreshTrigger(prev => prev + 1); // Refresh logo after deleting
@@ -344,15 +344,15 @@ export default function ServicesManager() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
         <div className="ghost-card p-6">
           <h3 className="text-lg font-semibold text-white mb-2">Total Services</h3>
-          <p className="text-3xl font-bold text-green-500">{services.length}</p>
+          <p className="text-3xl font-bold text-white">{services.length}</p>
         </div>
         <div className="ghost-card p-6">
           <h3 className="text-lg font-semibold text-white mb-2">Potential Profit</h3>
-          <p className="text-3xl font-bold text-green-500">{formatCurrency(totalProfit)}</p>
+          <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(totalProfit)}</p>
         </div>
         <div className="ghost-card p-6">
           <h3 className="text-lg font-semibold text-white mb-2">Avg. Margin</h3>
-          <p className="text-3xl font-bold text-green-500">
+          <p className="text-3xl font-bold text-white">
             {services.length > 0 ? ((totalProfit / services.reduce((sum, s) => sum + s.selling_price, 0)) * 100).toFixed(1) : 0}%
           </p>
         </div>
@@ -391,33 +391,33 @@ export default function ServicesManager() {
             <tbody className="divide-y divide-gray-700/50">
               {sortedFilteredServices.map((service, index) => {
                 const profit = service.selling_price - service.cost;
-                const isFirstOfGroup = index === 0 || 
+                const isFirstOfGroup = index === 0 ||
                   sortedFilteredServices[index - 1].product_service !== service.product_service;
                 const isExpanded = isGroupExpanded(service.product_service);
-                
+
                 return (
                   <React.Fragment key={service.id}>
                     {isFirstOfGroup && (
-                      <tr className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-t-2 border-blue-500/30 cursor-pointer hover:from-blue-900/30 hover:to-purple-900/30 transition-all duration-200"
-                          onClick={() => toggleGroup(service.product_service)}>
+                      <tr className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-t-2 border-white/30 cursor-pointer hover:from-blue-900/30 hover:to-purple-900/30 transition-all duration-200"
+                        onClick={() => toggleGroup(service.product_service)}>
                         <td colSpan={8} className="px-6 py-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <button className="p-1 hover:bg-white/10 rounded transition-colors">
                                 {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-blue-400" />
+                                  <ChevronDown className="h-4 w-4 text-white" />
                                 ) : (
-                                  <ChevronRight className="h-4 w-4 text-blue-400" />
+                                  <ChevronRight className="h-4 w-4 text-white" />
                                 )}
                               </button>
-                              
+
                               {/* Service Logo - Improved styling */}
-                              <ServiceLogo 
+                              <ServiceLogo
                                 serviceName={service.product_service}
                                 refreshTrigger={logoRefreshTrigger}
                                 size="large"
                               />
-                              
+
                               <div className="flex items-center gap-3">
                                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                                 <span className="text-lg font-bold text-white">
@@ -426,7 +426,7 @@ export default function ServicesManager() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm font-medium rounded-full border border-blue-500/30">
+                              <span className="px-3 py-1 bg-white/20 text-gray-200 text-sm font-medium rounded-full border border-white/30">
                                 {sortedFilteredServices.filter(s => s.product_service === service.product_service).length} duration(s)
                               </span>
                             </div>
@@ -440,13 +440,13 @@ export default function ServicesManager() {
                           <div className="flex items-center pl-8">
                             {/* Service Logo in Detail Row - Improved styling */}
                             <div className="mr-4">
-                              <ServiceLogo 
+                              <ServiceLogo
                                 serviceName={service.product_service}
                                 refreshTrigger={logoRefreshTrigger}
                                 size="small"
                               />
                             </div>
-                            
+
                             <span className="text-white font-medium">{service.product_service}</span>
                           </div>
                         </td>
@@ -457,7 +457,7 @@ export default function ServicesManager() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-300 font-medium rounded-lg border border-blue-500/30 flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-gray-200 font-medium rounded-lg border border-white/30 flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {service.duration}
                           </span>
@@ -481,11 +481,10 @@ export default function ServicesManager() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1.5 font-bold text-sm rounded-lg border flex items-center gap-1 ${
-                            profit >= 0 
-                              ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                          <span className={`px-3 py-1.5 font-bold text-sm rounded-lg border flex items-center gap-1 ${profit >= 0
+                              ? 'bg-white/10 text-white border-white/30'
                               : 'bg-red-500/20 text-red-400 border-red-500/30'
-                          }`}>
+                            }`}>
                             <DollarSign className="h-3 w-3" />
                             {formatCurrency(profit)}
                           </span>
@@ -498,7 +497,7 @@ export default function ServicesManager() {
                                 setEditingService(service);
                                 setIsModalOpen(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-500/10 rounded-lg transition-all duration-200 hover:scale-105"
+                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 hover:scale-105"
                               title="Edit Service"
                             >
                               <Edit className="h-4 w-4" />
@@ -522,7 +521,7 @@ export default function ServicesManager() {
               })}
             </tbody>
           </table>
-          
+
           {sortedFilteredServices.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">

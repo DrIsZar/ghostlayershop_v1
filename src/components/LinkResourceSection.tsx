@@ -167,7 +167,7 @@ export function LinkResourceSection({
   const getPoolStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'text-green-400';
+        return 'text-white';
       case 'overdue':
         return 'text-amber-400';
       case 'expired':
@@ -225,7 +225,7 @@ export function LinkResourceSection({
   return (
     <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-4">
-        <Archive className="w-5 h-5 text-green-400" />
+        <Archive className="w-5 h-5 text-white" />
         <h3 className="text-lg font-semibold text-white">Link Resource Pool</h3>
       </div>
       
@@ -304,7 +304,7 @@ export function LinkResourceSection({
           <button
             onClick={handleLinkResource}
             disabled={loading}
-            className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            className="w-full px-4 py-2 bg-white hover:bg-gray-100 disabled:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

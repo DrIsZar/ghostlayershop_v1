@@ -263,7 +263,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               showSearchThreshold={5}
             />
             {formData.provider && SERVICE_PROVISIONING[formData.provider] && (
-              <p className="mt-1 text-sm text-blue-400">
+              <p className="mt-1 text-sm text-white">
                 Default: {SERVICE_PROVISIONING[formData.provider]?.defaultSeats} seats, {SERVICE_PROVISIONING[formData.provider]?.defaultDurationDays} days
               </p>
             )}

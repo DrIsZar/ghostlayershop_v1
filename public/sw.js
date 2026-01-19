@@ -1,5 +1,5 @@
 // Simple service worker for PWA functionality
-const CACHE_NAME = 'ghostlayer-shop-v3';
+const CACHE_NAME = 'upgrade-tn-shop-v1';
 const urlsToCache = [
   '/',
   '/manifest.webmanifest',
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response;
         }
-        
+
         // For assets, try to fetch with cache-first strategy
         if (event.request.url.includes('/assets/')) {
           return fetch(event.request).then((fetchResponse) => {
@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
             return fetchResponse;
           });
         }
-        
+
         // For other requests, use network-first
         return fetch(event.request);
       })

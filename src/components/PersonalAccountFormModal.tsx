@@ -174,7 +174,7 @@ export function PersonalAccountFormModal({
               type="email"
               value={formData.login_email}
               onChange={(e) => handleInputChange('login_email', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
               required
             />
             {errors.login_email && (
@@ -190,7 +190,7 @@ export function PersonalAccountFormModal({
               type="password"
               value={formData.login_secret}
               onChange={(e) => handleInputChange('login_secret', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
             />
           </div>
 
@@ -202,7 +202,7 @@ export function PersonalAccountFormModal({
               type="date"
               value={formData.expiry_date}
               onChange={(e) => handleInputChange('expiry_date', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
             />
           </div>
 
@@ -214,7 +214,7 @@ export function PersonalAccountFormModal({
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-green-500"
+              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
             />
           </div>
 
@@ -229,7 +229,7 @@ export function PersonalAccountFormModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-white hover:bg-gray-100 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? 'Saving...' : account ? 'Update' : 'Add'}
             </button>

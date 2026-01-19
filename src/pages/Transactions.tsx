@@ -26,11 +26,11 @@ export default function Transactions() {
     if (period === 'all') {
       return { from: '', to: '' }; // No date filtering for 'all'
     }
-    
+
     const now = new Date(currentDate);
     now.setUTCHours(0, 0, 0, 0);
     const startOfDay = now;
-    
+
     switch (period) {
       case 'day':
         return {
@@ -72,14 +72,14 @@ export default function Transactions() {
             duration
           )
         `);
-      
+
       // Only apply date filtering if not 'all'
       if (dateRange.from && dateRange.to) {
         transactionsQuery = transactionsQuery
           .gte('date', dateRange.from)
           .lte('date', dateRange.to);
       }
-      
+
       const [transactionsResult, servicesResult] = await Promise.all([
         transactionsQuery.order('date', { ascending: false }),
         supabase
@@ -111,7 +111,7 @@ export default function Transactions() {
 
   const handleNavigate = (direction: 'prev' | 'next') => {
     if (period === 'all') return; // No navigation for 'all' period
-    
+
     const date = new Date(currentDate);
     switch (period) {
       case 'day':
@@ -147,7 +147,7 @@ export default function Transactions() {
           })
           .eq('id', editingTransaction.id)
           .select();
-        
+
         if (error) {
           console.error('Update error details:', error);
           throw error;
@@ -162,14 +162,14 @@ export default function Transactions() {
             updated_at: new Date().toISOString()
           }])
           .select();
-        
+
         if (error) {
           console.error('Insert error details:', error);
           throw error;
         }
         if (data) console.log('Inserted transaction:', data);
       }
-      
+
       await fetchData();
       setEditingTransaction(null);
       setIsModalOpen(false);
@@ -181,20 +181,20 @@ export default function Transactions() {
 
   const handleDeleteTransaction = async (id: string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('transactions')
         .delete()
         .eq('id', id)
         .select();
-      
+
       if (error) {
         console.error('Delete error details:', error);
         throw error;
       }
       if (data) console.log('Deleted transaction:', data);
-      
+
       await fetchData();
     } catch (error: any) {
       console.error('Error deleting transaction:', error);
@@ -213,13 +213,13 @@ export default function Transactions() {
   const filteredTransactions = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     const dateRange = getDateRange();
-    
+
     return transactions.filter(transaction => {
       const matchesSearch = transaction.services?.product_service.toLowerCase().includes(searchLower) ||
-                           (transaction.notes || '').toLowerCase().includes(searchLower);
+        (transaction.notes || '').toLowerCase().includes(searchLower);
       const matchesService = selectedService === '' || transaction.service_id === selectedService;
       const matchesDate = period === 'all' || (transaction.date >= dateRange.from && transaction.date <= dateRange.to);
-      
+
       return matchesSearch && matchesService && matchesDate;
     });
   }, [transactions, searchTerm, selectedService, period, getDateRange]);
@@ -271,8 +271,8 @@ export default function Transactions() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <div className="w-6 h-6 bg-green-500 rounded-full"></div>
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <div className="w-6 h-6 bg-white rounded-full"></div>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Transactions</p>
@@ -282,8 +282,8 @@ export default function Transactions() {
         </div>
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-              <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-6 h-6 bg-white rounded-full"></div>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
@@ -304,8 +304,8 @@ export default function Transactions() {
         </div>
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <div className={`w-6 h-6 rounded-full ${totalProfit >= 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <div className={`w-6 h-6 rounded-full ${totalProfit >= 0 ? 'bg-green-400' : 'bg-red-500'}`}></div>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Net Profit</p>
@@ -315,6 +315,21 @@ export default function Transactions() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Spotify Player */}
+      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+        <iframe
+          data-testid="embed-iframe"
+          style={{ borderRadius: '12px' }}
+          src="https://open.spotify.com/embed/track/5STdMlrBf6pqWiNE7WqxSi?utm_source=generator&theme=0"
+          width="100%"
+          height="152"
+          frameBorder="0"
+          allowFullScreen={true}
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+        />
       </div>
 
       {/* Filter Toolbar */}
@@ -330,7 +345,7 @@ export default function Transactions() {
                 placeholder="Search transactions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
               />
             </div>
           </div>
@@ -364,9 +379,8 @@ export default function Transactions() {
               <button
                 onClick={() => handleNavigate('prev')}
                 disabled={period === 'all'}
-                className={`p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center ${
-                  period === 'all' ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center ${period === 'all' ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -390,14 +404,13 @@ export default function Transactions() {
               <button
                 onClick={() => handleNavigate('next')}
                 disabled={period === 'all'}
-                className={`p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center ${
-                  period === 'all' ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center justify-center ${period === 'all' ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-            
+
             <div className="text-gray-400 text-xs text-center mt-1">
               {period === 'all' && 'All transactions'}
               {period === 'day' && currentDate.toLocaleDateString()}
@@ -458,7 +471,7 @@ export default function Transactions() {
                             setEditingTransaction(transaction);
                             setIsModalOpen(true);
                           }}
-                          className="p-1 md:p-2 text-gray-400 hover:text-green-500 transition-colors rounded"
+                          className="p-1 md:p-2 text-gray-400 hover:text-white transition-colors rounded"
                           title="Edit transaction"
                         >
                           <Edit className="h-4 w-4" />
@@ -477,12 +490,12 @@ export default function Transactions() {
               })}
             </tbody>
           </table>
-          
+
           {filteredTransactions.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <div className="text-gray-400 text-lg mb-2">
-                {searchTerm || selectedService 
-                  ? 'No transactions found matching your filters.' 
+                {searchTerm || selectedService
+                  ? 'No transactions found matching your filters.'
                   : 'No transactions yet. Add your first transaction to get started!'}
               </div>
               {!searchTerm && !selectedService && (

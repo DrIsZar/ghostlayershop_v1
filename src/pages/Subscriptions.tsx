@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Clock, 
-  AlertTriangle, 
+import {
+  Plus,
+  Search,
+  Clock,
+  AlertTriangle,
   Calendar,
   TrendingUp,
   Users,
@@ -71,10 +71,10 @@ export default function Subscriptions() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [dueBuckets, setDueBuckets] = useState({ dueToday: 0, dueIn3Days: 0, overdue: 0 });
-  
+
   // Archive view state
   const [archiveViewMode, setArchiveViewMode] = useState<ArchiveViewMode>('subscriptions');
-  
+
   // Filter state
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [groupBy, setGroupBy] = useState<GroupByMode>('none');
@@ -84,15 +84,15 @@ export default function Subscriptions() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
-  
+
   // Data for selectors
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [serviceGroups, setServiceGroups] = useState<ServiceGroup[]>([]);
-  
+
   // Pool data cache for checking dead pool status
   const [poolCache, setPoolCache] = useState<Map<string, ResourcePool>>(new Map());
-  
+
   // UI state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(-1);
@@ -111,11 +111,11 @@ export default function Subscriptions() {
       await fetchArchivedSubscriptions();
       await fetchDueBuckets();
       loadFiltersFromURL();
-      
+
       // Refresh subscription statuses to auto-complete expired subscriptions
       refreshSubscriptionStatus();
     };
-    
+
     initializeData();
   }, []);
 
@@ -133,29 +133,29 @@ export default function Subscriptions() {
       .filter(sub => sub.resourcePoolId)
       .map(sub => sub.resourcePoolId!)
     )];
-    
+
     if (poolIds.length === 0) {
       setPoolCache(new Map());
       return;
     }
-    
+
     try {
       // Filter out pools that are already in cache
       setPoolCache(currentCache => {
         const poolsToFetch = poolIds.filter(poolId => !currentCache.has(poolId));
-        
+
         if (poolsToFetch.length === 0) {
           // All pools already in cache
           return currentCache;
         }
-        
+
         // Fetch pools that aren't in cache
         const poolPromises = poolsToFetch.map(async (poolId) => {
           const { data: pool, error } = await getResourcePool(poolId);
           if (error || !pool) return null;
           return { poolId, pool };
         });
-        
+
         Promise.all(poolPromises).then(results => {
           setPoolCache(prevCache => {
             const newCache = new Map(prevCache);
@@ -167,7 +167,7 @@ export default function Subscriptions() {
             return newCache;
           });
         });
-        
+
         return currentCache;
       });
     } catch (error) {
@@ -212,27 +212,27 @@ export default function Subscriptions() {
   // Memoized filtered subscriptions - uses the maps above
   const filteredSubscriptionsMemo = useMemo(() => {
     if (archiveViewMode !== 'subscriptions') return [];
-    
+
     let filtered = [...subscriptions];
 
     // Apply search filter
     if (debouncedSearchTerm) {
       const searchLower = debouncedSearchTerm.toLowerCase();
-      
+
       filtered = filtered.filter(sub => {
         // Search in service name - use Map for O(1) lookup
         const service = servicesMap.get(sub.serviceId);
         const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
         const serviceMatch = serviceName.toLowerCase().includes(searchLower);
-        
+
         // Search in client name - use Map for O(1) lookup
         const client = clientsMap.get(sub.clientId);
         const clientName = client ? client.name : '';
         const clientMatch = clientName.toLowerCase().includes(searchLower);
-        
+
         // Search in notes
         const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
-        
+
         return serviceMatch || clientMatch || notesMatch;
       });
     }
@@ -292,7 +292,7 @@ export default function Subscriptions() {
           if (!sub.nextRenewalAt || sub.status === 'completed') return false;
           const renewalDate = new Date(sub.nextRenewalAt);
           if (renewalDate >= now) return false;
-          
+
           if (sub.resourcePoolId) {
             const pool = poolCache.get(sub.resourcePoolId);
             if (pool && !pool.is_alive) return false;
@@ -305,7 +305,7 @@ export default function Subscriptions() {
           if (!sub.nextRenewalAt || sub.status === 'completed') return false;
           const renewalDate = new Date(sub.nextRenewalAt);
           if (renewalDate >= now) return false;
-          
+
           if (sub.resourcePoolId) {
             const pool = poolCache.get(sub.resourcePoolId);
             if (pool && !pool.is_alive) return true;
@@ -320,19 +320,19 @@ export default function Subscriptions() {
       if (!a.nextRenewalAt && !b.nextRenewalAt) return 0;
       if (!a.nextRenewalAt) return 1;
       if (!b.nextRenewalAt) return -1;
-      
+
       const dateA = new Date(a.nextRenewalAt);
       const dateB = new Date(b.nextRenewalAt);
       if (dateA.getTime() !== dateB.getTime()) {
         return dateA.getTime() - dateB.getTime();
       }
-      
+
       const serviceA = servicesMap.get(a.serviceId);
       const serviceB = servicesMap.get(b.serviceId);
       const serviceNameA = serviceA ? formatServiceTitleWithDuration(serviceA.product_service, serviceA.duration || '1 month') : '';
       const serviceNameB = serviceB ? formatServiceTitleWithDuration(serviceB.product_service, serviceB.duration || '1 month') : '';
       if (serviceNameA !== serviceNameB) return serviceNameA.localeCompare(serviceNameB);
-      
+
       const clientA = clientsMap.get(a.clientId)?.name || '';
       const clientB = clientsMap.get(b.clientId)?.name || '';
       return clientA.localeCompare(clientB);
@@ -352,7 +352,7 @@ export default function Subscriptions() {
       if (groupMode === 'client') {
         key = sub.clientId;
         title = clientsMap.get(sub.clientId)?.name || 'Unknown Client';
-    } else {
+      } else {
         key = sub.serviceId;
         title = servicesMap.get(sub.serviceId)?.product_service || 'Unknown Service';
       }
@@ -368,7 +368,7 @@ export default function Subscriptions() {
 
       const group = groups.get(key)!;
       group.subscriptions.push(sub);
-      
+
       if (sub.status === 'active') group.counts.active++;
       else if (sub.status === 'completed') group.counts.completed++;
       else if (sub.status === 'overdue') group.counts.overdue++;
@@ -388,7 +388,7 @@ export default function Subscriptions() {
   // Memoized archived subscriptions filter
   const filteredArchivedSubscriptionsMemo = useMemo(() => {
     if (archiveViewMode !== 'archive') return [];
-    
+
     let filtered = [...archivedSubscriptions];
 
     if (debouncedSearchTerm) {
@@ -397,13 +397,13 @@ export default function Subscriptions() {
         const service = servicesMap.get(sub.serviceId);
         const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : '';
         const serviceMatch = serviceName.toLowerCase().includes(searchLower);
-        
+
         const client = clientsMap.get(sub.clientId);
         const clientName = client ? client.name : '';
         const clientMatch = clientName.toLowerCase().includes(searchLower);
-        
+
         const notesMatch = sub.notes ? sub.notes.toLowerCase().includes(searchLower) : false;
-        
+
         return serviceMatch || clientMatch || notesMatch;
       });
     }
@@ -535,7 +535,7 @@ export default function Subscriptions() {
           if (isModalOpen || isDetailModalOpen || isEditModalOpen) return;
           const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
           if (currentSubs.length === 0) return;
-          
+
           setSelectedCardIndex(prev => {
             const nextIndex = prev < currentSubs.length - 1 ? prev + 1 : prev;
             // Scroll into view
@@ -555,7 +555,7 @@ export default function Subscriptions() {
           if (isModalOpen || isDetailModalOpen || isEditModalOpen) return;
           const currentSubs = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
           if (currentSubs.length === 0) return;
-          
+
           setSelectedCardIndex(prev => {
             const nextIndex = prev > 0 ? prev - 1 : 0;
             // Scroll into view
@@ -833,7 +833,7 @@ export default function Subscriptions() {
 
       setClients(clientData || []);
       setServices(serviceData || []);
-      
+
       // Create service groups
       if (serviceData) {
         const groups = groupServicesByBaseName(serviceData);
@@ -853,7 +853,7 @@ export default function Subscriptions() {
     setSelectedPeriod('');
     setSearchTerm('');
     setArchiveViewMode('subscriptions');
-    
+
     // Clear localStorage
     localStorage.removeItem('subscription-view-mode');
     localStorage.removeItem('subscription-group-by');
@@ -908,7 +908,7 @@ export default function Subscriptions() {
 
   const handleSubscriptionUpdate = (updatedSubscription: Subscription) => {
     console.log('📝 Handling subscription update:', updatedSubscription.id, 'Status:', updatedSubscription.status);
-    
+
     // Handle status changes that affect which list the subscription belongs to
     if (updatedSubscription.status === 'archived') {
       // Move from active to archived
@@ -918,7 +918,7 @@ export default function Subscriptions() {
         return filtered;
       });
       setArchivedSubscriptions(prev => {
-        const updated = prev.map(sub => 
+        const updated = prev.map(sub =>
           sub.id === updatedSubscription.id ? updatedSubscription : sub
         );
         // If it's not already in archived list, add it
@@ -936,7 +936,7 @@ export default function Subscriptions() {
         return filtered;
       });
       setSubscriptions(prev => {
-        const updated = prev.map(sub => 
+        const updated = prev.map(sub =>
           sub.id === updatedSubscription.id ? updatedSubscription : sub
         );
         // If it's not already in active list, add it
@@ -947,13 +947,13 @@ export default function Subscriptions() {
         return updated;
       });
     }
-    
+
     fetchDueBuckets();
   };
 
   const handleSubscriptionDelete = async (subscriptionId: string) => {
     console.log('🗑️ Handling subscription deletion:', subscriptionId);
-    
+
     // Immediately remove from local state for responsive UI
     setSubscriptions(prev => {
       const filtered = prev.filter(sub => sub.id !== subscriptionId);
@@ -964,20 +964,20 @@ export default function Subscriptions() {
       const filtered = prev.filter(sub => sub.id !== subscriptionId);
       return filtered;
     });
-    
+
     // Close any open modals
     setIsDetailModalOpen(false);
     setIsEditModalOpen(false);
     setSelectedSubscription(null);
     setEditingSubscription(null);
-    
+
     // Force refresh from database to ensure consistency
     setTimeout(async () => {
       console.log('🔄 Force refreshing subscriptions after deletion...');
       try {
         const data = await subscriptionService.listSubscriptions();
         console.log('📊 Database refresh complete - subscription count:', data.length);
-        
+
         // Check if the deleted subscription still exists in the fresh data
         const stillExists = data.find(sub => sub.id === subscriptionId);
         if (stillExists) {
@@ -986,7 +986,7 @@ export default function Subscriptions() {
         } else {
           console.log('✅ Confirmed: Subscription successfully removed from database');
         }
-        
+
         // Filter active and archived subscriptions
         const activeSubscriptions = data.filter(sub => sub.status !== 'archived');
         const archivedSubs = data.filter(sub => sub.status === 'archived');
@@ -996,7 +996,7 @@ export default function Subscriptions() {
         console.error('❌ Error refreshing subscriptions after deletion:', error);
       }
     }, 1000); // Increased delay to ensure database operations are complete
-    
+
     fetchDueBuckets();
   };
 
@@ -1024,15 +1024,15 @@ export default function Subscriptions() {
   const getFilteredDueBuckets = () => {
     const now = getNowInTunisia();
     const today = now.toDateString();
-    
+
     return filteredSubscriptions.reduce((buckets, sub) => {
       if (!sub.nextRenewalAt || sub.status === 'completed') return buckets;
-      
+
       const renewalDate = new Date(sub.nextRenewalAt);
       const renewalDateString = renewalDate.toDateString();
       const diffTime = renewalDate.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (renewalDateString === today) {
         buckets.dueToday++;
       } else if (diffDays > 0 && diffDays <= 3) {
@@ -1040,7 +1040,7 @@ export default function Subscriptions() {
       } else if (renewalDate < now) {
         buckets.overdue++;
       }
-      
+
       return buckets;
     }, { dueToday: 0, dueIn3Days: 0, overdue: 0 });
   };
@@ -1048,18 +1048,18 @@ export default function Subscriptions() {
   const exportSubscriptions = () => {
     const now = getNowInTunisia();
     const subscriptionsToExport = archiveViewMode === 'subscriptions' ? filteredSubscriptions : filteredArchivedSubscriptions;
-    
+
     // Prepare CSV data
     const csvData = subscriptionsToExport.map(subscription => {
       const client = clients.find(c => c.id === subscription.clientId);
       const service = services.find(s => s.id === subscription.serviceId);
       const clientName = client ? client.name : 'Unknown Client';
       const serviceName = service ? formatServiceTitleWithDuration(service.product_service, service.duration || '1 month') : 'Unknown Service';
-      
+
       // Calculate elapsed days since start
       const startDate = new Date(subscription.startedAt);
       const elapsedDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       // Calculate days remaining
       let daysRemaining = '';
       if (subscription.nextRenewalAt) {
@@ -1075,7 +1075,7 @@ export default function Subscriptions() {
       } else {
         daysRemaining = 'N/A';
       }
-      
+
       // Format dates
       const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -1084,7 +1084,7 @@ export default function Subscriptions() {
           day: '2-digit'
         });
       };
-      
+
       return {
         'Subscription ID': subscription.id,
         'Client Name': clientName,
@@ -1102,39 +1102,39 @@ export default function Subscriptions() {
         'Updated At': formatDate(subscription.updatedAt)
       };
     });
-    
+
     // Convert to CSV
     if (csvData.length === 0) {
       alert('No subscriptions to export');
       return;
     }
-    
+
     const headers = Object.keys(csvData[0]);
     const csvContent = [
       headers.join(','),
-      ...csvData.map(row => 
+      ...csvData.map(row =>
         headers.map(header => {
           const value = row[header as keyof typeof row];
           // Escape commas and quotes in CSV
-          return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
-            ? `"${value.replace(/"/g, '""')}"` 
+          return typeof value === 'string' && (value.includes(',') || value.includes('"'))
+            ? `"${value.replace(/"/g, '""')}"`
             : value;
         }).join(',')
       )
     ].join('\n');
-    
+
     // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    
+
     const timestamp = getTodayInTunisia();
     const filterSuffix = archiveViewMode === 'archive' ? '_archived' : '';
     const viewSuffix = viewMode !== 'all' ? `_${viewMode}` : '';
     const clientSuffix = selectedClientId ? `_client_${clients.find(c => c.id === selectedClientId)?.name.replace(/\s+/g, '_') || 'unknown'}` : '';
     const serviceSuffix = selectedServiceGroup ? `_service_${selectedServiceGroup.replace(/\s+/g, '_')}` : '';
-    
+
     link.setAttribute('download', `subscriptions${filterSuffix}${viewSuffix}${clientSuffix}${serviceSuffix}_${timestamp}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -1147,7 +1147,7 @@ export default function Subscriptions() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading subscriptions...</p>
         </div>
       </div>
@@ -1197,22 +1197,20 @@ export default function Subscriptions() {
       <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
         <button
           onClick={() => setArchiveViewMode('subscriptions')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            archiveViewMode === 'subscriptions'
-              ? 'bg-green-600 text-white'
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'subscriptions'
+              ? 'bg-white text-black'
               : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
+            }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
           Subscriptions
         </button>
         <button
           onClick={() => setArchiveViewMode('archive')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            archiveViewMode === 'archive'
-              ? 'bg-green-600 text-white'
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'archive'
+              ? 'bg-white text-black'
               : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
+            }`}
         >
           <Archive className="w-4 h-4 inline mr-2" />
           Archive
@@ -1222,494 +1220,492 @@ export default function Subscriptions() {
       {archiveViewMode === 'subscriptions' && (
         <>
           {/* Filter Toolbar */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[300px]">
-            <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search by service, client, or notes... (Press / to focus)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[300px]">
+                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search by service, client, or notes... (Press / to focus)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* View Dropdown */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="View"
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'dueToday', label: 'Due Today' },
+                    { value: 'dueIn3Days', label: 'Due in 3 Days' },
+                    { value: 'overdue', label: 'Overdue (All)' },
+                    { value: 'overdueNormal', label: 'Overdue (Normal)' },
+                    { value: 'overdueDeadPool', label: 'Overdue (Dead Pool)' }
+                  ]}
+                  value={viewMode}
+                  onChange={(value) => setViewMode(value as ViewMode)}
+                  placeholder="Select view"
+                  className="min-w-[140px]"
+                  showSearchThreshold={3}
+                  data-testid="view-dropdown"
+                />
+              </div>
+
+              {/* Group by Dropdown */}
+              <div className="relative">
+                <SearchableDropdown
+                  label="Group by"
+                  options={[
+                    { value: 'none', label: 'None' },
+                    { value: 'client', label: 'Client' },
+                    { value: 'service', label: 'Service' }
+                  ]}
+                  value={groupBy}
+                  onChange={(value) => setGroupBy(value as GroupByMode)}
+                  placeholder="Select grouping"
+                  className="min-w-[120px]"
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Client Selector */}
+              <div className="relative client-selector">
+                <SearchableDropdown
+                  label="Client"
+                  options={[
+                    { value: '', label: 'All clients' },
+                    ...clients.map(client => ({
+                      value: client.id,
+                      label: client.name
+                    }))
+                  ]}
+                  value={selectedClientId}
+                  onChange={(value) => setSelectedClientId(value)}
+                  placeholder="All clients"
+                  searchPlaceholder="Search clients..."
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => setSelectedClientId('')}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Service Group Selector */}
+              <div className="relative service-group-selector">
+                <SearchableDropdown
+                  label="Service"
+                  options={[
+                    { value: '', label: 'All services' },
+                    ...serviceGroups.map(group => ({
+                      value: group.baseName,
+                      label: group.baseName
+                    }))
+                  ]}
+                  value={selectedServiceGroup}
+                  onChange={handleServiceGroupChange}
+                  placeholder="All services"
+                  searchPlaceholder="Search services..."
+                  className="min-w-[160px]"
+                  allowClear={true}
+                  onClear={() => {
+                    setSelectedServiceGroup('');
+                    setSelectedPeriod('');
+                  }}
+                  showSearchThreshold={3}
+                />
+              </div>
+
+              {/* Period Selector - Only show when a service group is selected */}
+              {selectedServiceGroup && (
+                <div className="relative period-selector">
+                  <SearchableDropdown
+                    label="Period"
+                    options={[
+                      { value: '', label: 'All periods' },
+                      ...(() => {
+                        const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
+                        return group ? getAvailablePeriods(group) : [];
+                      })()
+                    ]}
+                    value={selectedPeriod}
+                    onChange={handlePeriodChange}
+                    placeholder="All periods"
+                    searchPlaceholder="Search periods..."
+                    className="min-w-[120px]"
+                    allowClear={true}
+                    onClear={() => setSelectedPeriod('')}
+                    showSearchThreshold={3}
+                  />
+                </div>
               )}
+
+              {/* Reset Button */}
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                {/* Debug Refresh Button */}
+                <button
+                  onClick={handleManualRefresh}
+                  className="px-3 py-2 text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded-lg transition-colors"
+                  title="Force refresh from database"
+                >
+                  🔄
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* View Dropdown */}
-          <div className="relative">
-            <SearchableDropdown
-              label="View"
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'active', label: 'Active' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'dueToday', label: 'Due Today' },
-                { value: 'dueIn3Days', label: 'Due in 3 Days' },
-                { value: 'overdue', label: 'Overdue (All)' },
-                { value: 'overdueNormal', label: 'Overdue (Normal)' },
-                { value: 'overdueDeadPool', label: 'Overdue (Dead Pool)' }
-              ]}
-              value={viewMode}
-              onChange={(value) => setViewMode(value as ViewMode)}
-              placeholder="Select view"
-              className="min-w-[140px]"
-              showSearchThreshold={3}
-              data-testid="view-dropdown"
-            />
+          {/* KPIs Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {(() => {
+              const filteredBuckets = getFilteredDueBuckets();
+              return (
+                <>
+                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                        <Clock className="w-6 h-6 text-orange-500" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">Due Today</p>
+                        <p className="text-2xl font-bold text-white">{filteredBuckets.dueToday}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-yellow-500" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">Due in 3 Days</p>
+                        <p className="text-2xl font-bold text-white">{filteredBuckets.dueIn3Days}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">Overdue</p>
+                        <p className="text-2xl font-bold text-white">{filteredBuckets.overdue}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-sm">Total Active</p>
+                        <p className="text-2xl font-bold text-white">{getTotalActive()}</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
-          {/* Group by Dropdown */}
-          <div className="relative">
-            <SearchableDropdown
-              label="Group by"
-              options={[
-                { value: 'none', label: 'None' },
-                { value: 'client', label: 'Client' },
-                { value: 'service', label: 'Service' }
-              ]}
-              value={groupBy}
-              onChange={(value) => setGroupBy(value as GroupByMode)}
-              placeholder="Select grouping"
-              className="min-w-[120px]"
-              showSearchThreshold={3}
-            />
+          {/* Status Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+              <div className="text-2xl font-bold text-white">{getTotalActive()}</div>
+              <div className="text-sm text-gray-400">Active</div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+              <div className="text-2xl font-bold text-white">{getTotalCompleted()}</div>
+              <div className="text-sm text-gray-400">Completed</div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+              <div className="text-2xl font-bold text-red-400">{getTotalOverdue()}</div>
+              <div className="text-sm text-gray-400">Overdue</div>
+            </div>
           </div>
 
-          {/* Client Selector */}
-          <div className="relative client-selector">
-            <SearchableDropdown
-              label="Client"
-              options={[
-                { value: '', label: 'All clients' },
-                ...clients.map(client => ({
-                  value: client.id,
-                  label: client.name
-                }))
-              ]}
-              value={selectedClientId}
-              onChange={(value) => setSelectedClientId(value)}
-              placeholder="All clients"
-              searchPlaceholder="Search clients..."
-              className="min-w-[160px]"
-              allowClear={true}
-              onClear={() => setSelectedClientId('')}
-              showSearchThreshold={3}
-            />
-          </div>
-
-          {/* Service Group Selector */}
-          <div className="relative service-group-selector">
-            <SearchableDropdown
-              label="Service"
-              options={[
-                { value: '', label: 'All services' },
-                ...serviceGroups.map(group => ({
-                  value: group.baseName,
-                  label: group.baseName
-                }))
-              ]}
-              value={selectedServiceGroup}
-              onChange={handleServiceGroupChange}
-              placeholder="All services"
-              searchPlaceholder="Search services..."
-              className="min-w-[160px]"
-              allowClear={true}
-              onClear={() => {
-                setSelectedServiceGroup('');
-                setSelectedPeriod('');
-              }}
-              showSearchThreshold={3}
-            />
-          </div>
-
-          {/* Period Selector - Only show when a service group is selected */}
-          {selectedServiceGroup && (
-            <div className="relative period-selector">
-              <SearchableDropdown
-                label="Period"
-                options={[
-                  { value: '', label: 'All periods' },
-                  ...(() => {
-                    const group = serviceGroups.find(g => g.baseName === selectedServiceGroup);
-                    return group ? getAvailablePeriods(group) : [];
-                  })()
-                ]}
-                value={selectedPeriod}
-                onChange={handlePeriodChange}
-                placeholder="All periods"
-                searchPlaceholder="Search periods..."
-                className="min-w-[120px]"
-                allowClear={true}
-                onClear={() => setSelectedPeriod('')}
-                showSearchThreshold={3}
-              />
+          {/* Keyboard Shortcuts Help Modal */}
+          {showKeyboardHelp && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
+              <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
+                <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                  <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <Keyboard className="w-5 h-5" />
+                    Keyboard Shortcuts
+                  </h2>
+                  <button
+                    onClick={() => setShowKeyboardHelp(false)}
+                    className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Navigation</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Arrow Up/Down</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">↑ ↓</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Enter</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Enter</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Focus Search</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Create New</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Export</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">E</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Reset Filters</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Toggle Archive</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Quick Views</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: All</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">1</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: Active</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">2</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: Completed</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">3</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: Due Today</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">4</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: Due in 3 Days</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">5</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">View: Overdue</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">6</kbd>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Close Modal</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                          <span className="text-gray-300 text-sm">Show Help</span>
+                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-700">
+                    <p className="text-xs text-gray-400 text-center">
+                      Keyboard shortcuts are disabled when typing in input fields
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Reset Button */}
-          <div className="flex items-end gap-2">
-            <button
-              onClick={resetFilters}
-              className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-              title="Reset all filters"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-            
-            {/* Debug Refresh Button */}
-            <button
-              onClick={handleManualRefresh}
-              className="px-3 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition-colors"
-              title="Force refresh from database"
-            >
-              🔄
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {(() => {
-          const filteredBuckets = getFilteredDueBuckets();
-          return (
-            <>
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-orange-500" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Due Today</p>
-                    <p className="text-2xl font-bold text-white">{filteredBuckets.dueToday}</p>
-                  </div>
+          {/* Subscriptions List - Mobile Viewport Optimized */}
+          <div className="w-full max-w-full overflow-hidden">
+            {filteredSubscriptions.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-gray-400" />
                 </div>
-              </div>
-
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Due in 3 Days</p>
-                    <p className="text-2xl font-bold text-white">{filteredBuckets.dueIn3Days}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Overdue</p>
-                    <p className="text-2xl font-bold text-white">{filteredBuckets.overdue}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Total Active</p>
-                    <p className="text-2xl font-bold text-white">{getTotalActive()}</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* Status Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-bold text-green-400">{getTotalActive()}</div>
-          <div className="text-sm text-gray-400">Active</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-bold text-blue-400">{getTotalCompleted()}</div>
-          <div className="text-sm text-gray-400">Completed</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
-          <div className="text-2xl font-bold text-red-400">{getTotalOverdue()}</div>
-          <div className="text-sm text-gray-400">Overdue</div>
-        </div>
-      </div>
-
-      {/* Keyboard Shortcuts Help Modal */}
-      {showKeyboardHelp && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Keyboard className="w-5 h-5" />
-                Keyboard Shortcuts
-              </h2>
-              <button
-                onClick={() => setShowKeyboardHelp(false)}
-                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Navigation</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Arrow Up/Down</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">↑ ↓</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Enter</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Enter</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Focus Search</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Create New</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Export</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">E</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Reset Filters</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Toggle Archive</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Quick Views</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: All</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">1</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: Active</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">2</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: Completed</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">3</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: Due Today</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">4</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: Due in 3 Days</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">5</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">View: Overdue</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">6</kbd>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Close Modal</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Show Help</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-gray-700">
-                <p className="text-xs text-gray-400 text-center">
-                  Keyboard shortcuts are disabled when typing in input fields
+                <h3 className="text-lg font-medium text-white mb-2">No subscriptions match your filters</h3>
+                <p className="text-gray-400 mb-4">
+                  Try resetting filters or selecting a different client/service.
                 </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={resetFilters}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Reset Filters
+                  </button>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-4 py-2 bg-white hover:bg-gray-100 text-white font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Create Subscription
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            ) : groupBy !== 'none' ? (
+              // Grouped view
+              <div className="space-y-6">
+                {groupedSubscriptions.map(group => (
+                  <div key={group.key} className="space-y-3">
+                    {/* Group Header */}
+                    <div
+                      className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl cursor-pointer hover:bg-gray-800/50 transition-colors"
+                      onClick={() => toggleGroup(group.key)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
+                          {groupBy === 'client' ? <Users className="w-4 h-4 text-gray-400" /> : <Package className="w-4 h-4 text-gray-400" />}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">{group.title}</h3>
+                          <p className="text-sm text-gray-400">{group.subscriptions.length} subscription{group.subscriptions.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {/* Status chips */}
+                        <div className="flex gap-2">
+                          <span className="px-2 py-1 bg-white/10 text-white text-xs rounded-full">
+                            {group.counts.active} Active
+                          </span>
+                          <span className="px-2 py-1 bg-zinc-800/50 text-white text-xs rounded-full">
+                            {group.counts.completed} Completed
+                          </span>
+                          <span className="px-2 py-1 bg-red-900/30 text-red-400 text-xs rounded-full">
+                            {group.counts.overdue} Overdue
+                          </span>
+                          <span className="px-2 py-1 bg-gray-900/30 text-gray-400 text-xs rounded-full">
+                            {group.counts.archived} Archived
+                          </span>
+                        </div>
+                        {collapsedGroups.has(group.key) ? (
+                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
 
-      {/* Subscriptions List - Mobile Viewport Optimized */}
-      <div className="w-full max-w-full overflow-hidden">
-        {filteredSubscriptions.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">No subscriptions match your filters</h3>
-            <p className="text-gray-400 mb-4">
-              Try resetting filters or selecting a different client/service.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={resetFilters}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
-              >
-                Reset Filters
-              </button>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
-              >
-                Create Subscription
-              </button>
-            </div>
-          </div>
-        ) : groupBy !== 'none' ? (
-          // Grouped view
-          <div className="space-y-6">
-            {groupedSubscriptions.map(group => (
-              <div key={group.key} className="space-y-3">
-                {/* Group Header */}
-                <div 
-                  className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl cursor-pointer hover:bg-gray-800/50 transition-colors"
-                  onClick={() => toggleGroup(group.key)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                      {groupBy === 'client' ? <Users className="w-4 h-4 text-gray-400" /> : <Package className="w-4 h-4 text-gray-400" />}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{group.title}</h3>
-                      <p className="text-sm text-gray-400">{group.subscriptions.length} subscription{group.subscriptions.length !== 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {/* Status chips */}
-                    <div className="flex gap-2">
-                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full">
-                        {group.counts.active} Active
-                      </span>
-                      <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded-full">
-                        {group.counts.completed} Completed
-                      </span>
-                      <span className="px-2 py-1 bg-red-900/30 text-red-400 text-xs rounded-full">
-                        {group.counts.overdue} Overdue
-                      </span>
-                      <span className="px-2 py-1 bg-gray-900/30 text-gray-400 text-xs rounded-full">
-                        {group.counts.archived} Archived
-                      </span>
-                    </div>
-                    {collapsedGroups.has(group.key) ? (
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    {/* Group Content - Mobile viewport optimized */}
+                    {!collapsedGroups.has(group.key) && (
+                      <div className="w-full px-2 sm:px-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                          {group.subscriptions.map((subscription, groupIndex) => {
+                            const globalIndex = filteredSubscriptions.findIndex(sub => sub.id === subscription.id);
+                            const isSelected = selectedCardIndex === globalIndex;
+                            return (
+                              <div
+                                key={subscription.id}
+                                ref={(el) => {
+                                  if (globalIndex >= 0 && globalIndex < cardRefs.current.length) {
+                                    cardRefs.current[globalIndex] = el;
+                                  }
+                                }}
+                                className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                                  }`}
+                              >
+                                <SubscriptionCard
+                                  subscription={subscription}
+                                  onUpdate={handleSubscriptionUpdate}
+                                  onDelete={handleSubscriptionDelete}
+                                  onView={handleSubscriptionView}
+                                  onEdit={handleSubscriptionEdit}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
+                ))}
+              </div>
+            ) : (
+              // Ungrouped view - Mobile viewport optimized
+              <div className="w-full px-2 sm:px-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+                  {displayedSubscriptions.map((subscription, index) => {
+                    const isSelected = selectedCardIndex === index;
+                    return (
+                      <div
+                        key={subscription.id}
+                        ref={(el) => {
+                          if (index < cardRefs.current.length) {
+                            cardRefs.current[index] = el;
+                          }
+                        }}
+                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                          }`}
+                      >
+                        <SubscriptionCard
+                          subscription={subscription}
+                          onUpdate={handleSubscriptionUpdate}
+                          onDelete={handleSubscriptionDelete}
+                          onView={handleSubscriptionView}
+                          onEdit={handleSubscriptionEdit}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-                
-                {/* Group Content - Mobile viewport optimized */}
-                {!collapsedGroups.has(group.key) && (
-                  <div className="w-full px-2 sm:px-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-                      {group.subscriptions.map((subscription, groupIndex) => {
-                        const globalIndex = filteredSubscriptions.findIndex(sub => sub.id === subscription.id);
-                        const isSelected = selectedCardIndex === globalIndex;
-                        return (
-                          <div 
-                            key={subscription.id} 
-                            ref={(el) => {
-                              if (globalIndex >= 0 && globalIndex < cardRefs.current.length) {
-                                cardRefs.current[globalIndex] = el;
-                              }
-                            }}
-                            className={`w-full min-w-0 transition-all ${
-                              isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
-                            }`}
-                          >
-                            <SubscriptionCard
-                              subscription={subscription}
-                              onUpdate={handleSubscriptionUpdate}
-                              onDelete={handleSubscriptionDelete}
-                              onView={handleSubscriptionView}
-                              onEdit={handleSubscriptionEdit}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
+                {filteredSubscriptions.length > displayLimit && (
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => setDisplayLimit(prev => prev + 50)}
+                      className="ghost-button"
+                    >
+                      Load More ({filteredSubscriptions.length - displayLimit} remaining)
+                    </button>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        ) : (
-          // Ungrouped view - Mobile viewport optimized
-          <div className="w-full px-2 sm:px-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              {displayedSubscriptions.map((subscription, index) => {
-                const isSelected = selectedCardIndex === index;
-                return (
-                  <div 
-                    key={subscription.id} 
-                    ref={(el) => {
-                      if (index < cardRefs.current.length) {
-                        cardRefs.current[index] = el;
-                      }
-                    }}
-                    className={`w-full min-w-0 transition-all ${
-                      isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
-                    }`}
-                  >
-                    <SubscriptionCard
-                      subscription={subscription}
-                      onUpdate={handleSubscriptionUpdate}
-                      onDelete={handleSubscriptionDelete}
-                      onView={handleSubscriptionView}
-                      onEdit={handleSubscriptionEdit}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            {filteredSubscriptions.length > displayLimit && (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => setDisplayLimit(prev => prev + 50)}
-                  className="ghost-button"
-                >
-                  Load More ({filteredSubscriptions.length - displayLimit} remaining)
-                </button>
-              </div>
             )}
           </div>
-        )}
-      </div>
         </>
       )}
 
@@ -1729,7 +1725,7 @@ export default function Subscriptions() {
                     placeholder="Search archived subscriptions... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500 text-center"
+                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
                   />
                   {searchTerm && (
                     <button
@@ -1850,16 +1846,15 @@ export default function Subscriptions() {
                   {displayedArchivedSubscriptions.map((subscription, index) => {
                     const isSelected = selectedCardIndex === index;
                     return (
-                      <div 
-                        key={subscription.id} 
+                      <div
+                        key={subscription.id}
                         ref={(el) => {
                           if (index < cardRefs.current.length) {
                             cardRefs.current[index] = el;
                           }
                         }}
-                        className={`w-full min-w-0 transition-all ${
-                          isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
-                        }`}
+                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                          }`}
                       >
                         <SubscriptionCard
                           subscription={subscription}
@@ -1930,5 +1925,5 @@ export default function Subscriptions() {
       />
 
     </div>
-   );
- }
+  );
+}

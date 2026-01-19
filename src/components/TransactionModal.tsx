@@ -18,13 +18,13 @@ interface TransactionModalProps {
 }
 
 export default function TransactionModal({ isOpen, onClose, onSave, transaction, services }: TransactionModalProps) {
-  const { formatCurrency, currency } = useCurrency();
+  const { formatCurrency, currency, exchangeRate } = useCurrency();
   const [formData, setFormData] = useState({
     service_id: '',
     client_id: '',
     date: getTodayInTunisia(),
-    cost_at_sale: 0,
-    selling_price: 0,
+    cost_at_sale: '' as string | number,
+    selling_price: '' as string | number,
     notes: ''
   });
 
@@ -37,26 +37,32 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   }, []);
 
   useEffect(() => {
+    // When opening for edit, convert stored USD values to selected currency if needed
     if (transaction) {
       setFormData({
         service_id: transaction.service_id,
         client_id: transaction.client_id || '',
         date: transaction.date,
-        cost_at_sale: transaction.cost_at_sale,
-        selling_price: transaction.selling_price,
+        cost_at_sale: currency === 'TND'
+          ? Number((transaction.cost_at_sale * exchangeRate).toFixed(2))
+          : transaction.cost_at_sale,
+        selling_price: currency === 'TND'
+          ? Number((transaction.selling_price * exchangeRate).toFixed(2))
+          : transaction.selling_price,
         notes: transaction.notes
       });
     } else {
+      // Reset form (default TND date is handled by getTodayInTunisia)
       setFormData({
         service_id: '',
         client_id: '',
         date: getTodayInTunisia(),
-        cost_at_sale: 0,
-        selling_price: 0,
+        cost_at_sale: '',
+        selling_price: '',
         notes: ''
       });
     }
-  }, [transaction]);
+  }, [transaction, isOpen]); // Added isOpen to ensure reset/re-calc when opening
 
   const loadClients = async () => {
     try {
@@ -73,18 +79,48 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   const handleServiceChange = (serviceId: string) => {
     const service = services.find(s => s.id === serviceId);
     if (service) {
+      // Auto-fill prices, converting to selected currency if needed
       setFormData({
         ...formData,
         service_id: serviceId,
-        cost_at_sale: service.cost,
-        selling_price: service.selling_price
+        cost_at_sale: currency === 'TND'
+          ? Number((service.cost * exchangeRate).toFixed(2))
+          : service.cost,
+        selling_price: currency === 'TND'
+          ? Number((service.selling_price * exchangeRate).toFixed(2))
+          : service.selling_price
       });
     }
   };
 
+  const handleInputChange = (field: 'cost_at_sale' | 'selling_price', value: string) => {
+    // Remove leading zeros (e.g., "01" -> "1", but keep "0" or "0.5")
+    let cleanValue = value;
+    if (cleanValue.length > 1 && cleanValue.startsWith('0') && cleanValue[1] !== '.') {
+      cleanValue = cleanValue.replace(/^0+/, '');
+    }
+
+    setFormData({ ...formData, [field]: cleanValue });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    const cost = parseFloat(formData.cost_at_sale.toString()) || 0;
+    const price = parseFloat(formData.selling_price.toString()) || 0;
+
+    // Convert back to USD (base currency) before saving if currently in TND
+    const submissionData = {
+      ...formData,
+      cost_at_sale: currency === 'TND'
+        ? cost / exchangeRate
+        : cost,
+      selling_price: currency === 'TND'
+        ? price / exchangeRate
+        : price
+    };
+
+    onSave(submissionData as any);
     onClose();
   };
 
@@ -118,7 +154,9 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
 
   if (!isOpen) return null;
 
-  const profit = formData.selling_price - formData.cost_at_sale;
+  const costNum = parseFloat(formData.cost_at_sale.toString()) || 0;
+  const priceNum = parseFloat(formData.selling_price.toString()) || 0;
+  const profit = priceNum - costNum;
   const selectedService = services.find(s => s.id === formData.service_id);
 
   return (
@@ -193,7 +231,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
               required
             />
           </div>
@@ -205,8 +243,8 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
                 type="number"
                 step="0.01"
                 value={formData.cost_at_sale}
-                onChange={(e) => setFormData({ ...formData, cost_at_sale: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                onChange={(e) => handleInputChange('cost_at_sale', e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
                 placeholder="0.00"
                 required
               />
@@ -218,8 +256,8 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
                 type="number"
                 step="0.01"
                 value={formData.selling_price}
-                onChange={(e) => setFormData({ ...formData, selling_price: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                onChange={(e) => handleInputChange('selling_price', e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
                 placeholder="0.00"
                 required
               />
@@ -247,7 +285,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
             <div className="text-sm font-medium text-gray-300 mb-1">Profit:</div>
             <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(profit)}
+              {currency === 'TND' ? `TND ${profit.toFixed(2)}` : formatCurrency(profit)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {profit >= 0 ? 'Positive profit' : 'Negative profit - check pricing'}
@@ -257,7 +295,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           <div className="flex gap-3 pt-6 border-t border-gray-700">
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
+              className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 text-black font-semibold rounded-lg transition-colors duration-200"
             >
               {transaction ? 'Update Transaction' : 'Add Transaction'}
             </button>

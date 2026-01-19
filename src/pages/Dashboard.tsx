@@ -90,8 +90,8 @@ export default function Dashboard() {
         case 'month':
           return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
         case 'quarter':
-          return d.getFullYear() === now.getFullYear() && 
-                 Math.floor(d.getMonth() / 3) === Math.floor(now.getMonth() / 3);
+          return d.getFullYear() === now.getFullYear() &&
+            Math.floor(d.getMonth() / 3) === Math.floor(now.getMonth() / 3);
         case 'year':
           return d.getFullYear() === now.getFullYear();
       }
@@ -119,9 +119,9 @@ export default function Dashboard() {
     const isCurrentPeriod = (d: Date) => {
       switch (type) {
         case 'week':
-          return d.getFullYear() === now.getFullYear() && 
-                 Math.floor(d.getTime() / (7 * 24 * 60 * 60 * 1000)) === 
-                 Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
+          return d.getFullYear() === now.getFullYear() &&
+            Math.floor(d.getTime() / (7 * 24 * 60 * 60 * 1000)) ===
+            Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
         case 'month':
           return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
         case 'year':
@@ -139,7 +139,7 @@ export default function Dashboard() {
         start.setDate(date.getDate() - date.getDay());
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
-        return `${start.getDate()} ${months[start.getMonth()].slice(0,3)} - ${end.getDate()} ${months[end.getMonth()].slice(0,3)}`;
+        return `${start.getDate()} ${months[start.getMonth()].slice(0, 3)} - ${end.getDate()} ${months[end.getMonth()].slice(0, 3)}`;
       }
       case 'month':
         return `${months[date.getMonth()]} ${date.getFullYear()}`;
@@ -152,7 +152,7 @@ export default function Dashboard() {
     // Create new date objects to avoid mutating the original
     const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const end = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+
     switch (period) {
       case 'day':
         // For day, start and end are the same date
@@ -170,7 +170,7 @@ export default function Dashboard() {
         end.setMonth(12, 0); // End of year
         break;
     }
-    
+
     // Format as YYYY-MM-DD to match database format
     const formatDate = (d: Date) => {
       const year = d.getFullYear();
@@ -178,7 +178,7 @@ export default function Dashboard() {
       const day = String(d.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-    
+
     return {
       start: formatDate(start),
       end: formatDate(end)
@@ -218,20 +218,20 @@ export default function Dashboard() {
         newDate.setFullYear(topServicesPeriodState.date.getFullYear() + (direction === 'next' ? 1 : -1));
         break;
     }
-    
+
     // Determine if the new date represents current period
     const now = new Date();
     const isCurrentPeriod = (
-      topServicesPeriodState.type === 'week' ? 
+      topServicesPeriodState.type === 'week' ?
         Math.floor(newDate.getTime() / (7 * 24 * 60 * 60 * 1000)) === Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000)) :
-      topServicesPeriodState.type === 'month' ?
-        newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
-      newDate.getFullYear() === now.getFullYear()
+        topServicesPeriodState.type === 'month' ?
+          newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
+          newDate.getFullYear() === now.getFullYear()
     );
-    
+
     const position = isCurrentPeriod ? 'current' : (direction === 'next' ? 'next' : 'prev');
     const label = formatPeriodRange(topServicesPeriodState.type, newDate, position);
-    
+
     setTopServicesPeriodState({
       type: topServicesPeriodState.type,
       date: newDate,
@@ -252,12 +252,12 @@ export default function Dashboard() {
     const periodTransactions = transactions.filter(t => {
       // Ensure we're comparing dates in the same format (YYYY-MM-DD)
       const transactionDate = t.date.split('T')[0]; // Handle both date and datetime formats
-      
+
       // For single day comparison, check exact date match
       if (range.start === range.end) {
         return transactionDate === range.start;
       }
-      
+
       // For date ranges, use standard comparison
       return transactionDate >= range.start && transactionDate <= range.end;
     });
@@ -272,7 +272,7 @@ export default function Dashboard() {
 
   const currentStats = useMemo(() => calculatePeriodStats(transactions, currentRange), [transactions, currentRange, calculatePeriodStats]);
   const previousStats = useMemo(() => calculatePeriodStats(transactions, previousRange), [transactions, previousRange, calculatePeriodStats]);
-  
+
   const percentageChange = useCallback((current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / Math.abs(previous)) * 100;
@@ -285,18 +285,18 @@ export default function Dashboard() {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString().split('T')[0];
-    
+
     return transactions.filter(transaction => {
       const transactionDate = transaction.date.split('T')[0]; // Handle both date and datetime formats
       return transactionDate === today || transactionDate === yesterday;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort by most recent first
-    .slice(0, 5); // Limit to 5 most recent within 24h
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort by most recent first
+      .slice(0, 5); // Limit to 5 most recent within 24h
   }, [transactions]);
 
   // Top services by profit - filtered by Top Services period - memoized
   const topServicesStats = useMemo(() => calculatePeriodStats(transactions, topServicesRange), [transactions, topServicesRange, calculatePeriodStats]);
-  
+
   const topServices = useMemo(() => {
     const serviceProfit = topServicesStats.transactions.reduce((acc, t) => {
       const serviceId = t.service_id;
@@ -321,7 +321,7 @@ export default function Dashboard() {
   const getAnalyticsDateRange = useCallback((period: 'month' | 'quarter' | 'year', date: Date) => {
     const start = new Date(date);
     const end = new Date(date);
-    
+
     switch (period) {
       case 'month':
         start.setDate(1); // Start of month
@@ -338,7 +338,7 @@ export default function Dashboard() {
         end.setMonth(12, 0); // End of year
         break;
     }
-    
+
     return {
       start: start.toISOString().split('T')[0],
       end: end.toISOString().split('T')[0]
@@ -372,12 +372,12 @@ export default function Dashboard() {
   const analyticsOrdersChange = useMemo(() => percentageChange(currentAnalyticsStats.count, previousAnalyticsStats.count), [currentAnalyticsStats.count, previousAnalyticsStats.count, percentageChange]);
   const analyticsRevenueChange = useMemo(() => percentageChange(currentAnalyticsStats.revenue, previousAnalyticsStats.revenue), [currentAnalyticsStats.revenue, previousAnalyticsStats.revenue, percentageChange]);
   const analyticsProfitChange = useMemo(() => percentageChange(currentAnalyticsStats.profit, previousAnalyticsStats.profit), [currentAnalyticsStats.profit, previousAnalyticsStats.profit, percentageChange]);
-  
-  const currentProfitMargin = useMemo(() => currentAnalyticsStats.revenue > 0 
-    ? (currentAnalyticsStats.profit / currentAnalyticsStats.revenue) * 100 
+
+  const currentProfitMargin = useMemo(() => currentAnalyticsStats.revenue > 0
+    ? (currentAnalyticsStats.profit / currentAnalyticsStats.revenue) * 100
     : 0, [currentAnalyticsStats.revenue, currentAnalyticsStats.profit]);
-  const previousProfitMargin = useMemo(() => previousAnalyticsStats.revenue > 0 
-    ? (previousAnalyticsStats.profit / previousAnalyticsStats.revenue) * 100 
+  const previousProfitMargin = useMemo(() => previousAnalyticsStats.revenue > 0
+    ? (previousAnalyticsStats.profit / previousAnalyticsStats.revenue) * 100
     : 0, [previousAnalyticsStats.revenue, previousAnalyticsStats.profit]);
   const analyticsMarginChange = useMemo(() => percentageChange(currentProfitMargin, previousProfitMargin), [currentProfitMargin, previousProfitMargin, percentageChange]);
 
@@ -432,21 +432,19 @@ export default function Dashboard() {
               <div className="flex bg-gray-700/50 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setMainDashboardView('daily')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    mainDashboardView === 'daily'
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
-                  }`}
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${mainDashboardView === 'daily'
+                    ? 'bg-white text-black shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
+                    }`}
                 >
                   Daily
                 </button>
                 <button
                   onClick={() => setMainDashboardView('monthly')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    mainDashboardView === 'monthly'
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
-                  }`}
+                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${mainDashboardView === 'monthly'
+                    ? 'bg-white text-black shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
+                    }`}
                 >
                   Monthly
                 </button>
@@ -465,11 +463,11 @@ export default function Dashboard() {
             <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Today\'s Overview' : 'Current Month Overview'}
             </h3>
-            <TrendingUp className="h-5 w-5 text-green-500 flex-shrink-0" />
+            <TrendingUp className="h-5 w-5 text-white flex-shrink-0" />
           </div>
           <div className="space-y-5">
             <div>
-              <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
+              <p className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(currentStats.profit)}
               </p>
               <p className="text-sm text-gray-400">
@@ -481,13 +479,13 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-700/50">
               <div className="text-center sm:text-left">
-                <p className="text-xl sm:text-2xl font-bold text-blue-400">
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {currentStats.count}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Orders</p>
               </div>
               <div className="text-center sm:text-left">
-                <p className="text-xl sm:text-2xl font-bold text-green-400">
+                <p className="text-xl sm:text-2xl font-bold text-white">
                   {formatCurrency(currentStats.revenue)}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Revenue</p>
@@ -502,7 +500,7 @@ export default function Dashboard() {
             <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Daily Performance' : 'Monthly Performance'}
             </h3>
-            <DollarSign className="h-5 w-5 text-green-500 flex-shrink-0" />
+            <DollarSign className="h-5 w-5 text-white flex-shrink-0" />
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2">
@@ -536,22 +534,22 @@ export default function Dashboard() {
         <div className="ghost-card p-5 sm:p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-gray-300">Business Health</h3>
-            <Package className="h-5 w-5 text-green-500 flex-shrink-0" />
+            <Package className="h-5 w-5 text-white flex-shrink-0" />
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Active Services</span>
-              <span className="text-xl sm:text-2xl font-bold text-blue-400">{services.length}</span>
+              <span className="text-xl sm:text-2xl font-bold text-white">{services.length}</span>
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Avg. Order Value</span>
-              <span className="text-xl sm:text-2xl font-bold text-green-400">
+              <span className="text-xl sm:text-2xl font-bold text-white">
                 {formatCurrency(avgOrderValue)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-sm font-medium text-gray-400">Profit Margin</span>
-              <span className="text-xl sm:text-2xl font-bold text-purple-400">
+              <span className="text-xl sm:text-2xl font-bold text-white">
                 {businessProfitMargin}%
               </span>
             </div>
@@ -615,7 +613,7 @@ export default function Dashboard() {
               topServices.map((item, index) => (
                 <div key={index} className="flex items-center justify-between p-4 sm:p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors min-h-[72px]">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-base font-bold">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center text-base font-bold">
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -660,7 +658,7 @@ export default function Dashboard() {
                 const time = new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
                   <div key={transaction.id} className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors min-h-[64px]">
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-white' : 'bg-red-400'}`} />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base sm:text-lg truncate">{transaction.services?.product_service}</h3>
                       <p className="text-sm text-gray-400 mt-1 font-medium">{time}</p>
@@ -688,7 +686,7 @@ export default function Dashboard() {
       <div className="ghost-card p-5 lg:p-6">
         <div className="flex flex-col gap-4 mb-5 lg:mb-6">
           <h2 className="text-lg lg:text-xl font-bold text-white">Analytics Summary</h2>
-          
+
           {/* Mobile-optimized date controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3">
             {/* Navigation buttons - mobile: full width, desktop: fixed width */}
@@ -707,19 +705,19 @@ export default function Dashboard() {
                       newDate.setFullYear(newDate.getFullYear() - 1);
                       break;
                   }
-                  
+
                   const now = new Date();
                   const isCurrentPeriod = (
                     analyticsPeriodState.type === 'month' ?
                       newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
-                    analyticsPeriodState.type === 'quarter' ?
-                      newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
-                    newDate.getFullYear() === now.getFullYear()
+                      analyticsPeriodState.type === 'quarter' ?
+                        newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
+                        newDate.getFullYear() === now.getFullYear()
                   );
 
                   const position = isCurrentPeriod ? 'current' : 'prev';
                   const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
-                  
+
                   setAnalyticsPeriodState({
                     type: analyticsPeriodState.type,
                     date: newDate,
@@ -733,7 +731,7 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              
+
               <div className="flex-1 min-w-0">
                 <SearchableDropdown
                   options={[
@@ -756,7 +754,7 @@ export default function Dashboard() {
                   showSearchThreshold={10}
                 />
               </div>
-              
+
               <button
                 onClick={() => {
                   const newDate = new Date(analyticsPeriodState.date);
@@ -776,14 +774,14 @@ export default function Dashboard() {
                   const isCurrentPeriod = (
                     analyticsPeriodState.type === 'month' ?
                       newDate.getFullYear() === now.getFullYear() && newDate.getMonth() === now.getMonth() :
-                    analyticsPeriodState.type === 'quarter' ?
-                      newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
-                    newDate.getFullYear() === now.getFullYear()
+                      analyticsPeriodState.type === 'quarter' ?
+                        newDate.getFullYear() === now.getFullYear() && Math.floor(newDate.getMonth() / 3) === Math.floor(now.getMonth() / 3) :
+                        newDate.getFullYear() === now.getFullYear()
                   );
 
                   const position = isCurrentPeriod ? 'current' : 'next';
                   const label = formatAnalyticsPeriod(analyticsPeriodState.type, newDate, position);
-                  
+
                   setAnalyticsPeriodState({
                     type: analyticsPeriodState.type,
                     date: newDate,
@@ -815,7 +813,7 @@ export default function Dashboard() {
           <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-400 mb-2">Total Revenue</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.revenue >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(currentAnalyticsStats.revenue)}
               </p>
               <p className="text-sm text-gray-400">
@@ -828,7 +826,7 @@ export default function Dashboard() {
           <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-400 mb-2">Net Profit</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(currentAnalyticsStats.profit)}
               </p>
               <p className="text-sm text-gray-400">
@@ -841,7 +839,7 @@ export default function Dashboard() {
           <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
             <div className="flex flex-col">
               <p className="text-sm font-medium text-gray-400 mb-2">Profit Margin</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
+              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentProfitMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {currentProfitMargin.toFixed(1)}%
               </p>
               <p className="text-sm text-gray-400">

@@ -24,12 +24,12 @@ html, body, #root {
 }
 
 html {
-  background: #111827;
+  background: #0a0a0a;
   font-size: 16px; /* Prevent iOS zoom on input focus */
 }
 
 body { 
-  background: #111827;
+  background: #0a0a0a;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -66,8 +66,8 @@ body {
     width: 256px;
     max-width: 85vw;
     z-index: 50;
-    background-color: #1f2937;
-    border-right: 1px solid #374151;
+    background-color: #0a0a0a;
+    border-right: 1px solid #2a2a2a;
   }
   
   .sidebar.open {
@@ -156,18 +156,18 @@ body {
     min-height: 100vh;
     width: 256px;
     z-index: 40;
-    background-color: #1f2937;
-    border-right: 1px solid #374151;
+    background-color: #0a0a0a;
+    border-right: 1px solid #2a2a2a;
   }
   
   /* Ensure sidebar background extends full page height */
   body {
-    background-color: #1f2937;
+    background-color: #0a0a0a;
   }
   
   /* Main content area background */
   .main-content {
-    background-color: #111827;
+    background-color: #0a0a0a;
   }
   
   .main-content {
@@ -192,23 +192,23 @@ body {
 /* Component styles */
 @layer components {
   .ghost-card {
-    @apply bg-gray-800 border border-gray-700 rounded-xl shadow-lg backdrop-blur-sm;
+    @apply bg-zinc-900 border border-zinc-800 rounded-xl shadow-lg backdrop-blur-sm;
   }
   
   .ghost-button {
-    @apply bg-green-500 hover:bg-green-400 text-black font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25;
+    @apply bg-white hover:bg-gray-100 text-black font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-white/10;
   }
   
   .ghost-button-secondary {
-    @apply bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-gray-600;
+    @apply bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-zinc-700;
   }
   
   .ghost-input {
-    @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors;
+    @apply bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:border-white focus:ring-1 focus:ring-white/30 transition-colors;
   }
   
   .ghost-select {
-    @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors;
+    @apply bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-white focus:ring-1 focus:ring-white/30 transition-colors;
   }
 
   /* Enhanced SearchableDropdown styles */
@@ -221,27 +221,27 @@ body {
   }
 
   .searchable-dropdown-input {
-    @apply w-full py-3 pr-10 bg-gray-800 border border-gray-600 rounded-lg text-base min-h-[48px] transition-all duration-200 ease-in-out focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-700 hover:border-gray-500 hover:bg-gray-750;
+    @apply w-full py-3 pr-10 bg-zinc-900 border border-zinc-700 rounded-lg text-base min-h-[48px] transition-all duration-200 ease-in-out focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 disabled:bg-zinc-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:border-zinc-800 hover:border-zinc-600 hover:bg-zinc-850;
   }
 
   .searchable-dropdown-portal {
-    @apply fixed bg-gray-800 border border-gray-600 rounded-xl shadow-2xl z-[99999] backdrop-blur-sm transition-all duration-200 ease-out;
+    @apply fixed bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-[99999] backdrop-blur-sm transition-all duration-200 ease-out;
   }
 
   .searchable-dropdown-option {
-    @apply px-4 py-3 text-base cursor-pointer transition-all duration-200 min-h-[48px] flex items-center relative group hover:bg-gray-700 hover:text-white active:bg-gray-600 focus:outline-none focus:bg-gray-700 focus:ring-2 focus:ring-green-500/20;
+    @apply px-4 py-3 text-base cursor-pointer transition-all duration-200 min-h-[48px] flex items-center relative group hover:bg-zinc-800 hover:text-white active:bg-zinc-700 focus:outline-none focus:bg-zinc-800 focus:ring-2 focus:ring-white/20;
   }
 
   .searchable-dropdown-option-selected {
-    @apply bg-green-900/30 text-green-400 border-l-4 border-green-500;
+    @apply bg-white/10 text-white border-l-4 border-white;
   }
 
   .searchable-dropdown-option-highlighted {
-    @apply bg-green-500 text-black font-medium;
+    @apply bg-white text-black font-medium;
   }
 
   .searchable-dropdown-option-disabled {
-    @apply text-gray-500 cursor-not-allowed opacity-60;
+    @apply text-gray-600 cursor-not-allowed opacity-60;
   }
 }
 
@@ -438,7 +438,7 @@ button:focus-visible,
 input:focus-visible, 
 select:focus-visible, 
 textarea:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
 

@@ -35,10 +35,10 @@ export default function Settings() {
       {/* Currency Settings */}
       <div className="ghost-card p-6 mb-6">
         <div className="flex items-center gap-3 mb-6">
-          <DollarSign className="h-6 w-6 text-green-500" />
+          <DollarSign className="h-6 w-6 text-white" />
           <h2 className="text-xl font-bold text-white">Currency Settings</h2>
         </div>
-        
+
         <div className="space-y-6">
           {/* Current Currency Display */}
           <div>
@@ -48,21 +48,19 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCurrency('USD')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currency === 'USD'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${currency === 'USD'
+                  ? 'bg-white text-black'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
               >
                 USD
               </button>
               <button
                 onClick={() => setCurrency('TND')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currency === 'TND'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${currency === 'TND'
+                  ? 'bg-white text-black'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
               >
                 TND
               </button>
@@ -92,13 +90,13 @@ export default function Settings() {
                       handleExchangeRateSave();
                     }
                   }}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-colors"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-colors"
                   placeholder="3.00"
                 />
               </div>
               <button
                 onClick={handleExchangeRateSave}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                className="px-6 py-3 bg-white hover:bg-gray-100 text-black font-medium rounded-lg transition-colors"
               >
                 Save
               </button>
@@ -115,22 +113,22 @@ export default function Settings() {
         <SettingsIcon className="h-16 w-16 text-gray-500 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">More Settings Coming Soon</h2>
         <p className="text-gray-400 mb-6">
-          We're working on a comprehensive settings panel where you can customize your 
+          We're working on a comprehensive settings panel where you can customize your
           dashboard experience, manage data, and configure preferences.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
           <div className="p-4 bg-gray-700 rounded-lg">
-            <Database className="h-8 w-8 text-green-500 mx-auto mb-2" />
+            <Database className="h-8 w-8 text-white mx-auto mb-2" />
             <h3 className="font-semibold text-white">Data Management</h3>
             <p className="text-sm text-gray-400">Import/export your data</p>
           </div>
           <div className="p-4 bg-gray-700 rounded-lg">
-            <Shield className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+            <Shield className="h-8 w-8 text-white mx-auto mb-2" />
             <h3 className="font-semibold text-white">Security</h3>
             <p className="text-sm text-gray-400">Manage account security</p>
           </div>
           <div className="p-4 bg-gray-700 rounded-lg">
-            <Bell className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+            <Bell className="h-8 w-8 text-white mx-auto mb-2" />
             <h3 className="font-semibold text-white">Notifications</h3>
             <p className="text-sm text-gray-400">Configure alert preferences</p>
           </div>

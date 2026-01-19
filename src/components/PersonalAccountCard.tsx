@@ -49,9 +49,9 @@ export function PersonalAccountCard({ account, onView, onEdit, onDelete }: Perso
   const getStatusColor = () => {
     switch (account.status) {
       case 'available':
-        return 'bg-green-500/20 text-green-500 border-green-500/30';
+        return 'bg-white/10 text-white border-white/30';
       case 'assigned':
-        return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
+        return 'bg-white/20 text-white border-white/30';
       case 'expired':
         return 'bg-red-500/20 text-red-500 border-red-500/30';
       default:

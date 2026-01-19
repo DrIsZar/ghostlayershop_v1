@@ -609,7 +609,7 @@ export default function Reports() {
               <p className="text-gray-400 text-xs lg:text-sm">Total Revenue</p>
               <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.totalRevenue)}</p>
             </div>
-            <DollarSign className="h-6 w-6 lg:h-8 lg:w-8 text-green-500" />
+            <DollarSign className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
         
@@ -619,7 +619,7 @@ export default function Reports() {
               <p className="text-gray-400 text-xs lg:text-sm">Total Profit</p>
               <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.totalProfit)}</p>
             </div>
-            <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 text-blue-500" />
+            <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
         
@@ -629,7 +629,7 @@ export default function Reports() {
               <p className="text-gray-400 text-xs lg:text-sm">Transactions</p>
               <p className="text-lg lg:text-2xl font-bold text-white">{reportData.totalTransactions}</p>
             </div>
-            <Package className="h-6 w-6 lg:h-8 lg:w-8 text-purple-500" />
+            <Package className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
         
@@ -652,7 +652,7 @@ export default function Reports() {
               <p className="text-gray-400 text-xs lg:text-sm">Avg Transaction</p>
               <p className="text-lg lg:text-2xl font-bold text-white">{formatCurrency(reportData.averageTransactionValue)}</p>
             </div>
-            <Target className="h-6 w-6 lg:h-8 lg:w-8 text-indigo-500" />
+            <Target className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
         
@@ -682,14 +682,14 @@ export default function Reports() {
               <p className="text-gray-400 text-xs lg:text-sm">Profit Trend</p>
               <div className="flex items-center gap-2">
                 {reportData.profitTrends.trend === 'up' ? (
-                  <TrendingUp className="h-4 w-4 lg:h-5 lg:w-5 text-green-500" />
+                  <TrendingUp className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
                 ) : reportData.profitTrends.trend === 'down' ? (
                   <TrendingDown className="h-4 w-4 lg:h-5 lg:w-5 text-red-500" />
                 ) : (
                   <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5 text-gray-500" />
                 )}
                 <span className={`text-base lg:text-lg font-bold ${
-                  reportData.profitTrends.trend === 'up' ? 'text-green-500' : 
+                  reportData.profitTrends.trend === 'up' ? 'text-white' : 
                   reportData.profitTrends.trend === 'down' ? 'text-red-500' : 'text-gray-400'
                 }`}>
                   {reportData.profitTrends.trend === 'stable' ? 'Stable' : `${reportData.profitTrends.percentage.toFixed(1)}%`}
@@ -703,7 +703,7 @@ export default function Reports() {
       {/* Inventory Metrics */}
       <div className="mb-6 lg:mb-8">
         <h2 className="text-xl lg:text-2xl font-bold text-white mb-4 lg:mb-6 flex items-center gap-2">
-          <Archive className="h-6 w-6 text-green-400" />
+          <Archive className="h-6 w-6 text-white" />
           Inventory Overview
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -713,7 +713,7 @@ export default function Reports() {
                 <p className="text-gray-400 text-xs lg:text-sm">Total Pools</p>
                 <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.totalPools}</p>
               </div>
-              <Archive className="h-6 w-6 lg:h-8 lg:w-8 text-green-500" />
+              <Archive className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
           
@@ -723,7 +723,7 @@ export default function Reports() {
                 <p className="text-gray-400 text-xs lg:text-sm">Active Pools</p>
                 <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.activePools}</p>
               </div>
-              <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-blue-500" />
+              <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
           
@@ -744,7 +744,7 @@ export default function Reports() {
                 <p className="text-lg lg:text-2xl font-bold text-white">{reportData.inventoryData.utilizationRate.toFixed(1)}%</p>
                 <p className="text-xs text-gray-400">{reportData.inventoryData.usedSeats}/{reportData.inventoryData.totalSeats} seats</p>
               </div>
-              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-purple-500" />
+              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
         </div>
@@ -903,7 +903,7 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-green-400 font-bold text-sm lg:text-base">{formatCurrency(client.totalSpent)}</p>
+                  <p className="text-white font-bold text-sm lg:text-base">{formatCurrency(client.totalSpent)}</p>
                   <p className="text-gray-400 text-xs lg:text-sm">{client.transactions} transactions</p>
                 </div>
               </div>
@@ -1010,8 +1010,8 @@ export default function Reports() {
                 {reportData.topServices.map((service, index) => (
                   <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                     <td className="text-white py-2 lg:py-3 text-xs lg:text-sm">{service.name}</td>
-                    <td className="text-right text-green-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.revenue)}</td>
-                    <td className="text-right text-blue-400 py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.profit)}</td>
+                    <td className="text-right text-white py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.revenue)}</td>
+                    <td className="text-right text-white py-2 lg:py-3 text-xs lg:text-sm font-medium">{formatCurrency(service.profit)}</td>
                     <td className="text-right text-gray-300 py-2 lg:py-3 text-xs lg:text-sm font-medium">{service.count}</td>
                   </tr>
                 ))}

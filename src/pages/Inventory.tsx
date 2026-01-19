@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Package, 
-  Users, 
-  Clock, 
+import {
+  Plus,
+  Search,
+  Package,
+  Users,
+  Clock,
   AlertTriangle,
   ChevronDown,
   ChevronRight,
@@ -41,7 +41,7 @@ export default function Inventory() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPool, setSelectedPool] = useState<ResourcePool | null>(null);
-  
+
   // Personal accounts state
   const [personalAccounts, setPersonalAccounts] = useState<PersonalAccount[]>([]);
   const [filteredPersonalAccounts, setFilteredPersonalAccounts] = useState<PersonalAccount[]>([]);
@@ -49,18 +49,18 @@ export default function Inventory() {
   const [selectedPersonalAccount, setSelectedPersonalAccount] = useState<PersonalAccount | null>(null);
   const [personalAccountSearchTerm, setPersonalAccountSearchTerm] = useState('');
   const [personalAccountFilters, setPersonalAccountFilters] = useState<{ provider?: string; status?: string }>({});
-  
+
   // Filter state
   const [filters, setFilters] = useState<PoolFilter>({});
   const [archiveFilters, setArchiveFilters] = useState<PoolFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [matchingPoolIdsBySeat, setMatchingPoolIdsBySeat] = useState<Set<string>>(new Set());
-  
+
   // UI state
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
 
   useEffect(() => {
     const initializeData = async () => {
@@ -70,16 +70,16 @@ export default function Inventory() {
       await fetchPools();
       await fetchArchivedPools();
     };
-    
+
     initializeData();
-    
+
     // Set up periodic refresh every 5 minutes to auto-archive expired pools
     const interval = setInterval(async () => {
       await refreshPoolStatus();
       await fetchPools();
       await fetchArchivedPools();
     }, 5 * 60 * 1000); // 5 minutes
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -118,7 +118,7 @@ export default function Inventory() {
         setMatchingPoolIdsBySeat(new Set());
       }
     };
-    
+
     fetchMatchingPoolIds();
   }, [debouncedSearchTerm]);
 
@@ -305,7 +305,7 @@ export default function Inventory() {
       const statusPriority = { active: 0, paused: 1, completed: 2, expired: 3 };
       const statusDiff = statusPriority[a.status] - statusPriority[b.status];
       if (statusDiff !== 0) return statusDiff;
-      
+
       return new Date(a.end_at).getTime() - new Date(b.end_at).getTime();
     });
 
@@ -371,11 +371,11 @@ export default function Inventory() {
     try {
       const { error } = await deleteResourcePool(poolId);
       if (error) throw error;
-      
+
       // Remove from both active and archived pools
       setPools(prev => prev.filter(pool => pool.id !== poolId));
       setArchivedPools(prev => prev.filter(pool => pool.id !== poolId));
-      
+
       console.log('Pool deleted successfully');
     } catch (error) {
       console.error('Error deleting pool:', error);
@@ -383,7 +383,7 @@ export default function Inventory() {
   };
 
   const handlePoolUpdate = (updatedPool: ResourcePool) => {
-    setPools(prev => prev.map(pool => 
+    setPools(prev => prev.map(pool =>
       pool.id === updatedPool.id ? updatedPool : pool
     ));
     // If the detail modal is open for this pool, keep it in sync
@@ -394,11 +394,11 @@ export default function Inventory() {
     try {
       const { data, error } = await archiveResourcePool(poolId);
       if (error) throw error;
-      
+
       // Refresh both pools and archived pools to ensure consistency
       await fetchPools();
       await fetchArchivedPools();
-      
+
       console.log('Pool archived successfully');
     } catch (error) {
       console.error('Error archiving pool:', error);
@@ -413,11 +413,11 @@ export default function Inventory() {
         is_alive: true
       });
       if (error) throw error;
-      
+
       // Refresh both pools and archived pools to ensure consistency
       await fetchPools();
       await fetchArchivedPools();
-      
+
       console.log('Pool restored successfully');
     } catch (error) {
       console.error('Error restoring pool:', error);
@@ -460,7 +460,7 @@ export default function Inventory() {
     }
 
     // Sort by created date (newest first)
-    filtered.sort((a, b) => 
+    filtered.sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
@@ -477,7 +477,7 @@ export default function Inventory() {
 
   const handlePersonalAccountDelete = async (accountId: string) => {
     if (!confirm('Are you sure you want to delete this personal account?')) return;
-    
+
     try {
       const { error } = await deletePersonalAccount(accountId);
       if (error) throw error;
@@ -495,7 +495,7 @@ export default function Inventory() {
     const expired = pools.filter(p => p.status === 'expired').length;
     const totalSeats = pools.reduce((sum, p) => sum + p.max_seats, 0);
     const usedSeats = pools.reduce((sum, p) => sum + p.used_seats, 0);
-    
+
     // Archive stats
     const totalArchived = archivedPools.length;
     const recentlyArchived = archivedPools.filter(p => {
@@ -504,15 +504,15 @@ export default function Inventory() {
       weekAgo.setDate(weekAgo.getDate() - 7);
       return archiveDate >= weekAgo;
     }).length;
-    
-    return { 
-      total, 
-      active, 
-      expired, 
-      totalSeats, 
-      usedSeats, 
-      totalArchived, 
-      recentlyArchived 
+
+    return {
+      total,
+      active,
+      expired,
+      totalSeats,
+      usedSeats,
+      totalArchived,
+      recentlyArchived
     };
   };
 
@@ -522,7 +522,7 @@ export default function Inventory() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">Loading inventory...</p>
         </div>
       </div>
@@ -571,33 +571,30 @@ export default function Inventory() {
       <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
         <button
           onClick={() => setViewMode('personal')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'personal'
-              ? 'bg-green-600 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'personal'
+            ? 'bg-white text-black'
+            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
         >
           <User className="w-4 h-4 inline mr-2" />
           Personal Accounts
         </button>
         <button
           onClick={() => setViewMode('pools')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'pools'
-              ? 'bg-green-600 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'pools'
+            ? 'bg-white text-black'
+            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
           Pools
         </button>
         <button
           onClick={() => setViewMode('archive')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'archive'
-              ? 'bg-green-600 text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'archive'
+            ? 'bg-white text-white'
+            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
         >
           <Archive className="w-4 h-4 inline mr-2" />
           Archive
@@ -620,7 +617,7 @@ export default function Inventory() {
                     placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
                   />
                   {searchTerm && (
                     <button
@@ -746,8 +743,8 @@ export default function Inventory() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-green-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Total Pools</p>
@@ -758,8 +755,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Active</p>
@@ -771,8 +768,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Seats Used</p>
@@ -803,7 +800,7 @@ export default function Inventory() {
                   </button>
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+                    className="px-4 py-2 bg-white hover:bg-gray-100 text-white font-medium rounded-lg transition-colors duration-200"
                   >
                     Create Pool
                   </button>
@@ -844,7 +841,7 @@ export default function Inventory() {
                     placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
                   />
                   {searchTerm && (
                     <button
@@ -932,8 +929,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Recent (7 days)</p>
@@ -944,8 +941,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-green-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Active Pools</p>
@@ -956,8 +953,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Total Seats</p>
@@ -976,8 +973,8 @@ export default function Inventory() {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No archived pools found</h3>
                 <p className="text-gray-400 mb-4">
-                  {archivedPools.length === 0 
-                    ? "No pools have been archived yet." 
+                  {archivedPools.length === 0
+                    ? "No pools have been archived yet."
                     : "No archived pools match your current filters."
                   }
                 </p>
@@ -1025,7 +1022,7 @@ export default function Inventory() {
                     placeholder="Search by provider, email, or notes..."
                     value={personalAccountSearchTerm}
                     onChange={(e) => setPersonalAccountSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
                   />
                   {personalAccountSearchTerm && (
                     <button
@@ -1103,8 +1100,8 @@ export default function Inventory() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <User className="w-6 h-6 text-green-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Total Accounts</p>
@@ -1115,8 +1112,8 @@ export default function Inventory() {
 
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-blue-500" />
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Available</p>
@@ -1151,14 +1148,14 @@ export default function Inventory() {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No personal accounts found</h3>
                 <p className="text-gray-400 mb-4">
-                  {personalAccounts.length === 0 
-                    ? "Add your first personal account to get started." 
+                  {personalAccounts.length === 0
+                    ? "Add your first personal account to get started."
                     : "No accounts match your current filters."
                   }
                 </p>
                 <button
                   onClick={() => setIsPersonalAccountModalOpen(true)}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+                  className="px-4 py-2 bg-white hover:bg-gray-100 text-black font-medium rounded-lg transition-colors duration-200"
                 >
                   Add Personal Account
                 </button>

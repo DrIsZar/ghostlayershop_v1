@@ -727,7 +727,7 @@ export default function SubscriptionEditModal({
                     type="button"
                     onClick={() => setShowPoolEditModal(true)}
                     disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-green-400 hover:text-green-300 hover:bg-green-900/20 rounded transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-white/10 rounded transition-colors"
                   >
                     <Edit className="w-3 h-3" />
                     Edit Pool
@@ -736,7 +736,7 @@ export default function SubscriptionEditModal({
                     type="button"
                     onClick={handleSwitchPool}
                     disabled={isLoading}
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded transition-colors"
                   >
                     <Edit className="w-3 h-3" />
                     Switch Pool
@@ -785,7 +785,7 @@ export default function SubscriptionEditModal({
                         {resourcePool.provider.replace('_', ' ').toUpperCase()}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        resourcePool.status === 'active' ? 'bg-green-900/30 text-green-400' :
+                        resourcePool.status === 'active' ? 'bg-white/10 text-white' :
                         resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
                         'bg-red-900/30 text-red-400'
                       }`}>
@@ -832,7 +832,7 @@ export default function SubscriptionEditModal({
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">Status:</span>
                     <div className={`w-2 h-2 rounded-full ${
-                      resourcePool.is_alive ? 'bg-green-500' : 'bg-red-500'
+                      resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
                     }`} />
                   </div>
                 </div>
@@ -859,10 +859,10 @@ export default function SubscriptionEditModal({
 
           {/* Link Resource Pool Button (if no pool linked) */}
           {!resourcePool && !showResourceLinking && selectedService && (
-            <div className="p-4 bg-blue-900/30 border border-blue-700/50 rounded-lg">
+            <div className="p-4 bg-zinc-800/50 border border-white/50 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-300 font-medium">Resource Pool Linking</p>
+                  <p className="text-gray-200 font-medium">Resource Pool Linking</p>
                   <p className="text-xs text-blue-200 mt-1">
                     Link this subscription to a resource pool for seat management
                   </p>

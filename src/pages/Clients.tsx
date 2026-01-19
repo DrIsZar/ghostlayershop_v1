@@ -198,7 +198,7 @@ export default function Clients() {
                 placeholder="Search by name, email, telegram, discord, or source..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
               />
             </div>
           </div>
@@ -237,8 +237,8 @@ export default function Clients() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-500" />
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <Users className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Clients</p>
@@ -249,8 +249,8 @@ export default function Clients() {
 
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-500" />
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className="text-gray-400 text-sm">Resellers</p>
@@ -263,8 +263,8 @@ export default function Clients() {
 
         <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-500" />
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
@@ -335,7 +335,7 @@ export default function Clients() {
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500 mr-3"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
                       Loading clients...
                     </div>
                   </td>
@@ -382,8 +382,8 @@ export default function Clients() {
                     <td className="px-4 md:px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
                         client.type === 'reseller' 
-                          ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30' 
-                          : 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30'
+                          ? 'bg-white/10 text-white ring-1 ring-purple-500/30' 
+                          : 'bg-white/20 text-white ring-1 ring-white/30'
                       }`}>
                         {client.type === 'reseller' ? 'Reseller' : 'Client'}
                       </span>
@@ -391,8 +391,8 @@ export default function Clients() {
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
                       <div className="space-y-1">
                         {client.email && <div className="text-white">{client.email}</div>}
-                        {client.telegram && <div className="text-blue-400">@{client.telegram}</div>}
-                        {client.discord && <div className="text-indigo-400">@{client.discord}</div>}
+                        {client.telegram && <div className="text-white">@{client.telegram}</div>}
+                        {client.discord && <div className="text-white">@{client.discord}</div>}
                         {!client.email && !client.telegram && !client.discord && (
                           <span className="text-gray-500">No contact info</span>
                         )}
@@ -431,7 +431,7 @@ export default function Clients() {
                             setSelectedClient(client);
                             setIsModalOpen(true);
                           }}
-                          className="p-1 md:p-2 text-gray-400 hover:text-green-500 transition-colors rounded"
+                          className="p-1 md:p-2 text-gray-400 hover:text-white transition-colors rounded"
                           title="Edit client"
                         >
                           <Edit className="h-4 w-4" />

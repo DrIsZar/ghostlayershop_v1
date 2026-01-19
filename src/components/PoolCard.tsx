@@ -66,9 +66,9 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
 
   const getStatusColor = (status: string) => {
     const colors = {
-      active: 'bg-green-900/30 text-green-400 border-green-700/50',
+      active: 'bg-white/10 text-white border-white/50',
       paused: 'bg-slate-900/30 text-slate-400 border-slate-700/50',
-      completed: 'bg-indigo-900/30 text-indigo-400 border-indigo-700/50',
+      completed: 'bg-zinc-800/50 text-white border-white/50',
       overdue: 'bg-amber-900/30 text-amber-400 border-amber-700/50',
       expired: 'bg-red-900/30 text-red-400 border-red-700/50',
     };
@@ -105,7 +105,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
     const usage = pool.used_seats / pool.max_seats;
     if (usage >= 0.9) return 'bg-red-500';
     if (usage >= 0.7) return 'bg-amber-500';
-    return 'bg-green-500';
+    return 'bg-white';
   };
 
   const handleCopy = async (text: string, type: 'login' | 'password') => {
@@ -208,7 +208,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
             </span>
             
             {/* Alive Indicator */}
-            <div className={`w-2 h-2 rounded-full ${pool.is_alive ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-2 h-2 rounded-full ${pool.is_alive ? 'bg-white' : 'bg-red-500'}`} />
             
             {/* Menu */}
             <div className="relative">
@@ -285,7 +285,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
                     }}
                     className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${
                       isArchived 
-                        ? 'text-green-400 hover:bg-green-900/20' 
+                        ? 'text-white hover:bg-white/10' 
                         : 'text-amber-400 hover:bg-amber-900/20'
                     }`}
                   >

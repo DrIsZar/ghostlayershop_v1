@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Package, 
-  DollarSign, 
-  BarChart3, 
-  Users, 
+import {
+  LayoutDashboard,
+  Package,
+  DollarSign,
+  BarChart3,
+  Users,
   Settings,
-  Ghost,
   Menu,
   X,
   Clock,
@@ -18,7 +17,7 @@ import CurrencyToggle from './CurrencyToggle';
 export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   // Close sidebar when route changes
   useEffect(() => {
     setSidebarOpen(false);
@@ -26,7 +25,7 @@ export default function Layout() {
 
   // Hide currency toggle on subscriptions page (no currency values displayed)
   const showCurrencyToggle = location.pathname !== '/subscriptions';
-  
+
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (sidebarOpen) {
@@ -34,12 +33,12 @@ export default function Layout() {
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
   }, [sidebarOpen]);
-  
+
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Services Manager', href: '/services', icon: Package },
@@ -61,9 +60,9 @@ export default function Layout() {
       <button
         onClick={() => setSidebarOpen(true)}
         className="lg:hidden fixed z-50 p-3 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-        style={{ 
-          top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`, 
-          left: `calc(1rem + env(safe-area-inset-left))` 
+        style={{
+          top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
+          left: `calc(1rem + env(safe-area-inset-left))`
         }}
         aria-label="Open menu"
       >
@@ -72,7 +71,7 @@ export default function Layout() {
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={closeSidebar}
         />
@@ -80,21 +79,21 @@ export default function Layout() {
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-full w-64 max-w-[85vw] bg-gray-800 border-r border-gray-700 z-50
+        fixed left-0 top-0 h-full w-64 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:h-screen lg:min-h-screen
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700" style={{
+        <div className="flex items-center justify-between p-4 border-b border-zinc-800" style={{
           paddingTop: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
           minHeight: 'calc(80px + env(safe-area-inset-top) + 0.5rem)'
         }}>
           <div className="flex items-center gap-3">
-            <Ghost className="h-8 w-8 text-green-500 flex-shrink-0" />
+            <img src="/images/upgrade-tn-logo.png" alt="Upgrade TN" className="h-10 w-10 flex-shrink-0 object-contain" />
             <div>
-              <h1 className="text-lg font-bold text-white">GhostLayer</h1>
-              <p className="text-xs text-gray-400">Shop Dashboard</p>
+              <h1 className="text-lg font-bold text-white">Upgrade TN</h1>
+              <p className="text-xs text-gray-400">Dashboard</p>
             </div>
           </div>
           <button
@@ -105,15 +104,15 @@ export default function Layout() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        
+
         {/* Currency Toggle in Sidebar (Mobile) */}
         {/* Currency Toggle in Sidebar (Mobile) */}
         {showCurrencyToggle && (
-          <div className="px-3 py-3 border-b border-gray-700 lg:hidden">
+          <div className="px-3 py-3 border-b border-zinc-800 lg:hidden">
             <CurrencyToggle />
           </div>
         )}
-        
+
         {/* Navigation */}
         <nav className="px-3 pb-4 overflow-y-auto" style={{
           height: 'calc(100vh - 80px - env(safe-area-inset-top) - 0.5rem)',
@@ -128,9 +127,9 @@ export default function Layout() {
                 onClick={closeSidebar}
                 className={`
                   flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors
-                  ${isActive 
-                    ? 'bg-green-500/20 text-green-500' 
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ${isActive
+                    ? 'bg-white/10 text-white border-l-2 border-white'
+                    : 'text-gray-400 hover:bg-zinc-800 hover:text-white'
                   }
                 `}
               >
@@ -143,26 +142,26 @@ export default function Layout() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-h-screen bg-gray-900 lg:ml-64">
-        {/* Currency Toggle - Desktop Header (Fixed Position) */}
-        {showCurrencyToggle && (
-          <div 
-            className="hidden lg:flex fixed top-0 right-0 z-50"
-            style={{
-              top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
-              right: `calc(1rem + env(safe-area-inset-right))`
-            }}
-          >
-            <CurrencyToggle />
-          </div>
-        )}
-        
-        <main className="h-full p-4 lg:p-6" style={{
+      <div className="flex-1 min-h-screen bg-black lg:ml-64">
+        <main className="h-full p-4 lg:p-6 relative" style={{
           paddingTop: `calc(80px + env(safe-area-inset-top) + 0.5rem)`,
           paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,
           paddingLeft: `calc(1rem + env(safe-area-inset-left))`,
           paddingRight: `calc(1rem + env(safe-area-inset-right))`
         }}>
+          {/* Currency Toggle - Desktop Header (Absolute Position, scrolls with content) */}
+          {showCurrencyToggle && (
+            <div
+              className="hidden lg:flex absolute z-50"
+              style={{
+                top: '1rem',
+                right: '1rem'
+              }}
+            >
+              <CurrencyToggle />
+            </div>
+          )}
+
           <Outlet />
         </main>
       </div>

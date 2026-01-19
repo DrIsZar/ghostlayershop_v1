@@ -88,7 +88,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
   const handleLogoUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setLogoUrlInput(url);
-    
+
     if (url.trim()) {
       // Clear any existing file upload
       setLogoFile(null);
@@ -115,23 +115,23 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    
+
     // Remove logo from localStorage for immediate UI updates
     if (formData.product_service) {
       const logoKey = `service_logo_${formData.product_service.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
       localStorage.removeItem(logoKey);
     }
-    
+
     // Dispatch custom event for immediate UI update
     window.dispatchEvent(new CustomEvent('logoUpdated'));
-    
+
     // Notify parent of logo change
     onLogoChange?.();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setIsUploading(true);
       let finalLogoUrl = '';
@@ -141,13 +141,13 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
         // Upload new logo file
         const uploadedFile = await uploadServiceLogo(logoFile, formData.product_service);
         finalLogoUrl = uploadedFile.url;
-        
+
         // Dispatch custom event for immediate UI update
         window.dispatchEvent(new CustomEvent('logoUpdated'));
       } else if (logoInputType === 'url' && logoUrlInput.trim()) {
         // Use provided URL and store it in localStorage for immediate UI updates
         finalLogoUrl = logoUrlInput.trim();
-        
+
         // Store URL-based logo in localStorage for immediate UI updates
         const logoKey = `service_logo_${formData.product_service.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
         const urlBasedLogo = {
@@ -158,7 +158,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           timestamp: Date.now()
         };
         localStorage.setItem(logoKey, JSON.stringify(urlBasedLogo));
-        
+
         // Dispatch custom event for immediate UI update
         window.dispatchEvent(new CustomEvent('logoUpdated'));
       } else if (formData.logo_url) {
@@ -254,33 +254,31 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                   </button>
                 </div>
               )}
-              
+
               {/* Input Type Toggle */}
               <div className="flex items-center gap-2 p-1 bg-gray-800 rounded-lg">
                 <button
                   type="button"
                   onClick={() => setLogoInputType('file')}
-                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
-                    logoInputType === 'file'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${logoInputType === 'file'
+                    ? 'bg-white text-black shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    }`}
                 >
                   Upload File
                 </button>
                 <button
                   type="button"
                   onClick={() => setLogoInputType('url')}
-                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
-                    logoInputType === 'url'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${logoInputType === 'url'
+                    ? 'bg-white text-black shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                    }`}
                 >
                   Use URL
                 </button>
               </div>
-              
+
               {/* File Upload Input */}
               {logoInputType === 'file' && (
                 <div className="space-y-2">
@@ -311,7 +309,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                   </p>
                 </div>
               )}
-              
+
               {/* URL Input */}
               {logoInputType === 'url' && (
                 <div className="space-y-2">
@@ -351,7 +349,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
               type="text"
               value={formData.product_service}
               onChange={(e) => setFormData({ ...formData, product_service: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
               placeholder="Enter service name"
               required
             />
@@ -395,7 +393,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
               type="text"
               value={formData.duration}
               onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
               placeholder="e.g. 1 month, 12 months"
               required
             />
@@ -407,7 +405,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
               type="text"
               value={formData.info_needed}
               onChange={(e) => setFormData({ ...formData, info_needed: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
               placeholder="e.g. Email, Email+Password"
               required
             />
@@ -427,7 +425,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                     setFormData({ ...formData, cost: parsedValue });
                   }
                 }}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
                 placeholder="0.00"
                 required
                 min="0"
@@ -447,7 +445,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
                     setFormData({ ...formData, selling_price: parsedValue });
                   }
                 }}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
                 placeholder="0.00"
                 required
                 min="0"
@@ -468,12 +466,12 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
           <div className="flex gap-3 pt-6 border-t border-gray-700">
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 text-black font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
               disabled={isUploading}
             >
               {isUploading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                   {service ? 'Updating...' : 'Adding...'}
                 </>
               ) : (

@@ -20,11 +20,10 @@ export default function CurrencyToggle() {
       </span>
       <div className="w-9 h-5 bg-gray-600 rounded-full relative transition-colors">
         <div
-          className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-md ${
-            currency === 'USD' 
-              ? 'left-0.5 bg-blue-500' 
-              : 'left-[18px] bg-green-500'
-          }`}
+          className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-md ${currency === 'USD'
+            ? 'left-0.5 bg-white text-black'
+            : 'left-[18px] bg-white text-black'
+            }`}
         />
       </div>
     </button>
