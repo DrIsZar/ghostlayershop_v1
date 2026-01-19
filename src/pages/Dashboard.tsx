@@ -486,7 +486,7 @@ export default function Dashboard() {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 lg:mb-8">
         {/* Dynamic Overview */}
-        <div className="ghost-card p-5 sm:p-6">
+        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-1">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Today\'s Overview' : 'Current Month Overview'}
@@ -495,7 +495,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-5">
             <div>
-              <p className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 transition-colors ${currentStats.profit >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
                 {formatCurrency(currentStats.profit)}
               </p>
               <p className="text-sm text-gray-400">
@@ -523,7 +523,7 @@ export default function Dashboard() {
         </div>
 
         {/* Dynamic Performance Comparison */}
-        <div className="ghost-card p-5 sm:p-6">
+        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-2">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-gray-300">
               {mainDashboardView === 'daily' ? 'Daily Performance' : 'Monthly Performance'}
@@ -559,7 +559,7 @@ export default function Dashboard() {
         </div>
 
         {/* Business Health */}
-        <div className="ghost-card p-5 sm:p-6">
+        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-3">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-gray-300">Business Health</h3>
             <Package className="h-5 w-5 text-white flex-shrink-0" />
@@ -585,7 +585,7 @@ export default function Dashboard() {
         </div>
 
         {/* Cash Flow Quick View */}
-        <div className="ghost-card p-5 sm:p-6">
+        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-4">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-gray-300">Cash Flow</h3>
             <TrendingUp className="h-5 w-5 text-white flex-shrink-0" />
@@ -593,7 +593,7 @@ export default function Dashboard() {
           {cashFlowForecast ? (
             <div className="space-y-4">
               <div>
-                <p className={`text-3xl sm:text-4xl font-bold mb-2 ${currentCashPosition >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <p className={`text-3xl sm:text-4xl font-bold mb-2 transition-colors ${currentCashPosition >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
                   {formatCurrency(currentCashPosition)}
                 </p>
                 <p className="text-xs text-gray-400">Current Balance</p>
@@ -689,7 +689,11 @@ export default function Dashboard() {
           <div className="space-y-3 sm:space-y-4">
             {topServices.length > 0 ? (
               topServices.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-4 sm:p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors min-h-[72px]">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 sm:p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-all hover-lift-subtle animate-fade-in-up min-h-[72px]"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center text-base font-bold">
                       {index + 1}
@@ -735,7 +739,11 @@ export default function Dashboard() {
                 const profit = transaction.selling_price - transaction.cost_at_sale;
                 const time = new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
-                  <div key={transaction.id} className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors min-h-[64px]">
+                  <div
+                    key={transaction.id}
+                    className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-all hover-lift-subtle animate-slide-in-right min-h-[64px]"
+                    style={{ animationDelay: `${recentTransactions.indexOf(transaction) * 0.05}s` }}
+                  >
                     <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-white' : 'bg-red-400'}`} />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white text-base sm:text-lg truncate">{transaction.services?.product_service}</h3>

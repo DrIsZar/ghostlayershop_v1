@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MoreVertical, 
-  Eye, 
-  Edit, 
-  Archive, 
-  Copy, 
-  Pause, 
-  Play, 
-  Heart, 
+import {
+  MoreVertical,
+  Eye,
+  Edit,
+  Archive,
+  Copy,
+  Pause,
+  Play,
+  Heart,
   HeartOff,
   Clock,
   Users,
@@ -43,21 +43,21 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
     // Try to get logo synchronously first
     const logo = getProviderLogo(pool.provider);
     setProviderLogo(logo);
-    
+
     // If not found, try async lookup
     if (!logo) {
-      getProviderLogoAsync(pool.provider).then(setProviderLogo).catch(() => {});
+      getProviderLogoAsync(pool.provider).then(setProviderLogo).catch(() => { });
     }
-    
+
     // Listen for logo updates
     const handleLogoUpdate = () => {
       const newLogo = getProviderLogo(pool.provider);
       if (newLogo) setProviderLogo(newLogo);
     };
-    
+
     window.addEventListener('logoUpdated', handleLogoUpdate);
     window.addEventListener('storage', handleLogoUpdate);
-    
+
     return () => {
       window.removeEventListener('logoUpdated', handleLogoUpdate);
       window.removeEventListener('storage', handleLogoUpdate);
@@ -80,7 +80,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
     const endDate = new Date(pool.end_at);
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'Expired';
     if (diffDays === 0) return 'Expires today';
     if (diffDays === 1) return 'Expires tomorrow';
@@ -94,7 +94,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
     const endDate = new Date(pool.end_at);
     const diffTime = endDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'text-red-400';
     if (diffDays <= 1) return 'text-red-400';
     if (diffDays <= 3) return 'text-amber-400';
@@ -164,17 +164,26 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
     }
   };
 
+  // Check if pool is expiring soon (within 3 days)
+  const isExpiringSoon = () => {
+    const now = new Date();
+    const endDate = new Date(pool.end_at);
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 3;
+  };
+
   return (
-    <div className="w-full max-w-full rounded-2xl border border-gray-700/50 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 group">
+    <div className="w-full max-w-full rounded-2xl border border-gray-700/50 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 group hover-lift-subtle">
       {/* Header - Mobile Viewport Optimized */}
       <div className="p-3 sm:p-4 border-b border-gray-700/30">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
               {providerLogo ? (
-                <img 
-                  src={providerLogo} 
-                  alt={`${pool.provider} logo`} 
+                <img
+                  src={providerLogo}
+                  alt={`${pool.provider} logo`}
                   className="w-full h-full object-cover"
                   loading="lazy"
                   decoding="async"
@@ -200,16 +209,16 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {/* Status Badge */}
-            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium border ${getStatusColor(pool.status)}`}>
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium border transition-all ${getStatusColor(pool.status)}`}>
               {pool.status}
             </span>
-            
-            {/* Alive Indicator */}
-            <div className={`w-2 h-2 rounded-full ${pool.is_alive ? 'bg-white' : 'bg-red-500'}`} />
-            
+
+            {/* Alive Indicator with pulse for expiring pools */}
+            <div className={`w-2 h-2 rounded-full transition-all ${pool.is_alive ? 'bg-white' : 'bg-red-500'} ${pool.is_alive && isExpiringSoon() ? 'animate-pulse' : ''}`} />
+
             {/* Menu */}
             <div className="relative">
               <button
@@ -219,7 +228,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
               >
                 <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
-            
+
               {showMenu && (
                 <div className="absolute right-0 top-6 sm:top-8 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[140px] sm:min-w-[160px]">
                   <button
@@ -283,11 +292,10 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
                       }
                       setShowMenu(false);
                     }}
-                    className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${
-                      isArchived 
-                        ? 'text-white hover:bg-white/10' 
+                    className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${isArchived
+                        ? 'text-white hover:bg-white/10'
                         : 'text-amber-400 hover:bg-amber-900/20'
-                    }`}
+                      }`}
                   >
                     {isArchived ? <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" /> : <Archive className="w-3 h-3 sm:w-4 sm:h-4" />}
                     {isArchived ? 'Restore' : 'Archive'}
@@ -325,7 +333,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
             <Copy className="w-3 h-3" />
           </button>
         </div>
-        
+
         {pool.login_secret && (
           <div className="flex items-center gap-1 sm:gap-2">
             <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Password:</span>
@@ -374,7 +382,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
           </span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-1 sm:h-2">
-          <div 
+          <div
             className={`h-full rounded-full transition-all duration-300 ${getSeatUsageColor()}`}
             style={{ width: `${(pool.used_seats / pool.max_seats) * 100}%` }}
           />

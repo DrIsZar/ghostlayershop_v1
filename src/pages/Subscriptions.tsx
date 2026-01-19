@@ -1198,8 +1198,8 @@ export default function Subscriptions() {
         <button
           onClick={() => setArchiveViewMode('subscriptions')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'subscriptions'
-              ? 'bg-white text-black'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            ? 'bg-white text-black'
+            : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
@@ -1208,8 +1208,8 @@ export default function Subscriptions() {
         <button
           onClick={() => setArchiveViewMode('archive')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'archive'
-              ? 'bg-white text-black'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            ? 'bg-white text-black'
+            : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
         >
           <Archive className="w-4 h-4 inline mr-2" />
@@ -1646,8 +1646,9 @@ export default function Subscriptions() {
                                     cardRefs.current[globalIndex] = el;
                                   }
                                 }}
-                                className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                                className={`w-full min-w-0 transition-all animate-fade-in-up ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
                                   }`}
+                                style={{ animationDelay: `${(globalIndex % 10) * 0.05}s` }}
                               >
                                 <SubscriptionCard
                                   subscription={subscription}

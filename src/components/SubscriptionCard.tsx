@@ -14,8 +14,13 @@ import { getNowInTunisia, toTunisiaTime } from '../lib/dateUtils';
 // Status Badge Component
 const StatusBadge: React.FC<{ status: Subscription['status'] }> = ({ status }) => {
   const badge = getStatusBadge(status);
+  // Add pulse animation for overdue status
+  const badgeClasses = status === 'overdue'
+    ? `px-3 py-1 rounded-full text-xs font-medium ${badge.bgColor} ${badge.color} animate-pulse`
+    : `px-3 py-1 rounded-full text-xs font-medium ${badge.bgColor} ${badge.color}`;
+
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge.bgColor} ${badge.color}`}>
+    <span className={badgeClasses}>
       {badge.text}
     </span>
   );
@@ -267,11 +272,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
   return (
     <div
       onClick={() => onView(subscription)}
-      className={`w-full max-w-full rounded-2xl border transition-all duration-200 cursor-pointer group ${subscription.status === 'completed'
+      className={`w-full max-w-full rounded-2xl border transition-all duration-200 cursor-pointer group hover-lift-subtle ${subscription.status === 'completed'
         ? 'bg-gray-800/30 border-gray-700/50'
         : subscription.status === 'archived'
           ? 'bg-gray-800/20 border-gray-700/30'
-          : 'bg-gray-800/50 border-gray-700/50'
+          : subscription.status === 'overdue'
+            ? 'bg-gray-800/50 border-gray-700/50 hover:border-red-800/50'
+            : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600/70'
         }`}
     >
       {/* Header - Mobile Viewport Optimized */}
@@ -289,6 +296,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
                     className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
+                    fetchPriority="low"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
@@ -691,5 +699,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = React.memo(({
         </div>
       </div>
     </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better memoization
+  return (
+    prevProps.subscription.id === nextProps.subscription.id &&
+    prevProps.subscription.status === nextProps.subscription.status &&
+    prevProps.subscription.nextRenewalAt === nextProps.subscription.nextRenewalAt &&
+    prevProps.subscription.customNextRenewalAt === nextProps.subscription.customNextRenewalAt &&
+    prevProps.subscription.notes === nextProps.subscription.notes &&
+    prevProps.subscription.resourcePoolId === nextProps.subscription.resourcePoolId &&
+    prevProps.isArchived === nextProps.isArchived
   );
 });

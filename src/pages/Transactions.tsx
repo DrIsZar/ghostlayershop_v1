@@ -269,9 +269,9 @@ export default function Transactions() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 animate-fade-in-up hover-lift stagger-1">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover-rotate-icon transition-transform">
               <div className="w-6 h-6 bg-white rounded-full"></div>
             </div>
             <div>
@@ -280,9 +280,9 @@ export default function Transactions() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 animate-fade-in-up hover-lift stagger-2">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center hover-rotate-icon transition-transform">
               <div className="w-6 h-6 bg-white rounded-full"></div>
             </div>
             <div>
@@ -291,9 +291,9 @@ export default function Transactions() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 animate-fade-in-up hover-lift stagger-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center hover-rotate-icon transition-transform">
               <div className="w-6 h-6 bg-red-500 rounded-full"></div>
             </div>
             <div>
@@ -302,14 +302,14 @@ export default function Transactions() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 animate-fade-in-up hover-lift stagger-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover-rotate-icon transition-transform">
               <div className={`w-6 h-6 rounded-full ${totalProfit >= 0 ? 'bg-green-400' : 'bg-red-500'}`}></div>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Net Profit</p>
-              <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <p className={`text-2xl font-bold transition-colors ${totalProfit >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
                 {formatCurrency(totalProfit)}
               </p>
             </div>
@@ -441,7 +441,7 @@ export default function Transactions() {
               {displayedTransactions.map((transaction) => {
                 const profit = transaction.selling_price - transaction.cost_at_sale;
                 return (
-                  <tr key={transaction.id} className="hover:bg-gray-700/30 transition-colors">
+                  <tr key={transaction.id} className="hover:bg-gray-700/30 transition-all group hover-brighten">
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
                       {new Date(transaction.date).toLocaleDateString()}
                     </td>
@@ -458,7 +458,7 @@ export default function Transactions() {
                     </td>
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">{formatCurrency(transaction.cost_at_sale)}</td>
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">{formatCurrency(transaction.selling_price)}</td>
-                    <td className={`px-4 md:px-6 py-4 font-bold text-sm ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <td className={`px-4 md:px-6 py-4 font-bold text-sm transition-colors ${profit >= 0 ? 'text-green-400 group-hover:text-green-300' : 'text-red-400'}`}>
                       {formatCurrency(profit)}
                     </td>
                     <td className="px-4 md:px-6 py-4 text-gray-300 text-sm max-w-xs truncate">

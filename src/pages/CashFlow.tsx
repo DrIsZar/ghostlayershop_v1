@@ -338,18 +338,18 @@ export default function CashFlow() {
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="ghost-card p-5">
+                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-1">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Current Balance</h3>
                         <DollarSign className="h-5 w-5 text-white" />
                     </div>
-                    <p className={`text-3xl font-bold ${forecast.summary.startingBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-3xl font-bold transition-colors ${forecast.summary.startingBalance >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
                         {formatCurrency(forecast.summary.startingBalance)}
                     </p>
                     <p className="text-xs text-gray-400 mt-2">From transaction history</p>
                 </div>
 
-                <div className="ghost-card p-5">
+                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-2">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Projected Balance</h3>
                         {forecast.summary.endingBalance > forecast.summary.startingBalance ? (
@@ -358,7 +358,7 @@ export default function CashFlow() {
                             <TrendingDown className="h-5 w-5 text-red-400" />
                         )}
                     </div>
-                    <p className={`text-3xl font-bold ${forecast.summary.endingBalance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-3xl font-bold transition-colors ${forecast.summary.endingBalance >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
                         {formatCurrency(forecast.summary.endingBalance)}
                     </p>
                     <p className={`text-xs mt-2 ${forecast.summary.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -366,7 +366,7 @@ export default function CashFlow() {
                     </p>
                 </div>
 
-                <div className="ghost-card p-5">
+                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-3">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Cash Runway</h3>
                         <Calendar className="h-5 w-5 text-white" />
@@ -379,12 +379,12 @@ export default function CashFlow() {
                     </p>
                 </div>
 
-                <div className="ghost-card p-5">
+                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-4">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Monthly Recurring</h3>
                         <Activity className="h-5 w-5 text-white" />
                     </div>
-                    <p className="text-3xl font-bold text-green-400">
+                    <p className="text-3xl font-bold text-green-400 hover-glow-green transition-colors">
                         {formatCurrency(forecast.summary.monthlyRecurringRevenue)}
                     </p>
                     <p className="text-xs text-gray-400 mt-2">MRR from subscriptions</p>
@@ -404,8 +404,8 @@ export default function CashFlow() {
                                 <div
                                     key={index}
                                     className={`flex items-start gap-3 p-3 rounded-lg ${isWarning ? 'bg-red-500/10 border border-red-500/20' :
-                                            isPositive ? 'bg-green-500/10 border border-green-500/20' :
-                                                'bg-gray-700/30 border border-gray-600/30'
+                                        isPositive ? 'bg-green-500/10 border border-green-500/20' :
+                                            'bg-gray-700/30 border border-gray-600/30'
                                         }`}
                                 >
                                     {isWarning ? (
@@ -424,8 +424,8 @@ export default function CashFlow() {
                             <div
                                 key={`critical-${index}`}
                                 className={`flex items-start gap-3 p-3 rounded-lg ${critical.type === 'negative' || critical.type === 'low_balance'
-                                        ? 'bg-red-500/10 border border-red-500/20'
-                                        : 'bg-blue-500/10 border border-blue-500/20'
+                                    ? 'bg-red-500/10 border border-red-500/20'
+                                    : 'bg-blue-500/10 border border-blue-500/20'
                                     }`}
                             >
                                 <Calendar className={`h-5 w-5 flex-shrink-0 mt-0.5 ${critical.type === 'negative' || critical.type === 'low_balance' ? 'text-red-400' : 'text-blue-400'
