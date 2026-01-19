@@ -16,10 +16,14 @@ const Settings = lazy(() => import('./pages/Settings'));
 
 // Loading fallback component
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-900">
+  <div className="flex items-center justify-center min-h-screen bg-black">
     <div className="text-center">
-      <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-      <p className="text-gray-400 text-lg">Loading...</p>
+      <div className="relative w-16 h-16 mx-auto mb-6">
+        <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
+        <div className="absolute inset-0 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+      <p className="text-gray-400 text-base font-medium">Loading dashboard...</p>
+      <p className="text-gray-600 text-sm mt-2">Upgrade TN</p>
     </div>
   </div>
 );
