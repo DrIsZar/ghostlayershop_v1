@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CreatePersonalAccountData, PersonalAccount } from '../types/inventory';
-import { SERVICE_PROVISIONING } from '../constants/provisioning';
 import { createPersonalAccount, updatePersonalAccount } from '../lib/inventory';
 import { toast } from '../lib/toast';
 import SearchableDropdown from './SearchableDropdown';
@@ -34,8 +33,13 @@ export function PersonalAccountFormModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [providers, setProviders] = useState<string[]>([]);
 
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    // Only initialize form when modal transitions from closed to open
+    // Not when component re-renders while modal is already open (e.g., browser tab switch)
+    if (isOpen && !wasOpen.current) {
       if (account) {
         setFormData({
           provider: account.provider,
@@ -54,10 +58,12 @@ export function PersonalAccountFormModal({
         });
       }
       setErrors({});
-      
+
       // Fetch providers for personal upgrades
       getProvidersByServiceType('personal_upgrade').then(setProviders);
     }
+
+    wasOpen.current = isOpen;
   }, [account, isOpen]);
 
   const handleInputChange = (field: keyof CreatePersonalAccountData, value: any) => {
@@ -86,7 +92,7 @@ export function PersonalAccountFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }

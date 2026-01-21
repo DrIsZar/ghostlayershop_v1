@@ -40,9 +40,9 @@ interface Client {
   email: string;
 }
 
-export default function SubscriptionModal({ 
-  isOpen, 
-  onClose, 
+export default function SubscriptionModal({
+  isOpen,
+  onClose,
   onSubscriptionCreated,
   onSubscriptionUpdated,
   saleId,
@@ -70,6 +70,9 @@ export default function SubscriptionModal({
   const [isEditing, setIsEditing] = useState(false);
   const updateButtonRef = useRef<HTMLButtonElement>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
 
   // Update form data when initial values change
   useEffect(() => {
@@ -103,12 +106,14 @@ export default function SubscriptionModal({
     }
   }, [editingSubscription]);
 
-  // Reset form when modal opens for new subscription
+  // Reset form when modal transitions from closed to open for new subscription
+  // But not when component re-renders while modal is already open (e.g., browser tab switch)
   useEffect(() => {
-    if (isOpen && !editingSubscription) {
+    if (isOpen && !wasOpen.current && !editingSubscription) {
       console.log('🔄 Modal opened for new subscription, resetting form');
       resetForm();
     }
+    wasOpen.current = isOpen;
   }, [isOpen, editingSubscription]);
 
   // Ensure start date is valid
@@ -124,7 +129,7 @@ export default function SubscriptionModal({
   // Calculate end date based on service duration and start date
   const calculateEndDate = () => {
     if (!selectedService?.duration || !formData.startDate) return null;
-    
+
     try {
       return calculateEndDateFromDuration(selectedService.duration, formData.startDate);
     } catch (error) {
@@ -161,7 +166,7 @@ export default function SubscriptionModal({
           .from('services')
           .select('id, product_service, logo_url, duration, cost, selling_price')
           .order('product_service');
-        
+
         if (servicesError) throw servicesError;
         setServices(servicesData || []);
 
@@ -170,7 +175,7 @@ export default function SubscriptionModal({
           .from('clients')
           .select('id, name, email')
           .order('name');
-        
+
         if (clientsError) throw clientsError;
         setClients(clientsData || []);
       } catch (error) {
@@ -224,7 +229,7 @@ export default function SubscriptionModal({
     if (formData.serviceId) {
       const service = services.find(s => s.id === formData.serviceId);
       setSelectedService(service || null);
-      
+
       // Only auto-set interval days if strategy is EVERY_N_DAYS and service has duration
       if (service?.duration && formData.strategy === 'EVERY_N_DAYS') {
         const months = parseServiceDuration(service.duration);
@@ -266,14 +271,14 @@ export default function SubscriptionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     console.log('🚀 Creating subscription with data:', formData);
     setIsLoading(true);
     try {
       let subscription: Subscription;
-      
+
       if (saleId) {
         subscription = await subscriptionService.createFromSale(
           saleId,
@@ -336,7 +341,7 @@ export default function SubscriptionModal({
 
   const handleUnlinkPool = async () => {
     if (!editingSubscription?.resourcePoolId) return;
-    
+
     if (!confirm('Are you sure you want to unlink this subscription from the resource pool? This will free up the assigned seat.')) {
       return;
     }
@@ -344,15 +349,15 @@ export default function SubscriptionModal({
     try {
       setIsLoading(true);
       const result = await unlinkSubscriptionFromPool(editingSubscription.id);
-      
+
       if (result.error) {
         throw new Error(result.error.message || 'Failed to unlink resource pool');
       }
-      
+
       // Update local state
       setResourcePool(null);
       setAssignedSeat(null);
-      
+
       // Update the subscription in parent component
       if (onSubscriptionUpdated && editingSubscription) {
         const updatedSubscription = {
@@ -406,9 +411,9 @@ export default function SubscriptionModal({
 
   const handleUpdateSubscription = async () => {
     if (!editingSubscription || !onSubscriptionUpdated) return;
-    
+
     if (!validateForm()) return;
-    
+
     console.log('🔄 Updating subscription:', editingSubscription.id, 'with data:', formData);
     setIsLoading(true);
     try {
@@ -421,7 +426,7 @@ export default function SubscriptionModal({
         targetEndAt: calculatedEndDate ? new Date(calculatedEndDate).toISOString() : undefined,
         notes: formData.notes
       });
-      
+
       console.log('✅ Subscription updated successfully:', updatedSubscription);
       onSubscriptionUpdated(updatedSubscription);
       onClose();
@@ -482,7 +487,7 @@ export default function SubscriptionModal({
       'workspace': 'workspace',
       'google workspace': 'google_workspace',
     };
-    
+
     for (const [key, provider] of Object.entries(providerMap)) {
       if (serviceName.includes(key)) {
         return provider;
@@ -675,7 +680,7 @@ export default function SubscriptionModal({
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 {/* Pool Info */}
                 <div className="flex items-center gap-3">
@@ -683,9 +688,9 @@ export default function SubscriptionModal({
                     {(() => {
                       const providerLogo = getProviderLogo(resourcePool.provider);
                       return providerLogo ? (
-                        <img 
-                          src={providerLogo} 
-                          alt={`${resourcePool.provider} logo`} 
+                        <img
+                          src={providerLogo}
+                          alt={`${resourcePool.provider} logo`}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           decoding="async"
@@ -707,16 +712,15 @@ export default function SubscriptionModal({
                       <span className="text-white font-medium">
                         {resourcePool.provider.replace('_', ' ').toUpperCase()}
                       </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        resourcePool.status === 'active' ? 'bg-white/10 text-white' :
-                        resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
-                        'bg-red-900/30 text-red-400'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${resourcePool.status === 'active' ? 'bg-white/10 text-white' :
+                          resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
+                            'bg-red-900/30 text-red-400'
+                        }`}>
                         {STATUS_LABELS[resourcePool.status] || resourcePool.status}
                       </span>
                     </div>
                     <p className="text-sm text-gray-400">
-                      {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} • 
+                      {POOL_TYPE_LABELS[resourcePool.pool_type] || resourcePool.pool_type} •
                       {resourcePool.login_email}
                     </p>
                   </div>
@@ -754,9 +758,8 @@ export default function SubscriptionModal({
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">Status:</span>
-                    <div className={`w-2 h-2 rounded-full ${
-                      resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
-                    }`} />
+                    <div className={`w-2 h-2 rounded-full ${resourcePool.is_alive ? 'bg-white' : 'bg-red-500'
+                      }`} />
                   </div>
                 </div>
               </div>
@@ -814,7 +817,7 @@ export default function SubscriptionModal({
                 initialServiceId,
                 initialClientId
               });
-              
+
               if (isEditing) {
                 return (
                   <>
