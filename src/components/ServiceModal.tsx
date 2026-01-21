@@ -33,40 +33,55 @@ export default function ServiceModal({ isOpen, onClose, onSave, service, onLogoC
   const [logoInputType, setLogoInputType] = useState<'file' | 'url'>('file');
   const [logoUrlInput, setLogoUrlInput] = useState('');
 
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
+  const lastServiceId = useRef<string | null>(null);
+
   useEffect(() => {
-    if (service) {
-      setFormData({
-        product_service: service.product_service,
-        category: service.category,
-        duration: service.duration,
-        info_needed: service.info_needed,
-        cost: service.cost,
-        selling_price: service.selling_price,
-        logo_url: service.logo_url || '',
-        service_type: service.service_type || 'family_invite'
-      });
-      setLogoPreview(service.logo_url || '');
-      setLogoUrlInput(service.logo_url || '');
-      setLogoFile(null);
-      // Set input type based on existing logo
-      setLogoInputType(service.logo_url ? 'url' : 'file');
-    } else {
-      setFormData({
-        product_service: '',
-        category: 'Software',
-        duration: '',
-        info_needed: '',
-        cost: 0,
-        selling_price: 0,
-        logo_url: '',
-        service_type: 'family_invite' as ServiceType
-      });
-      setLogoPreview('');
-      setLogoFile(null);
-      setLogoUrlInput('');
-      setLogoInputType('file');
+    // Only initialize form when modal transitions from closed to open
+    // Or when editing a different service
+    const isNewOpen = isOpen && !wasOpen.current;
+    const isDifferentService = service?.id !== lastServiceId.current;
+
+    if (isNewOpen || (isOpen && isDifferentService)) {
+      if (service) {
+        setFormData({
+          product_service: service.product_service,
+          category: service.category,
+          duration: service.duration,
+          info_needed: service.info_needed,
+          cost: service.cost,
+          selling_price: service.selling_price,
+          logo_url: service.logo_url || '',
+          service_type: service.service_type || 'family_invite'
+        });
+        setLogoPreview(service.logo_url || '');
+        setLogoUrlInput(service.logo_url || '');
+        setLogoFile(null);
+        // Set input type based on existing logo
+        setLogoInputType(service.logo_url ? 'url' : 'file');
+        lastServiceId.current = service.id;
+      } else {
+        setFormData({
+          product_service: '',
+          category: 'Software',
+          duration: '',
+          info_needed: '',
+          cost: 0,
+          selling_price: 0,
+          logo_url: '',
+          service_type: 'family_invite' as ServiceType
+        });
+        setLogoPreview('');
+        setLogoFile(null);
+        setLogoUrlInput('');
+        setLogoInputType('file');
+        lastServiceId.current = null;
+      }
     }
-  }, [service]);
+
+    wasOpen.current = isOpen;
+  }, [isOpen]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

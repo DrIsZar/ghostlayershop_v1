@@ -35,11 +35,16 @@ export function PersonalAccountFormModal({
 
   // Track if modal was previously open to avoid resetting on browser tab switch
   const wasOpen = useRef(false);
+  // Track the account ID to detect when editing a different account
+  const lastAccountId = useRef<string | null>(null);
 
   useEffect(() => {
     // Only initialize form when modal transitions from closed to open
-    // Not when component re-renders while modal is already open (e.g., browser tab switch)
-    if (isOpen && !wasOpen.current) {
+    // Or when editing a different account (not on re-renders due to tab switch)
+    const isNewOpen = isOpen && !wasOpen.current;
+    const isDifferentAccount = account?.id !== lastAccountId.current;
+
+    if (isNewOpen || (isOpen && isDifferentAccount)) {
       if (account) {
         setFormData({
           provider: account.provider,
@@ -48,6 +53,7 @@ export function PersonalAccountFormModal({
           notes: account.notes || '',
           expiry_date: account.expiry_date ? formatDateForInput(new Date(account.expiry_date)) : '',
         });
+        lastAccountId.current = account.id;
       } else {
         setFormData({
           provider: '',
@@ -56,6 +62,7 @@ export function PersonalAccountFormModal({
           notes: '',
           expiry_date: '',
         });
+        lastAccountId.current = null;
       }
       setErrors({});
 
@@ -64,7 +71,7 @@ export function PersonalAccountFormModal({
     }
 
     wasOpen.current = isOpen;
-  }, [account, isOpen]);
+  }, [isOpen]);
 
   const handleInputChange = (field: keyof CreatePersonalAccountData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));

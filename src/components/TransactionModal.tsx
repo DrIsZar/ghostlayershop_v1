@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 import { Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
@@ -32,37 +32,52 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
+  const lastTransactionId = useRef<string | null>(null);
+
   useEffect(() => {
     loadClients();
   }, []);
 
   useEffect(() => {
-    // When opening for edit, convert stored USD values to selected currency if needed
-    if (transaction) {
-      setFormData({
-        service_id: transaction.service_id,
-        client_id: transaction.client_id || '',
-        date: transaction.date,
-        cost_at_sale: currency === 'TND'
-          ? Number((transaction.cost_at_sale * exchangeRate).toFixed(2))
-          : transaction.cost_at_sale,
-        selling_price: currency === 'TND'
-          ? Number((transaction.selling_price * exchangeRate).toFixed(2))
-          : transaction.selling_price,
-        notes: transaction.notes
-      });
-    } else {
-      // Reset form (default TND date is handled by getTodayInTunisia)
-      setFormData({
-        service_id: '',
-        client_id: '',
-        date: getTodayInTunisia(),
-        cost_at_sale: '',
-        selling_price: '',
-        notes: ''
-      });
+    // Only initialize form when modal transitions from closed to open
+    // Or when editing a different transaction
+    const isNewOpen = isOpen && !wasOpen.current;
+    const isDifferentTransaction = transaction?.id !== lastTransactionId.current;
+
+    if (isNewOpen || (isOpen && isDifferentTransaction)) {
+      // When opening for edit, convert stored USD values to selected currency if needed
+      if (transaction) {
+        setFormData({
+          service_id: transaction.service_id,
+          client_id: transaction.client_id || '',
+          date: transaction.date,
+          cost_at_sale: currency === 'TND'
+            ? Number((transaction.cost_at_sale * exchangeRate).toFixed(2))
+            : transaction.cost_at_sale,
+          selling_price: currency === 'TND'
+            ? Number((transaction.selling_price * exchangeRate).toFixed(2))
+            : transaction.selling_price,
+          notes: transaction.notes
+        });
+        lastTransactionId.current = transaction.id;
+      } else {
+        // Reset form (default TND date is handled by getTodayInTunisia)
+        setFormData({
+          service_id: '',
+          client_id: '',
+          date: getTodayInTunisia(),
+          cost_at_sale: '',
+          selling_price: '',
+          notes: ''
+        });
+        lastTransactionId.current = null;
+      }
     }
-  }, [transaction, isOpen]); // Added isOpen to ensure reset/re-calc when opening
+
+    wasOpen.current = isOpen;
+  }, [isOpen]);
 
   const loadClients = async () => {
     try {

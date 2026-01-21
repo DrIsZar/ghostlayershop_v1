@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, User, Link, Save, Calendar } from 'lucide-react';
 import { ResourcePoolSeat } from '../types/inventory';
 import { assignSeat, unassignSeat } from '../lib/inventory';
@@ -36,6 +36,10 @@ export default function SeatAssignmentModal({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
+  const lastSeatId = useRef<string | null>(null);
+
   // Load clients and subscriptions when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -45,23 +49,34 @@ export default function SeatAssignmentModal({
 
   // Populate form when seat changes
   useEffect(() => {
-    if (seat) {
-      setFormData({
-        assigned_email: seat.assigned_email || '',
-        assigned_client_id: seat.assigned_client_id || '',
-        assigned_subscription_id: seat.assigned_subscription_id || '',
-        assigned_at: seat.assigned_at ? new Date(seat.assigned_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      });
-    } else {
-      setFormData({
-        assigned_email: '',
-        assigned_client_id: '',
-        assigned_subscription_id: '',
-        assigned_at: new Date().toISOString().split('T')[0],
-      });
+    // Only initialize form when modal transitions from closed to open
+    // Or when editing a different seat
+    const isNewOpen = isOpen && !wasOpen.current;
+    const isDifferentSeat = seat?.id !== lastSeatId.current;
+
+    if (isNewOpen || (isOpen && isDifferentSeat)) {
+      if (seat) {
+        setFormData({
+          assigned_email: seat.assigned_email || '',
+          assigned_client_id: seat.assigned_client_id || '',
+          assigned_subscription_id: seat.assigned_subscription_id || '',
+          assigned_at: seat.assigned_at ? new Date(seat.assigned_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        });
+        lastSeatId.current = seat.id;
+      } else {
+        setFormData({
+          assigned_email: '',
+          assigned_client_id: '',
+          assigned_subscription_id: '',
+          assigned_at: new Date().toISOString().split('T')[0],
+        });
+        lastSeatId.current = null;
+      }
+      setErrors({});
     }
-    setErrors({});
-  }, [seat]);
+
+    wasOpen.current = isOpen;
+  }, [isOpen]);
 
   const loadData = async () => {
     try {

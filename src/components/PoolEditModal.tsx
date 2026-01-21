@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Calendar, Users, Mail, Lock, FileText } from 'lucide-react';
 import { ResourcePool } from '../types/inventory';
 import { updateResourcePool } from '../lib/inventory';
@@ -13,11 +13,11 @@ interface PoolEditModalProps {
   onPoolUpdated: (pool: ResourcePool) => void;
 }
 
-export default function PoolEditModal({ 
-  isOpen, 
-  onClose, 
-  pool, 
-  onPoolUpdated 
+export default function PoolEditModal({
+  isOpen,
+  onClose,
+  pool,
+  onPoolUpdated
 }: PoolEditModalProps) {
   const [formData, setFormData] = useState({
     provider: '',
@@ -33,23 +33,37 @@ export default function PoolEditModal({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Track if modal was previously open to avoid resetting on browser tab switch
+  const wasOpen = useRef(false);
+  const lastPoolId = useRef<string | null>(null);
+
   // Populate form when pool changes
   useEffect(() => {
-    if (pool) {
-      setFormData({
-        provider: pool.provider,
-        pool_type: pool.pool_type,
-        login_email: pool.login_email,
-        login_secret: pool.login_secret || '',
-        notes: pool.notes || '',
-        start_at: pool.start_at.split('T')[0],
-        end_at: pool.end_at.split('T')[0],
-        max_seats: pool.max_seats,
-        is_alive: pool.is_alive,
-      });
+    // Only initialize form when modal transitions from closed to open
+    // Or when editing a different pool
+    const isNewOpen = isOpen && !wasOpen.current;
+    const isDifferentPool = pool?.id !== lastPoolId.current;
+
+    if (isNewOpen || (isOpen && isDifferentPool)) {
+      if (pool) {
+        setFormData({
+          provider: pool.provider,
+          pool_type: pool.pool_type,
+          login_email: pool.login_email,
+          login_secret: pool.login_secret || '',
+          notes: pool.notes || '',
+          start_at: pool.start_at.split('T')[0],
+          end_at: pool.end_at.split('T')[0],
+          max_seats: pool.max_seats,
+          is_alive: pool.is_alive,
+        });
+        lastPoolId.current = pool.id;
+      }
+      setErrors({});
     }
-    setErrors({});
-  }, [pool]);
+
+    wasOpen.current = isOpen;
+  }, [isOpen]);
 
   const validateForm = async () => {
     const newErrors: Record<string, string> = {};
@@ -90,7 +104,7 @@ export default function PoolEditModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!(await validateForm()) || !pool) return;
 
     setLoading(true);
@@ -98,31 +112,31 @@ export default function PoolEditModal({
       // Check if is_alive is being changed from true to false
       const wasAlive = pool.is_alive;
       const willBeAlive = formData.is_alive;
-      
+
       console.log(`Updating pool ${pool.id}, is_alive: ${wasAlive} -> ${willBeAlive}`);
-      
+
       const { data, error } = await updateResourcePool(pool.id, {
         ...formData,
         max_seats: typeof formData.max_seats === 'string' ? parseInt(formData.max_seats) || 1 : formData.max_seats,
         start_at: new Date(formData.start_at).toISOString(),
         end_at: new Date(formData.end_at).toISOString(),
       });
-      
+
       if (error) {
         console.error('Error updating pool:', error);
         alert(`Failed to update pool: ${error.message || 'Unknown error'}`);
         setLoading(false);
         return;
       }
-      
+
       if (!data) {
         alert('Failed to update pool: No data returned');
         setLoading(false);
         return;
       }
-      
+
       console.log('Pool updated successfully, received data:', data);
-      
+
       // Verify the update was saved
       if (data.is_alive !== willBeAlive) {
         console.error('Update verification failed: is_alive mismatch', {
@@ -131,7 +145,7 @@ export default function PoolEditModal({
         });
         alert('Warning: Pool update may not have been saved correctly. Please refresh the page.');
       }
-      
+
       onPoolUpdated(data);
       onClose();
     } catch (error) {
