@@ -50,7 +50,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -58,13 +58,13 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
 
   // Find selected option
   const selectedOption = options.find(option => option.value === value);
-  
+
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    return options.filter(option => 
+    return options.filter(option =>
       option.label.toLowerCase().includes(searchLower)
     );
   }, [options, searchTerm]);
@@ -78,27 +78,27 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
       const rect = inputRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      
+
       // Check if we're inside a modal
       const modalElement = inputRef.current.closest('[role="dialog"], .modal, [data-modal]');
       const isInModal = !!modalElement;
-      
+
       // Mobile-specific positioning
       const isMobile = viewportWidth <= 768; // md breakpoint
-      
+
       let top = rect.bottom + 8; // Use viewport coordinates for better modal support
       let left = rect.left;
       let width = rect.width;
-      
+
       if (isMobile) {
         // On mobile, use full width with margins for better usability
         left = 16;
         width = viewportWidth - 32;
-        
+
         // Check if dropdown would go off-screen vertically
         const dropdownHeight = Math.min(320, viewportHeight * 0.6); // Max 60% of viewport height
         const maxHeight = viewportHeight - rect.bottom - 40; // 40px margin from bottom
-        
+
         // If dropdown would go off-screen, position it above the input
         if (maxHeight < 200) {
           top = rect.top - dropdownHeight - 8;
@@ -107,25 +107,25 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
         // Desktop: ensure dropdown doesn't go off the sides
         const minLeft = 16;
         const maxLeft = viewportWidth - width - 16;
-        
+
         if (left < minLeft) {
           left = minLeft;
         } else if (left > maxLeft) {
           left = maxLeft;
         }
-        
+
         // For modals, check if dropdown would go off-screen vertically
         if (isInModal) {
           const dropdownHeight = 360; // Max dropdown height (increased for better scrolling)
           const maxHeight = viewportHeight - rect.bottom - 40; // 40px margin from bottom
-          
+
           // If dropdown would go off-screen, position it above the input
           if (maxHeight < 200) {
             top = rect.top - dropdownHeight - 8;
           }
         }
       }
-      
+
       const position = { top, left, width };
       setDropdownPosition(position);
     }
@@ -182,13 +182,13 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
         break;
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev < filteredOptions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev > 0 ? prev - 1 : filteredOptions.length - 1
         );
         break;
@@ -209,13 +209,13 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev < filteredOptions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex(prev =>
           prev > 0 ? prev - 1 : filteredOptions.length - 1
         );
         break;
@@ -265,7 +265,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
       const target = event.target as Node;
       const isInsideDropdown = dropdownRef.current?.contains(target);
       const isInsidePortal = document.querySelector('[data-dropdown-portal]')?.contains(target);
-      
+
       if (!isInsideDropdown && !isInsidePortal) {
         handleClose();
       }
@@ -294,17 +294,17 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Enhanced Label with consistent styling */}
       {label && (
-        <label 
-          className="block text-sm font-medium text-gray-300 mb-2"
+        <label
+          className="block text-sm font-medium text-muted-foreground mb-2"
           htmlFor={dataTestId}
         >
           {label}
-          {required && <span className="text-red-400 ml-1" aria-label="required">*</span>}
+          {required && <span className="text-destructive ml-1" aria-label="required">*</span>}
         </label>
       )}
 
       {/* Enhanced Input Container */}
-      <div 
+      <div
         className="relative cursor-pointer"
         onClick={handleOpen}
         role="combobox"
@@ -323,25 +323,25 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
           disabled={disabled}
           onKeyDown={handleKeyDown}
           className={`
-            w-full py-3 pr-10 bg-gray-800 border border-gray-600 rounded-lg text-base min-h-[48px]
+            w-full py-3 pr-10 bg-secondary border border-border rounded-lg text-base min-h-[48px]
             transition-all duration-200 ease-in-out
             ${icon ? 'pl-10' : 'pl-4'}
-            focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20
-            disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed
-            disabled:border-gray-700
-            ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-            ${selectedOption ? 'text-white' : 'text-gray-400'}
-            hover:border-gray-500 hover:bg-gray-750
-            ${isOpen ? 'border-white ring-2 ring-green-500/20' : ''}
+            focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20
+            disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed
+            disabled:border-muted
+            ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''}
+            ${selectedOption ? 'text-foreground' : 'text-muted-foreground'}
+            hover:border-muted-foreground/50 hover:bg-secondary/80
+            ${isOpen ? 'border-ring ring-2 ring-ring/20' : ''}
           `}
           data-testid={dataTestId}
           aria-autocomplete="list"
           aria-controls={isOpen ? `${dataTestId}-listbox` : undefined}
         />
-        
+
         {/* Icon */}
         {icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
             {icon}
           </div>
         )}
@@ -351,7 +351,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1 rounded-md hover:bg-gray-700 min-h-[32px] min-w-[32px] flex items-center justify-center"
+            className="absolute right-10 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-secondary min-h-[32px] min-w-[32px] flex items-center justify-center"
             aria-label="Clear selection"
             tabIndex={-1}
           >
@@ -361,18 +361,17 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
 
         {/* Enhanced Dropdown arrow */}
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-          <ChevronDown 
-            className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-              isOpen ? 'rotate-180' : ''
-            }`} 
+          <ChevronDown
+            className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+              }`}
           />
         </div>
       </div>
 
       {/* Enhanced Error message */}
       {error && (
-        <p id={`${dataTestId}-error`} className="mt-2 text-sm text-red-400 flex items-center gap-1">
-          <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+        <p id={`${dataTestId}-error`} className="mt-2 text-sm text-destructive flex items-center gap-1">
+          <span className="w-1 h-1 bg-destructive rounded-full"></span>
           {error}
         </p>
       )}
@@ -382,7 +381,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
         <div
           data-dropdown-portal
           className={`
-            fixed bg-gray-800 border border-gray-600 rounded-xl shadow-2xl backdrop-blur-sm
+            fixed bg-card border border-border rounded-xl shadow-2xl backdrop-blur-sm
             transition-all duration-200 ease-out
             ${window.innerWidth <= 768 ? 'max-h-[60vh]' : 'max-h-[360px]'}
           `}
@@ -399,9 +398,9 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
         >
           {/* Enhanced Search input */}
           {showSearch && (
-            <div className="p-3 border-b border-gray-600/50">
+            <div className="p-3 border-b border-border/50">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -409,13 +408,13 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className="w-full pl-10 pr-10 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-base min-h-[44px] focus:outline-none focus:border-white focus:ring-2 focus:ring-white/20 transition-all duration-200"
+                  className="w-full pl-10 pr-10 py-3 bg-secondary border border-border rounded-lg text-foreground text-base min-h-[44px] focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all duration-200"
                   aria-label="Search options"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-600 min-h-[32px] min-w-[32px] flex items-center justify-center transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-secondary min-h-[32px] min-w-[32px] flex items-center justify-center transition-colors"
                     aria-label="Clear search"
                     tabIndex={-1}
                   >
@@ -427,19 +426,19 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
           )}
 
           {/* Enhanced Options list */}
-          <div 
-            className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 py-2" 
+          <div
+            className="overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-secondary py-2"
             style={{
               maxHeight: window.innerWidth <= 768 ? 'calc(60vh - 80px)' : '280px'
             }}
           >
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-6 text-center">
-                <div className="text-gray-400 text-sm mb-2">
+                <div className="text-muted-foreground text-sm mb-2">
                   {options.length === 0 ? emptyMessage : noResultsMessage}
                 </div>
                 {options.length === 0 && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground/70">
                     No options are currently available
                   </div>
                 )}
@@ -453,11 +452,11 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                   className={`
                     px-4 py-3 text-base cursor-pointer transition-all duration-200 min-h-[48px] flex items-center
                     relative group
-                    ${index === highlightedIndex ? 'bg-white text-black font-medium' : 'hover:bg-gray-700 hover:text-white'}
-                    ${option.disabled ? 'text-gray-500 cursor-not-allowed opacity-60' : 'text-white'}
-                    ${option.value === value ? 'bg-white/10 text-white border-l-4 border-white' : ''}
-                    active:bg-gray-600
-                    focus:outline-none focus:bg-gray-700 focus:ring-2 focus:ring-white/20
+                    ${index === highlightedIndex ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-secondary hover:text-foreground'}
+                    ${option.disabled ? 'text-muted-foreground cursor-not-allowed opacity-60' : 'text-foreground'}
+                    ${option.value === value ? 'bg-primary/10 text-foreground border-l-4 border-primary' : ''}
+                    active:bg-secondary/80
+                    focus:outline-none focus:bg-secondary focus:ring-2 focus:ring-ring/20
                   `}
                   onMouseUp={(e) => {
                     e.preventDefault();
@@ -475,7 +474,7 @@ const SearchableDropdown = React.memo(function SearchableDropdown({
                 >
                   <span className="flex-1 truncate">{option.label}</span>
                   {option.value === value && (
-                    <div className="ml-2 w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    <div className="ml-2 w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
                   )}
                 </div>
               ))

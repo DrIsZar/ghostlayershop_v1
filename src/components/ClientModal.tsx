@@ -1,7 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { Client } from '../types/client';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ClientModalProps {
     open: boolean;
@@ -90,149 +96,125 @@ export default function ClientModal({ open, onClose, onSave, initialData }: Clie
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
-                <div className="flex items-center justify-between p-6 border-b border-gray-700">
-                    <h2 className="text-xl font-semibold text-white">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+            <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                    <h2 className="text-xl font-semibold text-foreground">
                         {initialData ? 'Edit Client' : 'Add New Client'}
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
-                    >
+                    <Button variant="ghost" size="icon" onClick={onClose}>
                         <X className="h-5 w-5" />
-                    </button>
+                    </Button>
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-300 mb-3">
-                            Client Type
-                        </label>
-                        <div className="flex gap-6">
-                            <label className="inline-flex items-center">
+                        <Label className="text-muted-foreground">Client Type</Label>
+                        <div className="flex gap-6 mt-3">
+                            <label className="inline-flex items-center cursor-pointer">
                                 <input
                                     type="radio"
                                     name="type"
                                     value="client"
                                     checked={formData.type === 'client'}
                                     onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
-                                    className="text-blue-600 focus:ring-blue-600 h-4 w-4 bg-gray-800 border-gray-600"
+                                    className="text-primary focus:ring-ring h-4 w-4 bg-secondary border-border"
                                 />
-                                <span className="ml-2 text-sm font-medium text-white">Normal Client</span>
+                                <span className="ml-2 text-sm font-medium text-foreground">Normal Client</span>
                             </label>
-                            <label className="inline-flex items-center">
+                            <label className="inline-flex items-center cursor-pointer">
                                 <input
                                     type="radio"
                                     name="type"
                                     value="reseller"
                                     checked={formData.type === 'reseller'}
                                     onChange={e => setFormData(prev => ({ ...prev, type: e.target.value as 'client' | 'reseller' }))}
-                                    className="text-blue-600 focus:ring-blue-600 h-4 w-4 bg-gray-800 border-gray-600"
+                                    className="text-primary focus:ring-ring h-4 w-4 bg-secondary border-border"
                                 />
-                                <span className="ml-2 text-sm font-medium text-white">Reseller</span>
+                                <span className="ml-2 text-sm font-medium text-foreground">Reseller</span>
                             </label>
                         </div>
                     </div>
 
                     <div>
-                        <label htmlFor="name" className="block text-sm font-semibold text-gray-300 mb-2">
-                            Name
-                        </label>
-                        <input
+                        <Label htmlFor="name" className="text-muted-foreground">Name</Label>
+                        <Input
                             type="text"
                             name="name"
                             id="name"
                             required
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            className="mt-2"
                             placeholder="Enter client name"
                             value={formData.name}
                             onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         />
                     </div>
                     <div>
-                        <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
-                            Email
-                        </label>
-                        <input
+                        <Label htmlFor="email" className="text-muted-foreground">Email</Label>
+                        <Input
                             type="email"
                             name="email"
                             id="email"
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            className="mt-2"
                             placeholder="client@example.com"
                             value={formData.email}
                             onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                         />
                     </div>
                     <div>
-                        <label htmlFor="telegram" className="block text-sm font-semibold text-gray-300 mb-2">
-                            Telegram
-                        </label>
-                        <input
+                        <Label htmlFor="telegram" className="text-muted-foreground">Telegram</Label>
+                        <Input
                             type="text"
                             name="telegram"
                             id="telegram"
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            className="mt-2"
                             placeholder="@username"
                             value={formData.telegram}
                             onChange={e => setFormData(prev => ({ ...prev, telegram: e.target.value }))}
                         />
                     </div>
                     <div>
-                        <label htmlFor="discord" className="block text-sm font-semibold text-gray-300 mb-2">
-                            Discord
-                        </label>
-                        <input
+                        <Label htmlFor="discord" className="text-muted-foreground">Discord</Label>
+                        <Input
                             type="text"
                             name="discord"
                             id="discord"
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            className="mt-2"
                             placeholder="username#1234"
                             value={formData.discord}
                             onChange={e => setFormData(prev => ({ ...prev, discord: e.target.value }))}
                         />
                     </div>
                     <div>
-                        <label htmlFor="source" className="block text-sm font-semibold text-gray-300 mb-2">
-                            How did they find you?
-                        </label>
-                        <input
+                        <Label htmlFor="source" className="text-muted-foreground">How did they find you?</Label>
+                        <Input
                             type="text"
                             name="source"
                             id="source"
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                            className="mt-2"
                             placeholder="e.g. Google, Referral, Social Media"
                             value={formData.source}
                             onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
                         />
                     </div>
                     <div>
-                        <label htmlFor="notes" className="block text-sm font-semibold text-gray-300 mb-2">
-                            Notes
-                        </label>
-                        <textarea
+                        <Label htmlFor="notes" className="text-muted-foreground">Notes</Label>
+                        <Textarea
                             name="notes"
                             id="notes"
                             rows={3}
-                            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+                            className="mt-2"
                             placeholder="Additional notes about this client..."
                             value={formData.notes}
                             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                         />
                     </div>
-                    <div className="flex gap-3 pt-6 border-t border-gray-700">
-                        <button
-                            type="submit"
-                            className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                        >
+                    <div className="flex gap-3 pt-6 border-t border-border">
+                        <Button type="submit" className="flex-1">
                             Save Client
-                        </button>
-                        <button
-                            type="button"
-                            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-                            onClick={onClose}
-                        >
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={onClose}>
                             Cancel
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

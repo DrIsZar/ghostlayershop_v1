@@ -14,6 +14,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import CurrencyToggle from './CurrencyToggle';
+import { Button } from '@/components/ui/button';
 
 export default function Layout() {
   const location = useLocation();
@@ -57,11 +58,13 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
+    <div className="min-h-screen bg-background flex">
       {/* Mobile Menu Button */}
-      <button
+      <Button
         onClick={() => setSidebarOpen(true)}
-        className="lg:hidden fixed z-50 p-3 bg-gray-800 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+        variant="secondary"
+        size="icon"
+        className="lg:hidden fixed z-50 min-h-[44px] min-w-[44px]"
         style={{
           top: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
           left: `calc(1rem + env(safe-area-inset-left))`
@@ -69,7 +72,7 @@ export default function Layout() {
         aria-label="Open menu"
       >
         <Menu className="h-6 w-6" />
-      </button>
+      </Button>
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
@@ -81,36 +84,38 @@ export default function Layout() {
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-full w-64 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 z-50
+        fixed left-0 top-0 h-full w-64 max-w-[85vw] bg-card border-r border-border z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:h-screen lg:min-h-screen
       `}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800" style={{
+        <div className="flex items-center justify-between p-4 border-b border-border" style={{
           paddingTop: `calc(1rem + env(safe-area-inset-top) + 0.5rem)`,
           minHeight: 'calc(80px + env(safe-area-inset-top) + 0.5rem)'
         }}>
           <div className="flex items-center gap-3">
             <img src="/upgrade-tn-logo.png" alt="Upgrade TN" className="h-10 w-10 flex-shrink-0 object-contain" />
             <div>
-              <h1 className="text-lg font-bold text-white">Upgrade TN</h1>
-              <p className="text-xs text-gray-400">Dashboard</p>
+              <h1 className="text-lg font-bold text-foreground">Upgrade TN</h1>
+              <p className="text-xs text-muted-foreground">Dashboard</p>
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={closeSidebar}
-            className="lg:hidden p-2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="lg:hidden min-h-[44px] min-w-[44px]"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Currency Toggle in Sidebar (Mobile) */}
         {/* Currency Toggle in Sidebar (Mobile) */}
         {showCurrencyToggle && (
-          <div className="px-3 py-3 border-b border-zinc-800 lg:hidden">
+          <div className="px-3 py-3 border-b border-border lg:hidden">
             <CurrencyToggle />
           </div>
         )}
@@ -130,8 +135,8 @@ export default function Layout() {
                 className={`
                   flex items-center gap-3 px-3 py-3 rounded-lg mb-1 transition-colors
                   ${isActive
-                    ? 'bg-white/10 text-white border-l-2 border-white'
-                    : 'text-gray-400 hover:bg-zinc-800 hover:text-white'
+                    ? 'bg-primary/10 text-foreground border-l-2 border-primary'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }
                 `}
               >

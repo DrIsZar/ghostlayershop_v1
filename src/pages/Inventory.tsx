@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -6,17 +6,15 @@ import {
   Users,
   Clock,
   AlertTriangle,
-  ChevronDown,
-  ChevronRight,
   X,
   RotateCcw,
   Archive,
   HelpCircle,
-  Keyboard,
-  User
+  User,
+  Keyboard
 } from 'lucide-react';
 import { ResourcePool, PoolFilter, PersonalAccount } from '../types/inventory';
-import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail, listPersonalAccounts, createPersonalAccount, updatePersonalAccount, deletePersonalAccount, refreshPersonalAccountStatus } from '../lib/inventory';
+import { listResourcePools, refreshPoolStatus, archiveResourcePool, updateResourcePool, deleteResourcePool, searchPoolsBySeatEmail, listPersonalAccounts, deletePersonalAccount, refreshPersonalAccountStatus } from '../lib/inventory';
 import { PoolCard } from '../components/PoolCard';
 import { PoolFormModal } from '../components/PoolFormModal';
 import { PoolDetailModal } from '../components/PoolDetailModal';
@@ -27,6 +25,9 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { SERVICE_PROVISIONING, PROVIDER_ICONS, POOL_TYPE_LABELS, STATUS_LABELS } from '../constants/provisioning';
 import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 import { getProviderLogo } from '../lib/fileUtils';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
 
 type ViewMode = 'pools' | 'archive' | 'personal';
 
@@ -534,13 +535,13 @@ export default function Inventory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Inventory</h1>
-          <p className="text-gray-400 mt-1 text-sm sm:text-base">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Manage resource pools and seat assignments
           </p>
         </div>
         <div className="flex-shrink-0 flex gap-2">
-          <button
+          <Button
             onClick={() => {
               if (viewMode === 'personal') {
                 setIsPersonalAccountModalOpen(true);
@@ -548,22 +549,22 @@ export default function Inventory() {
                 setIsModalOpen(true);
               }
             }}
-            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
             title={viewMode === 'personal' ? 'Create new personal account' : 'Create new pool (N or C)'}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">
               {viewMode === 'personal' ? 'Add Account' : 'New Pool'}
             </span>
             <span className="xs:hidden">New</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
             title="Keyboard shortcuts (Shift+?)"
           >
             <HelpCircle className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       </div>
 

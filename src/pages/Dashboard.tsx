@@ -1,14 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { TrendingUp, DollarSign, Package, ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { TrendingUp, DollarSign, Package, ShoppingCart, RefreshCw } from 'lucide-react';
 import { supabase, Transaction, Service } from '../lib/supabase';
 import SearchableDropdown from '../components/SearchableDropdown';
-import { toast, copyToClipboard } from '../lib/toast';
+import { toast } from '../lib/toast';
 import { getNowInTunisia } from '../lib/dateUtils';
 import { useCurrency } from '../lib/currency';
 import { subscriptionService } from '../lib/subscriptionService';
 import { Subscription } from '../types/subscription';
 import { generateCashFlowForecast, calculateCurrentCashPosition } from '../lib/cashFlowForecast';
 import { Link } from 'react-router-dom';
+
+// shadcn/ui components
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
@@ -437,46 +443,33 @@ export default function Dashboard() {
         <div className="flex flex-col gap-4 sm:gap-6">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">Dashboard Overview</h1>
-            <p className="text-gray-400 mt-2 text-sm sm:text-base">Monitor your business performance</p>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">Monitor your business performance</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <button
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+            <Button
+              variant="secondary"
               onClick={() => {
                 setLoading(true);
                 fetchData();
               }}
-              className="ghost-button-secondary w-full sm:w-auto px-4 py-2.5 text-sm font-medium rounded-lg hover:bg-gray-600/50 transition-colors"
+              className="w-full sm:w-auto"
             >
-              <span className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden xs:inline">Refresh Data</span>
-                <span className="xs:hidden">Refresh</span>
-              </span>
-            </button>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <span className="text-sm font-medium text-gray-300">View:</span>
-              <div className="flex bg-gray-700/50 rounded-lg p-1 w-full sm:w-auto">
-                <button
-                  onClick={() => setMainDashboardView('daily')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${mainDashboardView === 'daily'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
-                    }`}
-                >
-                  Daily
-                </button>
-                <button
-                  onClick={() => setMainDashboardView('monthly')}
-                  className={`flex-1 sm:flex-none px-3 py-2 text-sm font-medium rounded-md transition-colors ${mainDashboardView === 'monthly'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-600/30'
-                    }`}
-                >
-                  Monthly
-                </button>
-              </div>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              <span className="hidden xs:inline">Refresh Data</span>
+              <span className="xs:hidden">Refresh</span>
+            </Button>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <span className="text-sm font-medium text-muted-foreground">View:</span>
+              <Tabs
+                value={mainDashboardView}
+                onValueChange={(v) => setMainDashboardView(v as 'daily' | 'monthly')}
+                className="w-full sm:w-auto"
+              >
+                <TabsList>
+                  <TabsTrigger value="daily">Daily</TabsTrigger>
+                  <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -486,53 +479,53 @@ export default function Dashboard() {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 lg:mb-8">
         {/* Dynamic Overview */}
-        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-1">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-gray-300">
-              {mainDashboardView === 'daily' ? 'Today\'s Overview' : 'Current Month Overview'}
-            </h3>
-            <TrendingUp className="h-5 w-5 text-white flex-shrink-0" />
-          </div>
-          <div className="space-y-5">
+        <Card className="animate-fade-in-up hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">
+              {mainDashboardView === 'daily' ? "Today's Overview" : 'Current Month Overview'}
+            </CardTitle>
+            <TrendingUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          </CardHeader>
+          <CardContent className="space-y-5">
             <div>
-              <p className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 transition-colors ${currentStats.profit >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
+              <p className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 transition-colors ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(currentStats.profit)}
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Period Profit
                 <span className={`ml-2 text-sm font-medium ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {profitChange > 0 ? '↑' : '↓'} {Math.abs(profitChange).toFixed(1)}%
                 </span>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-700/50">
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
               <div className="text-center sm:text-left">
-                <p className="text-xl sm:text-2xl font-bold text-white">
+                <p className="text-xl sm:text-2xl font-bold text-foreground">
                   {currentStats.count}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Orders</p>
+                <p className="text-xs text-muted-foreground mt-1">Orders</p>
               </div>
               <div className="text-center sm:text-left">
-                <p className="text-xl sm:text-2xl font-bold text-white">
+                <p className="text-xl sm:text-2xl font-bold text-foreground">
                   {formatCurrency(currentStats.revenue)}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Revenue</p>
+                <p className="text-xs text-muted-foreground mt-1">Revenue</p>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Dynamic Performance Comparison */}
-        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-2">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-gray-300">
+        <Card className="animate-fade-in-up hover:shadow-lg transition-shadow" style={{ animationDelay: '0.1s' }}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">
               {mainDashboardView === 'daily' ? 'Daily Performance' : 'Monthly Performance'}
-            </h3>
-            <DollarSign className="h-5 w-5 text-white flex-shrink-0" />
-          </div>
-          <div className="space-y-4">
+            </CardTitle>
+            <DollarSign className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-400">
+              <span className="text-sm font-medium text-muted-foreground">
                 {mainDashboardView === 'daily' ? 'Today' : 'This Month'}
               </span>
               <span className={`text-xl sm:text-2xl font-bold ${currentStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -540,118 +533,124 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-400">
+              <span className="text-sm font-medium text-muted-foreground">
                 {mainDashboardView === 'daily' ? 'Yesterday' : 'Last Month'}
               </span>
               <span className={`text-xl sm:text-2xl font-bold ${previousStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {formatCurrency(previousStats.profit)}
               </span>
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-gray-700/50">
-              <span className="text-sm font-medium text-gray-400">
+            <div className="flex justify-between items-center pt-3 border-t border-border">
+              <span className="text-sm font-medium text-muted-foreground">
                 {mainDashboardView === 'daily' ? 'Daily Change' : 'Monthly Change'}
               </span>
               <span className={`text-xl sm:text-2xl font-bold ${profitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {profitChange >= 0 ? '↑' : '↓'} {Math.abs(profitChange).toFixed(1)}%
               </span>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Business Health */}
-        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-3">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-gray-300">Business Health</h3>
-            <Package className="h-5 w-5 text-white flex-shrink-0" />
-          </div>
-          <div className="space-y-4">
+        <Card className="animate-fade-in-up hover:shadow-lg transition-shadow" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Business Health</CardTitle>
+            <Package className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-400">Active Services</span>
-              <span className="text-xl sm:text-2xl font-bold text-white">{services.length}</span>
+              <span className="text-sm font-medium text-muted-foreground">Active Services</span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">{services.length}</span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-400">Avg. Order Value</span>
-              <span className="text-xl sm:text-2xl font-bold text-white">
+              <span className="text-sm font-medium text-muted-foreground">Avg. Order Value</span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">
                 {formatCurrency(avgOrderValue)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-gray-400">Profit Margin</span>
-              <span className="text-xl sm:text-2xl font-bold text-white">
+              <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">
                 {businessProfitMargin}%
               </span>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Cash Flow Quick View */}
-        <div className="ghost-card p-5 sm:p-6 animate-fade-in-up hover-lift stagger-4">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-gray-300">Cash Flow</h3>
-            <TrendingUp className="h-5 w-5 text-white flex-shrink-0" />
-          </div>
-          {cashFlowForecast ? (
-            <div className="space-y-4">
-              <div>
-                <p className={`text-3xl sm:text-4xl font-bold mb-2 transition-colors ${currentCashPosition >= 0 ? 'text-green-400 hover-glow-green' : 'text-red-400'}`}>
-                  {formatCurrency(currentCashPosition)}
-                </p>
-                <p className="text-xs text-gray-400">Current Balance</p>
-              </div>
-              <div className="pt-3 border-t border-gray-700/50 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">7-day Projection</span>
-                  <span className={`text-sm font-bold ${cashFlowForecast.summary.endingBalance >= currentCashPosition ? 'text-green-400' : 'text-red-400'}`}>
-                    {formatCurrency(cashFlowForecast.summary.endingBalance)}
-                  </span>
+        <Card className="animate-fade-in-up hover:shadow-lg transition-shadow" style={{ animationDelay: '0.3s' }}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Cash Flow</CardTitle>
+            <TrendingUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+          </CardHeader>
+          <CardContent>
+            {cashFlowForecast ? (
+              <div className="space-y-4">
+                <div>
+                  <p className={`text-3xl sm:text-4xl font-bold mb-2 transition-colors ${currentCashPosition >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatCurrency(currentCashPosition)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Current Balance</p>
                 </div>
-                {cashFlowForecast.summary.cashRunwayDays !== null && (
+                <div className="pt-3 border-t border-border space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-400">Cash Runway</span>
-                    <span className="text-sm font-bold text-white">
-                      {cashFlowForecast.summary.cashRunwayDays}d
+                    <span className="text-xs text-muted-foreground">7-day Projection</span>
+                    <span className={`text-sm font-bold ${cashFlowForecast.summary.endingBalance >= currentCashPosition ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatCurrency(cashFlowForecast.summary.endingBalance)}
                     </span>
                   </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">MRR</span>
-                  <span className="text-sm font-bold text-green-400">
-                    {formatCurrency(cashFlowForecast.summary.monthlyRecurringRevenue)}
-                  </span>
+                  {cashFlowForecast.summary.cashRunwayDays !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-muted-foreground">Cash Runway</span>
+                      <span className="text-sm font-bold text-foreground">
+                        {cashFlowForecast.summary.cashRunwayDays}d
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">MRR</span>
+                    <span className="text-sm font-bold text-green-400">
+                      {formatCurrency(cashFlowForecast.summary.monthlyRecurringRevenue)}
+                    </span>
+                  </div>
                 </div>
+                <Link
+                  to="/cashflow"
+                  className="block text-center mt-3 text-xs text-foreground hover:text-green-400 transition-colors"
+                >
+                  View Full Analysis →
+                </Link>
               </div>
-              <Link
-                to="/cashflow"
-                className="block text-center mt-3 text-xs text-white hover:text-green-400 transition-colors"
-              >
-                View Full Analysis →
-              </Link>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-400 text-sm">Loading forecast...</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm">Loading forecast...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Performance Analysis Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Top Services */}
-        <div className="ghost-card p-5 lg:p-6 lg:col-span-2">
-          <div className="flex flex-col gap-4 mb-5">
-            <h2 className="text-lg sm:text-xl lg:text-xl font-bold text-white">Top Performing Services</h2>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl">Top Performing Services</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3 mb-5">
               <div className="flex items-center gap-3 sm:gap-2 w-full sm:w-auto">
-                <button
+                <Button
+                  variant="secondary"
+                  size="icon"
                   onClick={() => handleTopServicesPeriodChange('prev')}
-                  className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                  className="h-12 w-12 flex-shrink-0"
                   aria-label="Previous period"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                   </svg>
-                </button>
+                </Button>
                 <div className="flex-1 min-w-0">
                   <SearchableDropdown
                     options={[
@@ -670,114 +669,120 @@ export default function Dashboard() {
                       });
                     }}
                     placeholder="Select period"
-                    className="w-full min-h-[56px] text-base"
+                    className="w-full min-h-[48px] text-base"
                     showSearchThreshold={10}
                   />
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="icon"
                   onClick={() => handleTopServicesPeriodChange('next')}
-                  className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                  className="h-12 w-12 flex-shrink-0"
                   aria-label="Next period"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
-          <div className="space-y-3 sm:space-y-4">
-            {topServices.length > 0 ? (
-              topServices.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 sm:p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-all hover-lift-subtle animate-fade-in-up min-h-[72px]"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center text-base font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-white text-base sm:text-lg truncate">{item.service?.product_service}</h3>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm mt-2">
-                        <span className="text-gray-400 font-medium">{item.count} orders</span>
-                        <span className="hidden sm:inline text-gray-600">•</span>
-                        <span className="text-gray-400 font-medium">
-                          {formatCurrency((item.profit / item.count) || 0)} avg. profit
-                        </span>
+            <div className="space-y-3 sm:space-y-4">
+              {topServices.length > 0 ? (
+                topServices.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 sm:p-5 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-all animate-fade-in-up min-h-[72px]"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 text-foreground flex items-center justify-center text-base font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground text-base sm:text-lg truncate">{item.service?.product_service}</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm mt-2">
+                          <span className="text-muted-foreground font-medium">{item.count} orders</span>
+                          <span className="hidden sm:inline text-muted-foreground/50">•</span>
+                          <span className="text-muted-foreground font-medium">
+                            {formatCurrency((item.profit / item.count) || 0)} avg. profit
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <p className={`font-bold text-lg sm:text-xl ${item.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(item.profit)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">total profit</p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    <p className={`font-bold text-lg sm:text-xl ${item.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {formatCurrency(item.profit)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">total profit</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg">No transactions yet</p>
+                  <p className="text-muted-foreground/70 text-sm mt-2">Start selling services to see analytics</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <Package className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">No transactions yet</p>
-                <p className="text-gray-500 text-sm mt-2">Start selling services to see analytics</p>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Activity */}
-        <div className="ghost-card p-5 sm:p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h2>
-            <span className="text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded-full">Last 24h</span>
-          </div>
-          <div className="space-y-3 sm:space-y-4">
-            {recentTransactions.length > 0 ? (
-              recentTransactions.map((transaction) => {
-                const profit = transaction.selling_price - transaction.cost_at_sale;
-                const time = new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-all hover-lift-subtle animate-slide-in-right min-h-[64px]"
-                    style={{ animationDelay: `${recentTransactions.indexOf(transaction) * 0.05}s` }}
-                  >
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-white' : 'bg-red-400'}`} />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-white text-base sm:text-lg truncate">{transaction.services?.product_service}</h3>
-                      <p className="text-sm text-gray-400 mt-1 font-medium">{time}</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg sm:text-xl">Recent Activity</CardTitle>
+            <Badge variant="secondary">Last 24h</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 sm:space-y-4">
+              {recentTransactions.length > 0 ? (
+                recentTransactions.map((transaction) => {
+                  const profit = transaction.selling_price - transaction.cost_at_sale;
+                  const time = new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center gap-4 p-4 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-all animate-fade-in-up min-h-[64px]"
+                      style={{ animationDelay: `${recentTransactions.indexOf(transaction) * 0.05}s` }}
+                    >
+                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${profit >= 0 ? 'bg-green-400' : 'bg-red-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-base sm:text-lg truncate">{transaction.services?.product_service}</h3>
+                        <p className="text-sm text-muted-foreground mt-1 font-medium">{time}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`font-bold text-lg sm:text-xl ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(profit)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className={`font-bold text-lg sm:text-xl ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatCurrency(profit)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-12">
-                <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">No recent activity</p>
-                <p className="text-gray-500 text-sm mt-2">Transactions will appear here</p>
-              </div>
-            )}
-          </div>
-        </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-12">
+                  <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg">No recent activity</p>
+                  <p className="text-muted-foreground/70 text-sm mt-2">Transactions will appear here</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Analytics Summary */}
-      <div className="ghost-card p-5 lg:p-6">
-        <div className="flex flex-col gap-4 mb-5 lg:mb-6">
-          <h2 className="text-lg lg:text-xl font-bold text-white">Analytics Summary</h2>
-
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg lg:text-xl">Analytics Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
           {/* Mobile-optimized date controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3">
-            {/* Navigation buttons - mobile: full width, desktop: fixed width */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-3 mb-6">
             <div className="flex items-center gap-3 sm:gap-2 w-full sm:w-auto">
-              <button
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={() => {
                   const newDate = new Date(analyticsPeriodState.date);
                   switch (analyticsPeriodState.type) {
@@ -810,13 +815,13 @@ export default function Dashboard() {
                     label
                   });
                 }}
-                className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                className="h-12 w-12 flex-shrink-0"
                 aria-label="Previous period"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
-              </button>
+              </Button>
 
               <div className="flex-1 min-w-0">
                 <SearchableDropdown
@@ -836,12 +841,14 @@ export default function Dashboard() {
                     });
                   }}
                   placeholder="Select period"
-                  className="w-full min-h-[56px] text-base"
+                  className="w-full min-h-[48px] text-base"
                   showSearchThreshold={10}
                 />
               </div>
 
-              <button
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={() => {
                   const newDate = new Date(analyticsPeriodState.date);
                   switch (analyticsPeriodState.type) {
@@ -874,69 +881,69 @@ export default function Dashboard() {
                     label
                   });
                 }}
-                className="bg-gray-700 hover:bg-gray-600 active:bg-gray-500 border border-gray-600 hover:border-gray-500 text-white min-h-[56px] min-w-[56px] flex items-center justify-center rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0"
+                className="h-12 w-12 flex-shrink-0"
                 aria-label="Next period"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-6">
-          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-            <div className="flex flex-col">
-              <p className="text-sm font-medium text-gray-400 mb-2">Total Orders</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">{currentAnalyticsStats.count}</p>
-              <p className="text-sm text-gray-400">
-                <span className={`font-semibold ${analyticsOrdersChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {analyticsOrdersChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsOrdersChange).toFixed(1)}%
-                </span> vs last period
-              </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-6">
+            <div className="p-5 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Total Orders</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">{currentAnalyticsStats.count}</p>
+                <p className="text-sm text-muted-foreground">
+                  <span className={`font-semibold ${analyticsOrdersChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {analyticsOrdersChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsOrdersChange).toFixed(1)}%
+                  </span> vs last period
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Total Revenue</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.revenue >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(currentAnalyticsStats.revenue)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className={`font-semibold ${analyticsRevenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {analyticsRevenueChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsRevenueChange).toFixed(1)}%
+                  </span> vs last period
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Net Profit</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(currentAnalyticsStats.profit)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className={`font-semibold ${analyticsProfitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {analyticsProfitChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsProfitChange).toFixed(1)}%
+                  </span> vs last period
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-secondary/50 rounded-lg hover:bg-secondary/70 transition-colors">
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Profit Margin</p>
+                <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentProfitMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {currentProfitMargin.toFixed(1)}%
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className={`font-semibold ${analyticsMarginChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {analyticsMarginChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsMarginChange).toFixed(1)}%
+                  </span> vs last period
+                </p>
+              </div>
             </div>
           </div>
-          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-            <div className="flex flex-col">
-              <p className="text-sm font-medium text-gray-400 mb-2">Total Revenue</p>
-              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.revenue >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {formatCurrency(currentAnalyticsStats.revenue)}
-              </p>
-              <p className="text-sm text-gray-400">
-                <span className={`font-semibold ${analyticsRevenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {analyticsRevenueChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsRevenueChange).toFixed(1)}%
-                </span> vs last period
-              </p>
-            </div>
-          </div>
-          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-            <div className="flex flex-col">
-              <p className="text-sm font-medium text-gray-400 mb-2">Net Profit</p>
-              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentAnalyticsStats.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {formatCurrency(currentAnalyticsStats.profit)}
-              </p>
-              <p className="text-sm text-gray-400">
-                <span className={`font-semibold ${analyticsProfitChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {analyticsProfitChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsProfitChange).toFixed(1)}%
-                </span> vs last period
-              </p>
-            </div>
-          </div>
-          <div className="p-5 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors">
-            <div className="flex flex-col">
-              <p className="text-sm font-medium text-gray-400 mb-2">Profit Margin</p>
-              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 ${currentProfitMargin >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {currentProfitMargin.toFixed(1)}%
-              </p>
-              <p className="text-sm text-gray-400">
-                <span className={`font-semibold ${analyticsMarginChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {analyticsMarginChange >= 0 ? '↑' : '↓'} {Math.abs(analyticsMarginChange).toFixed(1)}%
-                </span> vs last period
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

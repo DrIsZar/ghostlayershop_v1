@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, AlertTriangle, Users, TrendingUp, DollarSign, Calendar, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Users, TrendingUp, DollarSign, Calendar, Edit, Trash2 } from 'lucide-react';
 import { clientsDb } from '../lib/clients';
 import { supabase } from '../lib/supabase';
 import type { Client, ClientStatistics } from '../types/client';
 import ClientModal from '../components/ClientModal';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useCurrency } from '../lib/currency';
+
+// shadcn/ui components
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Clients() {
   const { formatCurrency } = useCurrency();
@@ -36,7 +43,7 @@ export default function Clients() {
     // Sort clients
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (sortBy) {
         case 'name':
           aValue = a.name.toLowerCase();
@@ -116,7 +123,7 @@ export default function Clients() {
           console.error('Supabase error:', error);
           throw new Error(error.message);
         }
-        
+
         if (!data) {
           throw new Error('No data returned from client creation');
         }
@@ -167,291 +174,293 @@ export default function Clients() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Clients</h1>
-          <p className="text-gray-400 mt-1 text-sm sm:text-base">Manage your client relationships and track their activity</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Clients</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your client relationships and track their activity</p>
         </div>
         <div className="flex-shrink-0">
-          <button
+          <Button
             onClick={() => {
               setSelectedClient(undefined);
               setIsModalOpen(true);
             }}
-            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
+            className="w-full sm:w-auto"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">Add Client</span>
             <span className="xs:hidden">Add</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[300px]">
-            <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[300px]">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, email, telegram, discord, or source..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Sort Dropdown */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-              <input
-                type="text"
-                placeholder="Search by name, email, telegram, discord, or source..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
+              <SearchableDropdown
+                label="Sort by"
+                options={[
+                  { value: 'name', label: 'Name' },
+                  { value: 'total_spent', label: 'Total Spent' },
+                  { value: 'type', label: 'Type' }
+                ]}
+                value={sortBy}
+                onChange={(value) => setSortBy(value as 'name' | 'total_spent' | 'type')}
+                placeholder="Sort by"
+                className="min-w-[140px]"
+                showSearchThreshold={3}
               />
             </div>
-          </div>
 
-          {/* Sort Dropdown */}
-          <div className="relative">
-            <SearchableDropdown
-              label="Sort by"
-              options={[
-                { value: 'name', label: 'Name' },
-                { value: 'total_spent', label: 'Total Spent' },
-                { value: 'type', label: 'Type' }
-              ]}
-              value={sortBy}
-              onChange={(value) => setSortBy(value as 'name' | 'total_spent' | 'type')}
-              placeholder="Sort by"
-              className="min-w-[140px]"
-              showSearchThreshold={3}
-            />
+            {/* Sort Order Button */}
+            <div className="flex items-end">
+              <Button
+                variant="ghost"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-9"
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </div>
           </div>
-
-          {/* Sort Order Button */}
-          <div className="flex items-end">
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-              title={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <Users className="w-6 h-6 text-white" />
+        <Card className="animate-fade-in-up">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-foreground" />
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">Total Clients</p>
+                <p className="text-2xl font-bold text-foreground">{clients.length}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Clients</p>
-              <p className="text-2xl font-bold text-white">{clients.length}</p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-white" />
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-foreground" />
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">Resellers</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {clients.filter(c => c.type === 'reseller').length}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">Resellers</p>
-              <p className="text-2xl font-bold text-white">
-                {clients.filter(c => c.type === 'reseller').length}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-white" />
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-foreground" />
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">Total Revenue</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrency(clients.reduce((sum, c) => sum + (c.total_spent || 0), 0))}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(clients.reduce((sum, c) => sum + (c.total_spent || 0), 0))}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-yellow-500" />
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-yellow-500" />
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">Avg. per Client</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrency(clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length) : 0)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">Avg. per Client</p>
-              <p className="text-2xl font-bold text-white">
-                {formatCurrency(clients.length > 0 ? (clients.reduce((sum, c) => sum + (c.total_spent || 0), 0) / clients.length) : 0)}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-900/20 border border-red-800/50 rounded-2xl p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-400">Error</h3>
-              <div className="mt-2 text-sm text-red-300">
-                <p>{error}</p>
+        <Card className="border-red-800/50 bg-red-900/20">
+          <CardContent className="p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
               </div>
-              <div className="mt-4">
-                <button
-                  onClick={loadClients}
-                  className="ghost-button-secondary px-3 py-2 text-sm font-medium"
-                >
-                  Try Again
-                </button>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-400">Error</h3>
+                <div className="mt-2 text-sm text-red-300">
+                  <p>{error}</p>
+                </div>
+                <div className="mt-4">
+                  <Button variant="secondary" size="sm" onClick={loadClients}>
+                    Try Again
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Clients Table */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden">
+      <Card>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead className="bg-gray-700/50 relative z-10">
-              <tr>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Name</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Type</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Contact</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Source</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Total Spent</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Services Bought</th>
-                <th className="px-4 md:px-6 py-4 text-left text-sm font-medium text-gray-300">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700/50">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Services Bought</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-foreground mr-3"></div>
                       Loading clients...
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : filteredClients.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     {searchTerm ? (
                       <div>
                         <p className="text-lg mb-2">No clients found matching "{searchTerm}"</p>
-                        <button
-                          onClick={() => setSearchTerm('')}
-                          className="ghost-button-secondary mt-2"
-                        >
+                        <Button variant="secondary" onClick={() => setSearchTerm('')} className="mt-2">
                           Clear search
-                        </button>
+                        </Button>
                       </div>
                     ) : clients.length === 0 ? (
                       <div>
                         <p className="text-lg mb-2">No clients found. Add your first client to get started.</p>
-                        <button
+                        <Button
                           onClick={() => {
                             setSelectedClient(undefined);
                             setIsModalOpen(true);
                           }}
-                          className="ghost-button mt-2"
+                          className="mt-2"
                         >
                           Add your first client
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       'No clients match your search criteria.'
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 md:px-6 py-4 text-white font-medium">
-                      <div className="text-sm md:text-base font-semibold">
-                        {client.name}
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                        client.type === 'reseller' 
-                          ? 'bg-white/10 text-white ring-1 ring-purple-500/30' 
-                          : 'bg-white/20 text-white ring-1 ring-white/30'
-                      }`}>
+                  <TableRow key={client.id} className="hover:bg-secondary/50 transition-colors">
+                    <TableCell className="font-semibold text-foreground">
+                      {client.name}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={client.type === 'reseller' ? 'secondary' : 'outline'}>
                         {client.type === 'reseller' ? 'Reseller' : 'Client'}
-                      </span>
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       <div className="space-y-1">
-                        {client.email && <div className="text-white">{client.email}</div>}
-                        {client.telegram && <div className="text-white">@{client.telegram}</div>}
-                        {client.discord && <div className="text-white">@{client.discord}</div>}
+                        {client.email && <div className="text-foreground">{client.email}</div>}
+                        {client.telegram && <div className="text-foreground">@{client.telegram}</div>}
+                        {client.discord && <div className="text-foreground">@{client.discord}</div>}
                         {!client.email && !client.telegram && !client.discord && (
-                          <span className="text-gray-500">No contact info</span>
+                          <span className="text-muted-foreground/50">No contact info</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {client.source || '-'}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-white text-sm font-medium">
+                    </TableCell>
+                    <TableCell className="text-foreground font-medium">
                       ${client.total_spent?.toFixed(2) || '0.00'}
-                    </td>
-                    <td className="px-4 md:px-6 py-4 text-gray-300 text-sm">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       <div className="max-w-xs">
                         {client.services_bought && client.services_bought.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {client.services_bought.slice(0, 2).map((service, index) => (
-                              <span key={index} className="inline-block bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs">
+                              <Badge key={index} variant="secondary" className="text-xs">
                                 {service}
-                              </span>
+                              </Badge>
                             ))}
                             {client.services_bought.length > 2 && (
-                              <span className="inline-block bg-gray-700/50 text-gray-400 px-2 py-1 rounded text-xs">
+                              <Badge variant="secondary" className="text-xs">
                                 +{client.services_bought.length - 2} more
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-500">None</span>
+                          <span className="text-muted-foreground/50">None</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 md:px-6 py-4">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1 md:gap-2">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             setSelectedClient(client);
                             setIsModalOpen(true);
                           }}
-                          className="p-1 md:p-2 text-gray-400 hover:text-white transition-colors rounded"
-                          title="Edit client"
+                          className="h-8 w-8"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDeleteClient(client)}
-                          className="p-1 md:p-2 text-gray-400 hover:text-red-500 transition-colors rounded"
-                          title="Delete client"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-500"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
       <ClientModal
         open={isModalOpen}

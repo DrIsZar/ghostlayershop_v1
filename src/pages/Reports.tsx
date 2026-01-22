@@ -7,6 +7,11 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { listResourcePools } from '../lib/inventory';
 import { ResourcePool } from '../types/inventory';
 import { useCurrency } from '../lib/currency';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -78,7 +83,7 @@ export default function Reports() {
   const getMonthlyData = useCallback((transactions: Transaction[]) => {
     const months = [];
     const now = new Date();
-    
+
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.unshift(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
@@ -107,22 +112,22 @@ export default function Reports() {
 
   const analyzeProfitTrends = useCallback((monthlyData: Array<{ month: string; revenue: number; profit: number; transactions: number }>) => {
     if (monthlyData.length < 2) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
-    
+
     const recent = monthlyData.slice(-3);
     const previous = monthlyData.slice(-6, -3);
-    
+
     const recentAvg = recent.reduce((sum, m) => sum + m.profit, 0) / recent.length;
     const previousAvg = previous.reduce((sum, m) => sum + m.profit, 0) / previous.length;
-    
+
     if (previousAvg === 0) return { trend: 'stable' as const, percentage: 0, period: 'N/A' };
-    
+
     const percentage = ((recentAvg - previousAvg) / previousAvg) * 100;
-    
+
     let trend: 'up' | 'down' | 'stable';
     if (percentage > 5) trend = 'up';
     else if (percentage < -5) trend = 'down';
     else trend = 'stable';
-    
+
     return {
       trend,
       percentage: Math.abs(percentage),
@@ -188,7 +193,7 @@ export default function Reports() {
       const existing = clientTypeData.get(client.type) || { count: 0, totalSpent: 0 };
       const clientTransactions = transactions.filter(t => t.client_id === client.id);
       const totalSpent = clientTransactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
-      
+
       clientTypeData.set(client.type, {
         count: existing.count + 1,
         totalSpent: existing.totalSpent + totalSpent
@@ -203,7 +208,7 @@ export default function Reports() {
     clients.forEach(client => {
       const clientTransactions = transactions.filter(t => t.client_id === client.id);
       const totalSpent = clientTransactions.reduce((sum, t) => sum + (t.selling_price || 0), 0);
-      
+
       if (totalSpent > 0) {
         clientData.set(client.id, {
           name: client.name,
@@ -250,18 +255,18 @@ export default function Reports() {
     // Process inventory data
     const now = new Date();
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    
+
     const totalPools = pools.length;
     const activePools = pools.filter(p => p.status === 'active' && p.is_alive).length;
     const expiringSoon = pools.filter(p => {
       const endDate = new Date(p.end_at);
       return endDate >= now && endDate <= threeDaysFromNow && p.status === 'active';
     }).length;
-    
+
     const totalSeats = pools.reduce((sum, p) => sum + p.max_seats, 0);
     const usedSeats = pools.reduce((sum, p) => sum + p.used_seats, 0);
     const utilizationRate = totalSeats > 0 ? (usedSeats / totalSeats) * 100 : 0;
-    
+
     // Pools by provider
     const poolsByProvider = new Map<string, { count: number; seats: number }>();
     pools.forEach(pool => {
@@ -271,11 +276,11 @@ export default function Reports() {
         seats: existing.seats + pool.max_seats
       });
     });
-    
+
     const poolsByProviderArray = Array.from(poolsByProvider.entries())
       .map(([provider, data]) => ({ provider, ...data }))
       .sort((a, b) => b.count - a.count);
-    
+
     // Expiring pools
     const expiringPools = pools
       .filter(p => {
@@ -327,7 +332,7 @@ export default function Reports() {
   const getDateRange = useCallback(() => {
     const now = new Date();
     const from = new Date();
-    
+
     switch (period) {
       case 'month':
         from.setMonth(now.getMonth() - 1);
@@ -339,7 +344,7 @@ export default function Reports() {
         from.setFullYear(now.getFullYear() - 1);
         break;
     }
-    
+
     return {
       from: from.toISOString().split('T')[0],
       to: now.toISOString().split('T')[0]
@@ -349,10 +354,10 @@ export default function Reports() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Get date range based on period
       const { from, to } = getDateRange();
-      
+
       const [transactionsResult, servicesResult, clientsResult, poolsResult] = await Promise.all([
         supabase
           .from('transactions')
@@ -397,7 +402,7 @@ export default function Reports() {
       // Process data for reports - memoized
       const processedData = processReportData(transactionsData, servicesData, clientsData, poolsData);
       setReportData(processedData);
-      
+
       // Check for low profit margin alerts
       if (processedData.lowProfitServices.length > 0) {
         setShowLowProfitAlert(true);
@@ -415,7 +420,7 @@ export default function Reports() {
 
   const exportReport = () => {
     if (!reportData) return;
-    
+
     const csvContent = [
       ['Metric', 'Value'],
       ['Total Revenue', formatCurrency(reportData.totalRevenue)],
@@ -554,8 +559,8 @@ export default function Reports() {
     <div>
       <div className="mb-4 lg:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-white">Reports & Analytics</h1>
-          <p className="text-gray-400 mt-1 text-sm lg:text-base">Comprehensive business insights and performance metrics</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <p className="text-muted-foreground mt-1 text-sm lg:text-base">Comprehensive business insights and performance metrics</p>
         </div>
         <div className="mt-3 sm:mt-0 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <SearchableDropdown
@@ -570,19 +575,16 @@ export default function Reports() {
             className="px-3 py-2 text-sm"
             showSearchThreshold={10}
           />
-          <button
-            onClick={exportReport}
-            className="ghost-button flex items-center justify-center gap-2 px-4 py-2 text-sm"
-          >
-            <Download className="h-4 w-4" />
+          <Button variant="secondary" onClick={exportReport}>
+            <Download className="h-4 w-4 mr-2" />
             Export
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Low Profit Alert */}
       {showLowProfitAlert && reportData.lowProfitServices.length > 0 && (
-        <div className="mb-6 ghost-card p-4 border-l-4 border-yellow-500 bg-yellow-500/10">
+        <div className="mb-6 bg-card border border-border rounded-lg shadow-sm p-4 border-l-4 border-yellow-500 bg-yellow-500/10">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
             <div>
@@ -603,7 +605,7 @@ export default function Reports() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <div className="ghost-card p-4 lg:p-6">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Revenue</p>
@@ -612,8 +614,8 @@ export default function Reports() {
             <DollarSign className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Profit</p>
@@ -622,8 +624,8 @@ export default function Reports() {
             <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Transactions</p>
@@ -632,8 +634,8 @@ export default function Reports() {
             <Package className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Profit Margin</p>
@@ -646,7 +648,7 @@ export default function Reports() {
 
       {/* Additional Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <div className="ghost-card p-4 lg:p-6">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Avg Transaction</p>
@@ -655,8 +657,8 @@ export default function Reports() {
             <Target className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Clients</p>
@@ -665,8 +667,8 @@ export default function Reports() {
             <Users className="h-6 w-6 lg:h-8 lg:w-8 text-pink-500" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Total Services</p>
@@ -675,8 +677,8 @@ export default function Reports() {
             <Package className="h-6 w-6 lg:h-8 lg:w-8 text-orange-500" />
           </div>
         </div>
-        
-        <div className="ghost-card p-4 lg:p-6">
+
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs lg:text-sm">Profit Trend</p>
@@ -688,10 +690,9 @@ export default function Reports() {
                 ) : (
                   <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5 text-gray-500" />
                 )}
-                <span className={`text-base lg:text-lg font-bold ${
-                  reportData.profitTrends.trend === 'up' ? 'text-white' : 
+                <span className={`text-base lg:text-lg font-bold ${reportData.profitTrends.trend === 'up' ? 'text-white' :
                   reportData.profitTrends.trend === 'down' ? 'text-red-500' : 'text-gray-400'
-                }`}>
+                  }`}>
                   {reportData.profitTrends.trend === 'stable' ? 'Stable' : `${reportData.profitTrends.percentage.toFixed(1)}%`}
                 </span>
               </div>
@@ -707,7 +708,7 @@ export default function Reports() {
           Inventory Overview
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <div className="ghost-card p-4 lg:p-6">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs lg:text-sm">Total Pools</p>
@@ -716,8 +717,8 @@ export default function Reports() {
               <Archive className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
-          
-          <div className="ghost-card p-4 lg:p-6">
+
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs lg:text-sm">Active Pools</p>
@@ -726,8 +727,8 @@ export default function Reports() {
               <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
           </div>
-          
-          <div className="ghost-card p-4 lg:p-6">
+
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs lg:text-sm">Expiring Soon</p>
@@ -736,8 +737,8 @@ export default function Reports() {
               <AlertTriangle className="h-6 w-6 lg:h-8 lg:w-8 text-amber-500" />
             </div>
           </div>
-          
-          <div className="ghost-card p-4 lg:p-6">
+
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs lg:text-sm">Seat Utilization</p>
@@ -753,7 +754,7 @@ export default function Reports() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Profit Trends */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[400px] lg:min-h-[500px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[400px] lg:min-h-[500px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Profit & Revenue Trends</h3>
           <div className="h-[300px] lg:h-[400px]">
             <Line
@@ -783,7 +784,7 @@ export default function Reports() {
         </div>
 
         {/* Service Performance */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[400px] lg:min-h-[500px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[400px] lg:min-h-[500px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Top Services by Revenue</h3>
           <div className="h-[300px] lg:h-[400px]">
             <Bar
@@ -815,7 +816,7 @@ export default function Reports() {
       {/* Additional Charts - Smaller Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Category Distribution */}
-        <div className="ghost-card p-4 lg:p-6 min-h-[300px] lg:min-h-[350px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6 min-h-[300px] lg:min-h-[350px]">
           <h3 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4">Revenue by Category</h3>
           <div className="h-[200px] lg:h-[250px]">
             <Doughnut
@@ -835,7 +836,7 @@ export default function Reports() {
         </div>
 
         {/* Client Types */}
-        <div className="ghost-card p-4 lg:p-6 min-h-[300px] lg:min-h-[350px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 lg:p-6 min-h-[300px] lg:min-h-[350px]">
           <h3 className="text-base lg:text-lg font-semibold text-white mb-3 lg:mb-4">Client Distribution</h3>
           <div className="h-[200px] lg:h-[250px]">
             <Pie
@@ -857,7 +858,7 @@ export default function Reports() {
 
       {/* Service Duration Analysis */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Service Duration Performance</h3>
           <div className="h-[250px] lg:h-[300px]">
             <Bar
@@ -886,15 +887,14 @@ export default function Reports() {
         </div>
 
         {/* Top Clients */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Top Clients by Spending</h3>
           <div className="space-y-3 lg:space-y-4">
             {reportData.topClients.map((client, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                 <div className="flex items-center gap-2 lg:gap-3">
-                  <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-xs lg:text-sm font-bold ${
-                    client.type === 'reseller' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
-                  }`}>
+                  <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-xs lg:text-sm font-bold ${client.type === 'reseller' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'
+                    }`}>
                     {client.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -915,7 +915,7 @@ export default function Reports() {
       {/* Inventory Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
         {/* Pools by Provider */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Pools by Provider</h3>
           <div className="h-[250px] lg:h-[300px]">
             <Bar
@@ -955,7 +955,7 @@ export default function Reports() {
         </div>
 
         {/* Seat Utilization */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Seat Utilization</h3>
           <div className="h-[250px] lg:h-[300px]">
             <Doughnut
@@ -994,7 +994,7 @@ export default function Reports() {
       {/* Detailed Tables */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
         {/* Top Services Table */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Top Performing Services</h3>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1021,7 +1021,7 @@ export default function Reports() {
         </div>
 
         {/* Expiring Pools */}
-        <div className="ghost-card p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-6 lg:p-8 min-h-[350px] lg:min-h-[400px]">
           <h3 className="text-lg lg:text-xl font-semibold text-white mb-4 lg:mb-6">Pools Expiring Soon</h3>
           <div className="space-y-3 lg:space-y-4">
             {reportData.inventoryData.expiringPools.length > 0 ? (
@@ -1037,10 +1037,9 @@ export default function Reports() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm lg:text-base font-bold ${
-                      pool.daysLeft <= 1 ? 'text-red-400' : 
+                    <p className={`text-sm lg:text-base font-bold ${pool.daysLeft <= 1 ? 'text-red-400' :
                       pool.daysLeft <= 3 ? 'text-amber-400' : 'text-gray-400'
-                    }`}>
+                      }`}>
                       {pool.daysLeft === 0 ? 'Today' : `${pool.daysLeft} days`}
                     </p>
                     <p className="text-gray-400 text-xs lg:text-sm">
@@ -1061,7 +1060,7 @@ export default function Reports() {
 
       {/* Low Profit Services Alert */}
       {reportData.lowProfitServices.length > 0 && (
-        <div className="mt-8 ghost-card p-6 border-l-4 border-red-500 bg-red-500/10">
+        <div className="mt-8 bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-red-500 bg-red-500/10">
           <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             Services Requiring Attention

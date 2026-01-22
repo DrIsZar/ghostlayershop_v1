@@ -14,6 +14,11 @@ import { getProviderLogo } from '../lib/fileUtils';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 import { getTodayInTunisia } from '../lib/dateUtils';
 
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -499,19 +504,21 @@ export default function SubscriptionModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">
             {isEditing ? 'Edit Subscription' : saleId ? 'Create Subscription from Sale' : 'Create New Subscription'}
           </h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -554,29 +561,28 @@ export default function SubscriptionModal({
 
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
+            <Label className="text-muted-foreground mb-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
               When should this subscription begin?
-            </label>
-            <input
+            </Label>
+            <Input
               type="date"
               value={formData.startDate}
               onChange={(e) => handleInputChange('startDate', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
             {errors.startDate && (
-              <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>
+              <p className="mt-1 text-sm text-destructive">{errors.startDate}</p>
             )}
           </div>
 
           {/* Calculated End Date */}
           {calculatedEndDate && (
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
+              <Label className="text-muted-foreground mb-2 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
                 Subscription End Date
-              </label>
-              <div className="px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white font-semibold">
+              </Label>
+              <div className="px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground font-semibold">
                 {new Date(calculatedEndDate).toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
@@ -584,7 +590,7 @@ export default function SubscriptionModal({
                   day: 'numeric'
                 })}
               </div>
-              <p className="mt-2 text-sm text-gray-400">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Automatically calculated based on {selectedService?.duration ? parseServiceDuration(selectedService.duration) : 1}-month service duration
               </p>
             </div>
@@ -635,18 +641,17 @@ export default function SubscriptionModal({
 
           {/* Login */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
-              <Mail className="w-4 h-4 inline mr-2" />
+            <Label className="text-muted-foreground mb-2 flex items-center gap-2">
+              <Mail className="w-4 h-4" />
               Login
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               placeholder="customer@example.com or customer@example.com:password"
             />
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-muted-foreground">
               Customer login for this subscription (used for seat assignment)
             </p>
           </div>
@@ -713,8 +718,8 @@ export default function SubscriptionModal({
                         {resourcePool.provider.replace('_', ' ').toUpperCase()}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${resourcePool.status === 'active' ? 'bg-white/10 text-white' :
-                          resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
-                            'bg-red-900/30 text-red-400'
+                        resourcePool.status === 'overdue' ? 'bg-amber-900/30 text-amber-400' :
+                          'bg-red-900/30 text-red-400'
                         }`}>
                         {STATUS_LABELS[resourcePool.status] || resourcePool.status}
                       </span>
@@ -807,7 +812,7 @@ export default function SubscriptionModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
+          <div className="flex gap-3 pt-6 border-t border-border">
             {(() => {
               console.log('🔍 Button rendering state:', {
                 isEditing,
@@ -821,53 +826,53 @@ export default function SubscriptionModal({
               if (isEditing) {
                 return (
                   <>
-                    <button
+                    <Button
                       ref={updateButtonRef}
                       type="button"
                       onClick={handleUpdateSubscription}
                       disabled={isLoading}
-                      className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                      className="flex-1"
                     >
                       {isLoading ? 'Updating...' : 'Update Subscription'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
                       onClick={onClose}
-                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 );
               } else if (!createdSubscriptionId) {
                 return (
                   <>
-                    <button
+                    <Button
                       ref={submitButtonRef}
                       type="submit"
                       disabled={isLoading}
-                      className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200"
+                      className="flex-1"
                     >
                       {isLoading ? 'Creating...' : 'Create Subscription'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
                       onClick={onClose}
-                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 );
               } else {
                 return (
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={onClose}
-                    className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
                   >
                     Close
-                  </button>
+                  </Button>
                 );
               }
             })()}

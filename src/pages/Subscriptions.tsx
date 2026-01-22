@@ -31,6 +31,9 @@ import { useKeyboardShortcuts, shouldIgnoreKeyboardEvent } from '../lib/useKeybo
 import { syncSubscriptionsForDeadPools, getResourcePool } from '../lib/inventory';
 import { ResourcePool } from '../types/inventory';
 
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+
 type ViewMode = 'all' | 'active' | 'completed' | 'dueToday' | 'dueIn3Days' | 'overdue' | 'overdueNormal' | 'overdueDeadPool';
 type ArchiveViewMode = 'subscriptions' | 'archive';
 type GroupByMode = 'none' | 'client' | 'service';
@@ -1148,7 +1151,7 @@ export default function Subscriptions() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading subscriptions...</p>
+          <p className="text-muted-foreground">Loading subscriptions...</p>
         </div>
       </div>
     );
@@ -1159,47 +1162,47 @@ export default function Subscriptions() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Subscriptions</h1>
-          <p className="text-gray-400 mt-1 text-sm sm:text-base">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Subscriptions</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Track and manage all your active subscriptions
           </p>
         </div>
         <div className="flex-shrink-0 flex gap-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={exportSubscriptions}
-            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
             title="Export filtered subscriptions to CSV (E)"
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">Export</span>
             <span className="xs:hidden">Export</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setIsModalOpen(true)}
-            className="ghost-button flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start px-4 py-2.5 text-sm font-medium"
             title="Create new subscription (N or C)"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">Create Subscription</span>
             <span className="xs:hidden">Create</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
             title="Keyboard shortcuts (Shift+?)"
           >
             <HelpCircle className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* View Tabs */}
-      <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-secondary/50 p-1 rounded-lg">
         <button
           onClick={() => setArchiveViewMode('subscriptions')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'subscriptions'
             ? 'bg-white text-black'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            : 'text-muted-foreground hover:text-white hover:bg-secondary'
             }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
@@ -1209,7 +1212,7 @@ export default function Subscriptions() {
           onClick={() => setArchiveViewMode('archive')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${archiveViewMode === 'archive'
             ? 'bg-white text-black'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            : 'text-muted-foreground hover:text-white hover:bg-secondary'
             }`}
         >
           <Archive className="w-4 h-4 inline mr-2" />
@@ -1220,25 +1223,25 @@ export default function Subscriptions() {
       {archiveViewMode === 'subscriptions' && (
         <>
           {/* Filter Toolbar */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+          <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4">
             <div className="flex flex-wrap gap-4 items-center">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[300px]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search by service, client, or notes... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
+                    className="w-full pl-12 pr-4 py-2 bg-secondary border border-border rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-white"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1361,7 +1364,7 @@ export default function Subscriptions() {
               <div className="flex items-end gap-2">
                 <button
                   onClick={resetFilters}
-                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-3 py-2 text-muted-foreground hover:text-white hover:bg-secondary rounded-lg transition-colors"
                   title="Reset all filters"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -1370,7 +1373,7 @@ export default function Subscriptions() {
                 {/* Debug Refresh Button */}
                 <button
                   onClick={handleManualRefresh}
-                  className="px-3 py-2 text-white hover:text-gray-200 hover:bg-zinc-800/30 rounded-lg transition-colors"
+                  className="px-3 py-2 text-white hover:text-muted-foreground hover:bg-zinc-800/30 rounded-lg transition-colors"
                   title="Force refresh from database"
                 >
                   🔄
@@ -1385,49 +1388,49 @@ export default function Subscriptions() {
               const filteredBuckets = getFilteredDueBuckets();
               return (
                 <>
-                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                  <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
                         <Clock className="w-6 h-6 text-orange-500" />
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm">Due Today</p>
+                        <p className="text-muted-foreground text-sm">Due Today</p>
                         <p className="text-2xl font-bold text-white">{filteredBuckets.dueToday}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                  <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
                         <Calendar className="w-6 h-6 text-yellow-500" />
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm">Due in 3 Days</p>
+                        <p className="text-muted-foreground text-sm">Due in 3 Days</p>
                         <p className="text-2xl font-bold text-white">{filteredBuckets.dueIn3Days}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                  <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
                         <AlertTriangle className="w-6 h-6 text-red-500" />
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm">Overdue</p>
+                        <p className="text-muted-foreground text-sm">Overdue</p>
                         <p className="text-2xl font-bold text-white">{filteredBuckets.overdue}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+                  <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                         <TrendingUp className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="text-gray-400 text-sm">Total Active</p>
+                        <p className="text-muted-foreground text-sm">Total Active</p>
                         <p className="text-2xl font-bold text-white">{getTotalActive()}</p>
                       </div>
                     </div>
@@ -1439,32 +1442,32 @@ export default function Subscriptions() {
 
           {/* Status Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+            <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-white">{getTotalActive()}</div>
-              <div className="text-sm text-gray-400">Active</div>
+              <div className="text-sm text-muted-foreground">Active</div>
             </div>
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+            <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-white">{getTotalCompleted()}</div>
-              <div className="text-sm text-gray-400">Completed</div>
+              <div className="text-sm text-muted-foreground">Completed</div>
             </div>
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
+            <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-red-400">{getTotalOverdue()}</div>
-              <div className="text-sm text-gray-400">Overdue</div>
+              <div className="text-sm text-muted-foreground">Overdue</div>
             </div>
           </div>
 
           {/* Keyboard Shortcuts Help Modal */}
           {showKeyboardHelp && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
-                <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
+                <div className="flex items-center justify-between p-6 border-b border-border">
                   <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                     <Keyboard className="w-5 h-5" />
                     Keyboard Shortcuts
                   </h2>
                   <button
                     onClick={() => setShowKeyboardHelp(false)}
-                    className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+                    className="text-muted-foreground hover:text-white transition-colors p-1 rounded-lg hover:bg-secondary/50"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1472,88 +1475,88 @@ export default function Subscriptions() {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Navigation</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Navigation</h3>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Arrow Up/Down</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">↑ ↓</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Arrow Up/Down</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">↑ ↓</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Enter</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Enter</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Enter</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Enter</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Focus Search</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Focus Search</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">/</kbd>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Actions</h3>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Create New</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Create New</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">N</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Export</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">E</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Export</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">E</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Reset Filters</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Reset Filters</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">R</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Toggle Archive</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Toggle Archive</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">A</kbd>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Quick Views</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quick Views</h3>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: All</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">1</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: All</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">1</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: Active</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">2</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: Active</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">2</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: Completed</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">3</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: Completed</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">3</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: Due Today</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">4</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: Due Today</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">4</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: Due in 3 Days</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">5</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: Due in 3 Days</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">5</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">View: Overdue</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">6</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">View: Overdue</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">6</kbd>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">General</h3>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Close Modal</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Close Modal</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Esc</kbd>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                          <span className="text-gray-300 text-sm">Show Help</span>
-                          <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
+                        <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                          <span className="text-muted-foreground text-sm">Show Help</span>
+                          <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Shift + ?</kbd>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="pt-4 border-t border-gray-700">
-                    <p className="text-xs text-gray-400 text-center">
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground text-center">
                       Keyboard shortcuts are disabled when typing in input fields
                     </p>
                   </div>
@@ -1566,23 +1569,23 @@ export default function Subscriptions() {
           <div className="w-full max-w-full overflow-hidden">
             {filteredSubscriptions.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Package className="w-8 h-8 text-gray-400" />
+                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No subscriptions match your filters</h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Try resetting filters or selecting a different client/service.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <button
                     onClick={resetFilters}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors duration-200"
+                    className="px-4 py-2 bg-secondary hover:bg-muted text-white font-medium rounded-lg transition-colors duration-200"
                   >
                     Reset Filters
                   </button>
                   <button
                     onClick={() => setIsModalOpen(true)}
-                    className="px-4 py-2 bg-white hover:bg-gray-100 text-white font-medium rounded-lg transition-colors duration-200"
+                    className="px-4 py-2 bg-white hover:bg-muted text-white font-medium rounded-lg transition-colors duration-200"
                   >
                     Create Subscription
                   </button>
@@ -1595,16 +1598,16 @@ export default function Subscriptions() {
                   <div key={group.key} className="space-y-3">
                     {/* Group Header */}
                     <div
-                      className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700/50 rounded-xl cursor-pointer hover:bg-gray-800/50 transition-colors"
+                      className="flex items-center justify-between p-4 bg-secondary/30 border border-border/50 rounded-xl cursor-pointer hover:bg-secondary/50 transition-colors"
                       onClick={() => toggleGroup(group.key)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                          {groupBy === 'client' ? <Users className="w-4 h-4 text-gray-400" /> : <Package className="w-4 h-4 text-gray-400" />}
+                        <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
+                          {groupBy === 'client' ? <Users className="w-4 h-4 text-muted-foreground" /> : <Package className="w-4 h-4 text-muted-foreground" />}
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-white">{group.title}</h3>
-                          <p className="text-sm text-gray-400">{group.subscriptions.length} subscription{group.subscriptions.length !== 1 ? 's' : ''}</p>
+                          <p className="text-sm text-muted-foreground">{group.subscriptions.length} subscription{group.subscriptions.length !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -1619,14 +1622,14 @@ export default function Subscriptions() {
                           <span className="px-2 py-1 bg-red-900/30 text-red-400 text-xs rounded-full">
                             {group.counts.overdue} Overdue
                           </span>
-                          <span className="px-2 py-1 bg-gray-900/30 text-gray-400 text-xs rounded-full">
+                          <span className="px-2 py-1 bg-card/30 text-muted-foreground text-xs rounded-full">
                             {group.counts.archived} Archived
                           </span>
                         </div>
                         {collapsedGroups.has(group.key) ? (
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
                         )}
                       </div>
                     </div>
@@ -1646,7 +1649,7 @@ export default function Subscriptions() {
                                     cardRefs.current[globalIndex] = el;
                                   }
                                 }}
-                                className={`w-full min-w-0 transition-all animate-fade-in-up ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                                className={`w-full min-w-0 transition-all animate-fade-in-up ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background rounded-2xl' : ''
                                   }`}
                                 style={{ animationDelay: `${(globalIndex % 10) * 0.05}s` }}
                               >
@@ -1680,7 +1683,7 @@ export default function Subscriptions() {
                             cardRefs.current[index] = el;
                           }
                         }}
-                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background rounded-2xl' : ''
                           }`}
                       >
                         <SubscriptionCard
@@ -1713,25 +1716,25 @@ export default function Subscriptions() {
       {archiveViewMode === 'archive' && (
         <>
           {/* Archive Filter Toolbar */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+          <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4">
             <div className="flex flex-wrap gap-4 items-center">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[300px]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search archived subscriptions... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
+                    className="w-full pl-12 pr-4 py-2 bg-secondary border border-border rounded-lg text-white text-sm focus:outline-none focus:border-white text-center"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-white"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1814,7 +1817,7 @@ export default function Subscriptions() {
               <div className="flex items-end gap-2">
                 <button
                   onClick={resetFilters}
-                  className="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-3 py-2 text-muted-foreground hover:text-white hover:bg-secondary rounded-lg transition-colors"
                   title="Reset all filters"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -1824,20 +1827,20 @@ export default function Subscriptions() {
           </div>
 
           {/* Archive Stats */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-gray-400">{getTotalArchived()}</div>
-            <div className="text-sm text-gray-400">Archived Subscriptions</div>
+          <div className="bg-secondary/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 text-center">
+            <div className="text-2xl font-bold text-muted-foreground">{getTotalArchived()}</div>
+            <div className="text-sm text-muted-foreground">Archived Subscriptions</div>
           </div>
 
           {/* Archived Subscriptions List */}
           <div className="w-full max-w-full overflow-hidden">
             {filteredArchivedSubscriptions.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Archive className="w-8 h-8 text-gray-400" />
+                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Archive className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No archived subscriptions</h3>
-                <p className="text-gray-400 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Archived subscriptions will appear here.
                 </p>
               </div>
@@ -1854,7 +1857,7 @@ export default function Subscriptions() {
                             cardRefs.current[index] = el;
                           }
                         }}
-                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900 rounded-2xl' : ''
+                        className={`w-full min-w-0 transition-all ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background rounded-2xl' : ''
                           }`}
                       >
                         <SubscriptionCard

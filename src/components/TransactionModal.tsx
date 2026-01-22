@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 import { Transaction, Service } from '../lib/supabase';
 import type { Client } from '../types/client';
@@ -8,6 +8,12 @@ import SearchableDropdown from './SearchableDropdown';
 import { shouldIgnoreKeyboardEvent } from '../lib/useKeyboardShortcuts';
 import { getTodayInTunisia } from '../lib/dateUtils';
 import { useCurrency } from '../lib/currency';
+
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -175,24 +181,21 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
   const selectedService = services.find(s => s.id === formData.service_id);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] animate-fade-in" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] animate-fade-in" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">
             {transaction ? 'Edit Transaction' : 'Add New Transaction'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Client</label>
-            <div className="flex gap-2">
+            <Label className="text-muted-foreground">Client</Label>
+            <div className="flex gap-2 mt-2">
               <SearchableDropdown
                 options={[
                   { value: '', label: 'Select a client' },
@@ -209,70 +212,72 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
                 showSearchThreshold={5}
                 required
               />
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setIsClientModalOpen(true)}
-                className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 mr-2" />
                 New
-              </button>
+              </Button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Service</label>
-            <SearchableDropdown
-              options={[
-                { value: '', label: 'Select a service' },
-                ...services.map(service => ({
-                  value: service.id,
-                  label: `${service.product_service} - ${service.duration}`
-                }))
-              ]}
-              value={formData.service_id}
-              onChange={(value) => handleServiceChange(value)}
-              placeholder="Select a service"
-              searchPlaceholder="Search services..."
-              className="w-full"
-              showSearchThreshold={5}
-              required
-            />
+            <Label className="text-muted-foreground">Service</Label>
+            <div className="mt-2">
+              <SearchableDropdown
+                options={[
+                  { value: '', label: 'Select a service' },
+                  ...services.map(service => ({
+                    value: service.id,
+                    label: `${service.product_service} - ${service.duration}`
+                  }))
+                ]}
+                value={formData.service_id}
+                onChange={(value) => handleServiceChange(value)}
+                placeholder="Select a service"
+                searchPlaceholder="Search services..."
+                className="w-full"
+                showSearchThreshold={5}
+                required
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Date</label>
-            <input
+            <Label className="text-muted-foreground">Date</Label>
+            <Input
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
+              className="mt-2"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Cost at Sale ({currency})</label>
-              <input
+              <Label className="text-muted-foreground">Cost at Sale ({currency})</Label>
+              <Input
                 type="number"
                 step="0.01"
                 value={formData.cost_at_sale}
                 onChange={(e) => handleInputChange('cost_at_sale', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
+                className="mt-2"
                 placeholder="0.00"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">Selling Price ({currency})</label>
-              <input
+              <Label className="text-muted-foreground">Selling Price ({currency})</Label>
+              <Input
                 type="number"
                 step="0.01"
                 value={formData.selling_price}
                 onChange={(e) => handleInputChange('selling_price', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-colors"
+                className="mt-2"
                 placeholder="0.00"
                 required
               />
@@ -280,47 +285,40 @@ export default function TransactionModal({ isOpen, onClose, onSave, transaction,
           </div>
 
           {selectedService && (
-            <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-              <div className="text-sm font-medium text-gray-300 mb-1">Service Info:</div>
-              <div className="text-sm text-white">{selectedService.category} • {selectedService.info_needed}</div>
+            <div className="p-4 bg-secondary/30 border border-border rounded-lg">
+              <div className="text-sm font-medium text-muted-foreground mb-1">Service Info:</div>
+              <div className="text-sm text-foreground">{selectedService.category} • {selectedService.info_needed}</div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">Notes (Optional)</label>
-            <textarea
+            <Label className="text-muted-foreground">Notes (Optional)</Label>
+            <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+              className="mt-2"
               rows={3}
               placeholder="Additional notes about this transaction..."
             />
           </div>
 
-          <div className="p-4 bg-gray-800/50 border border-gray-700 rounded-lg">
-            <div className="text-sm font-medium text-gray-300 mb-1">Profit:</div>
+          <div className="p-4 bg-secondary/30 border border-border rounded-lg">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Profit:</div>
             <div className={`text-2xl font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {currency === 'TND' ? `TND ${profit.toFixed(2)}` : formatCurrency(profit)}
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-muted-foreground/70 mt-1">
               {profit >= 0 ? 'Positive profit' : 'Negative profit - check pricing'}
             </div>
           </div>
 
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 text-black font-semibold rounded-lg transition-colors duration-200"
-            >
+          <div className="flex gap-3 pt-6 border-t border-border">
+            <Button type="submit" className="flex-1">
               {transaction ? 'Update Transaction' : 'Add Transaction'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>

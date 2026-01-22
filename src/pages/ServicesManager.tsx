@@ -5,6 +5,13 @@ import ServiceModal from '../components/ServiceModal';
 import { getServiceLogo, migrateExistingLogos } from '../lib/fileUtils';
 import { useCurrency } from '../lib/currency';
 
+// shadcn/ui components
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 // ServiceLogo component for reactive logo display
 interface ServiceLogoProps {
   serviceName: string;
@@ -20,8 +27,8 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
   }, [serviceName, refreshTrigger]);
 
   const containerClass = size === 'large'
-    ? "w-12 h-12 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border-2 border-gray-600 shadow-lg"
-    : "w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600 shadow-sm";
+    ? "w-12 h-12 rounded-xl overflow-hidden bg-secondary flex items-center justify-center border-2 border-border shadow-lg"
+    : "w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center border border-border shadow-sm";
 
   const iconSize = size === 'large' ? "h-6 w-6" : "h-4 w-4";
 
@@ -42,7 +49,7 @@ const ServiceLogo: React.FC<ServiceLogoProps> = ({ serviceName, refreshTrigger, 
           }}
         />
       ) : null}
-      <div className={`w-full h-full flex items-center justify-center text-gray-400 ${serviceLogo ? 'hidden' : ''}`}>
+      <div className={`w-full h-full flex items-center justify-center text-muted-foreground ${serviceLogo ? 'hidden' : ''}`}>
         <Image className={iconSize} />
       </div>
     </div>
@@ -310,85 +317,88 @@ export default function ServicesManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-400">Loading services...</div>
+        <div className="text-lg text-muted-foreground">Loading services...</div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Services Manager</h1>
-          <p className="text-gray-400 mt-1">Manage your products and services</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Services Manager</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage your products and services</p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={exportServices}
-            className="ghost-button flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
+          <Button variant="secondary" onClick={exportServices}>
+            <Download className="h-4 w-4 mr-2" />
             Extract
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="ghost-button flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
             Add Service
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <div className="ghost-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Total Services</h3>
-          <p className="text-3xl font-bold text-white">{services.length}</p>
-        </div>
-        <div className="ghost-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Potential Profit</h3>
-          <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(totalProfit)}</p>
-        </div>
-        <div className="ghost-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Avg. Margin</h3>
-          <p className="text-3xl font-bold text-white">
-            {services.length > 0 ? ((totalProfit / services.reduce((sum, s) => sum + s.selling_price, 0)) * 100).toFixed(1) : 0}%
-          </p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="animate-fade-in-up">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Total Services</h3>
+            <p className="text-3xl font-bold text-foreground">{services.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Potential Profit</h3>
+            <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(totalProfit)}</p>
+          </CardContent>
+        </Card>
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Avg. Margin</h3>
+            <p className="text-3xl font-bold text-foreground">
+              {services.length > 0 ? ((totalProfit / services.reduce((sum, s) => sum + s.selling_price, 0)) * 100).toFixed(1) : 0}%
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
-      <div className="ghost-card p-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10" />
-          <input
-            type="text"
-            placeholder="Search services..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="ghost-input pl-10 w-full"
-          />
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10" />
+            <Input
+              type="text"
+              placeholder="Search services..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Services Table */}
-      <div className="ghost-card overflow-hidden">
+      <Card>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-800 to-gray-700 border-b border-gray-600">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Service</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Duration</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Info Needed</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Cost</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Selling Price</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Profit</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-200 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700/50">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Service</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Info Needed</TableHead>
+                <TableHead>Cost</TableHead>
+                <TableHead>Selling Price</TableHead>
+                <TableHead>Profit</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {sortedFilteredServices.map((service, index) => {
                 const profit = service.selling_price - service.cost;
                 const isFirstOfGroup = index === 0 ||
@@ -398,16 +408,18 @@ export default function ServicesManager() {
                 return (
                   <React.Fragment key={service.id}>
                     {isFirstOfGroup && (
-                      <tr className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-t-2 border-white/30 cursor-pointer hover:from-blue-900/30 hover:to-purple-900/30 transition-all duration-200"
-                        onClick={() => toggleGroup(service.product_service)}>
-                        <td colSpan={8} className="px-6 py-4">
+                      <TableRow
+                        className="bg-secondary/50 border-t-2 border-border cursor-pointer hover:bg-secondary/70 transition-all duration-200"
+                        onClick={() => toggleGroup(service.product_service)}
+                      >
+                        <TableCell colSpan={8}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              <button className="p-1 hover:bg-white/10 rounded transition-colors">
+                              <button className="p-1 hover:bg-secondary rounded transition-colors">
                                 {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-white" />
+                                  <ChevronDown className="h-4 w-4 text-foreground" />
                                 ) : (
-                                  <ChevronRight className="h-4 w-4 text-white" />
+                                  <ChevronRight className="h-4 w-4 text-foreground" />
                                 )}
                               </button>
 
@@ -419,24 +431,24 @@ export default function ServicesManager() {
                               />
 
                               <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                                <span className="text-lg font-bold text-white">
+                                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                <span className="text-lg font-bold text-foreground">
                                   {service.product_service}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="px-3 py-1 bg-white/20 text-gray-200 text-sm font-medium rounded-full border border-white/30">
+                              <Badge variant="secondary">
                                 {sortedFilteredServices.filter(s => s.product_service === service.product_service).length} duration(s)
-                              </span>
+                              </Badge>
                             </div>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
                     {isExpanded && (
-                      <tr className="hover:bg-gray-700/30 transition-all duration-200 group bg-gray-800/20">
-                        <td className="px-6 py-4">
+                      <TableRow className="hover:bg-secondary/30 transition-all duration-200 group">
+                        <TableCell>
                           <div className="flex items-center pl-8">
                             {/* Service Logo in Detail Row - Improved styling */}
                             <div className="mr-4">
@@ -447,96 +459,95 @@ export default function ServicesManager() {
                               />
                             </div>
 
-                            <span className="text-white font-medium">{service.product_service}</span>
+                            <span className="text-foreground font-medium">{service.product_service}</span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 rounded-full text-xs font-medium text-gray-200 border border-gray-500/50 shadow-sm flex items-center gap-1">
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                             <Tag className="h-3 w-3" />
                             {service.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-gray-200 font-medium rounded-lg border border-white/30 flex items-center gap-1">
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit">
                             <Clock className="h-3 w-3" />
                             {service.duration}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-gray-300 text-sm bg-gray-800/50 px-2 py-1 rounded border border-gray-600/50 flex items-center gap-1">
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground text-sm flex items-center gap-1">
                             <Info className="h-3 w-3" />
                             {service.info_needed}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-gray-300 font-mono text-sm bg-gray-800/50 px-3 py-1.5 rounded border border-gray-600/50 flex items-center gap-1">
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground font-mono text-sm flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
                             {formatCurrency(service.cost)}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-gray-300 font-mono text-sm bg-gray-800/50 px-3 py-1.5 rounded border border-gray-600/50 flex items-center gap-1">
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground font-mono text-sm flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
                             {formatCurrency(service.selling_price)}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1.5 font-bold text-sm rounded-lg border flex items-center gap-1 ${profit >= 0
-                              ? 'bg-white/10 text-white border-white/30'
-                              : 'bg-red-500/20 text-red-400 border-red-500/30'
-                            }`}>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-bold text-sm flex items-center gap-1 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             <DollarSign className="h-3 w-3" />
                             {formatCurrency(profit)}
                           </span>
-                        </td>
-                        <td className="px-6 py-4">
+                        </TableCell>
+                        <TableCell>
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditingService(service);
                                 setIsModalOpen(true);
                               }}
-                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 hover:scale-105"
-                              title="Edit Service"
+                              className="h-8 w-8"
                             >
                               <Edit className="h-4 w-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteService(service.id);
                               }}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-200 hover:scale-105"
-                              title="Delete Service"
+                              className="h-8 w-8 text-muted-foreground hover:text-red-500"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )}
                   </React.Fragment>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
 
           {sortedFilteredServices.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
-                <Package className="h-8 w-8 text-gray-500" />
+            <div className="text-center py-16 text-muted-foreground">
+              <div className="w-16 h-16 mx-auto mb-4 bg-secondary rounded-full flex items-center justify-center">
+                <Package className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="text-lg font-medium mb-2">
                 {searchTerm ? 'No services found matching your search.' : 'No services yet.'}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground/70">
                 {searchTerm ? 'Try adjusting your search terms.' : 'Add your first service to get started!'}
               </p>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       <ServiceModal
         isOpen={isModalOpen}

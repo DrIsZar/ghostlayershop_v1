@@ -33,6 +33,10 @@ import {
 import { useCurrency } from '../lib/currency';
 import SearchableDropdown from '../components/SearchableDropdown';
 
+// shadcn/ui components
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 // Register ChartJS components
 ChartJS.register(
     CategoryScale,
@@ -272,22 +276,19 @@ export default function CashFlow() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white">Cash Flow Forecast</h1>
-                    <p className="text-gray-400 mt-1 text-sm sm:text-base">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Cash Flow Forecast</h1>
+                    <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                         Predict your financial future based on subscriptions and sales patterns
                     </p>
                 </div>
-                <button
-                    onClick={exportForecast}
-                    className="ghost-button-secondary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
-                >
-                    <Download className="h-4 w-4" />
+                <Button variant="secondary" onClick={exportForecast}>
+                    <Download className="h-4 w-4 mr-2" />
                     Export Forecast
-                </button>
+                </Button>
             </div>
 
             {/* Control Panel */}
-            <div className="ghost-card p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4 sm:p-6">
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[140px]">
                         <SearchableDropdown
@@ -338,7 +339,7 @@ export default function CashFlow() {
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-1">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-1">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Current Balance</h3>
                         <DollarSign className="h-5 w-5 text-white" />
@@ -349,7 +350,7 @@ export default function CashFlow() {
                     <p className="text-xs text-gray-400 mt-2">From transaction history</p>
                 </div>
 
-                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-2">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-2">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Projected Balance</h3>
                         {forecast.summary.endingBalance > forecast.summary.startingBalance ? (
@@ -366,7 +367,7 @@ export default function CashFlow() {
                     </p>
                 </div>
 
-                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-3">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-3">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Cash Runway</h3>
                         <Calendar className="h-5 w-5 text-white" />
@@ -379,7 +380,7 @@ export default function CashFlow() {
                     </p>
                 </div>
 
-                <div className="ghost-card p-5 animate-fade-in-up hover-lift stagger-4">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-4">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-gray-300">Monthly Recurring</h3>
                         <Activity className="h-5 w-5 text-white" />
@@ -393,7 +394,7 @@ export default function CashFlow() {
 
             {/* Insights & Alerts */}
             {(insights.length > 0 || forecast.summary.criticalDates.length > 0) && (
-                <div className="ghost-card p-5">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5">
                     <h2 className="text-lg font-bold text-white mb-4">Insights & Alerts</h2>
                     <div className="space-y-3">
                         {insights.map((insight, index) => {
@@ -450,7 +451,7 @@ export default function CashFlow() {
             )}
 
             {/* Cash Balance Chart */}
-            <div className="ghost-card p-5">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5">
                 <h2 className="text-lg font-bold text-white mb-4">Projected Cash Balance</h2>
                 <div className="h-80">
                     <Line data={chartData.balance} options={chartOptions} />
@@ -458,7 +459,7 @@ export default function CashFlow() {
             </div>
 
             {/* Revenue vs Costs Chart */}
-            <div className="ghost-card p-5">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5">
                 <h2 className="text-lg font-bold text-white mb-4">Revenue vs Costs</h2>
                 <div className="h-80">
                     <Line data={chartData.cashFlow} options={chartOptions} />
@@ -467,7 +468,7 @@ export default function CashFlow() {
 
             {/* Revenue Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="ghost-card p-5">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5">
                     <h2 className="text-lg font-bold text-white mb-4">Revenue Breakdown</h2>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-lg">
@@ -497,7 +498,7 @@ export default function CashFlow() {
                     </div>
                 </div>
 
-                <div className="ghost-card p-5">
+                <div className="bg-card border border-border rounded-lg shadow-sm p-5">
                     <h2 className="text-lg font-bold text-white mb-4">Cost Breakdown</h2>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center p-3 bg-gray-700/30 rounded-lg">
