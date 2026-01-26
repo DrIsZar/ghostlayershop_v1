@@ -201,13 +201,13 @@ export default function PoolEditModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="bg-card border border-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Edit Pool</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Edit Pool</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -216,17 +216,17 @@ export default function PoolEditModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Provider */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               Provider
             </label>
             <input
               type="text"
               value={formData.provider}
               onChange={(e) => handleInputChange('provider', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors opacity-50 cursor-not-allowed"
               disabled
             />
-            <p className="mt-1 text-sm text-gray-400">Provider cannot be changed</p>
+            <p className="mt-1 text-sm text-muted-foreground">Provider cannot be changed</p>
           </div>
 
           {/* Pool Type */}
@@ -245,7 +245,7 @@ export default function PoolEditModal({
 
           {/* Login Email */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Mail className="w-4 h-4 inline mr-2" />
               Login Email *
             </label>
@@ -253,7 +253,7 @@ export default function PoolEditModal({
               type="email"
               value={formData.login_email}
               onChange={(e) => handleInputChange('login_email', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.login_email && (
               <p className="mt-1 text-sm text-red-400">{errors.login_email}</p>
@@ -262,7 +262,7 @@ export default function PoolEditModal({
 
           {/* Login Secret */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Lock className="w-4 h-4 inline mr-2" />
               Login Secret
             </label>
@@ -270,14 +270,14 @@ export default function PoolEditModal({
               type="password"
               value={formData.login_secret}
               onChange={(e) => handleInputChange('login_secret', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
               placeholder="Password or API key"
             />
           </div>
 
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               Start Date *
             </label>
@@ -285,7 +285,7 @@ export default function PoolEditModal({
               type="date"
               value={formData.start_at}
               onChange={(e) => handleInputChange('start_at', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.start_at && (
               <p className="mt-1 text-sm text-red-400">{errors.start_at}</p>
@@ -294,7 +294,7 @@ export default function PoolEditModal({
 
           {/* End Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               End Date *
             </label>
@@ -302,7 +302,7 @@ export default function PoolEditModal({
               type="date"
               value={formData.end_at}
               onChange={(e) => handleInputChange('end_at', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.end_at && (
               <p className="mt-1 text-sm text-red-400">{errors.end_at}</p>
@@ -311,7 +311,7 @@ export default function PoolEditModal({
 
           {/* Max Seats */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Users className="w-4 h-4 inline mr-2" />
               Number of Seats *
             </label>
@@ -330,19 +330,19 @@ export default function PoolEditModal({
                   }
                 }
               }}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.max_seats && (
               <p className="mt-1 text-sm text-red-400">{errors.max_seats}</p>
             )}
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Total number of seats in this pool (cannot be less than currently assigned seats)
             </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <FileText className="w-4 h-4 inline mr-2" />
               Notes
             </label>
@@ -350,7 +350,7 @@ export default function PoolEditModal({
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors resize-none"
               placeholder="Additional notes about this pool..."
             />
           </div>
@@ -362,30 +362,30 @@ export default function PoolEditModal({
               id="is_alive"
               checked={formData.is_alive}
               onChange={(e) => handleInputChange('is_alive', e.target.checked)}
-              className="w-4 h-4 text-green-600 bg-gray-800 border-gray-600 rounded focus:ring-green-500"
+              className="w-4 h-4 text-white bg-secondary border-border rounded focus:ring-white/20"
             />
-            <label htmlFor="is_alive" className="text-sm font-semibold text-gray-300">
+            <label htmlFor="is_alive" className="text-sm font-semibold text-muted-foreground">
               Pool is active and alive
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
+          <div className="flex gap-3 pt-6 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+              className="px-6 py-3 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-lg transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-secondary text-black font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                   Saving...
                 </>
               ) : (

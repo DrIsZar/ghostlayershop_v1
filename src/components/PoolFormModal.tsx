@@ -258,15 +258,15 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
       <div
-        className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-card border border-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Create New Pool</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Create New Pool</h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -290,7 +290,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               showSearchThreshold={5}
             />
             {formData.provider && SERVICE_PROVISIONING[formData.provider] && (
-              <p className="mt-1 text-sm text-white">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Default: {SERVICE_PROVISIONING[formData.provider]?.defaultSeats} seats, {SERVICE_PROVISIONING[formData.provider]?.defaultDurationDays} days
               </p>
             )}
@@ -315,7 +315,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
           {/* Login Email */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Mail className="w-4 h-4 inline mr-2" />
               Login Email
             </label>
@@ -323,7 +323,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               type="email"
               value={formData.login_email}
               onChange={(e) => handleInputChange('login_email', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
               placeholder="admin@example.com"
             />
             {errors.login_email && (
@@ -333,7 +333,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
           {/* Login Secret */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Lock className="w-4 h-4 inline mr-2" />
               Login Password/Secret
             </label>
@@ -341,17 +341,17 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               type="password"
               value={formData.login_secret}
               onChange={(e) => handleInputChange('login_secret', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
               placeholder="Password or app-specific secret"
             />
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               This will be stored securely and can be revealed in the UI
             </p>
           </div>
 
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               Start Date
             </label>
@@ -362,7 +362,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               onKeyDown={(e) => e.stopPropagation()}
               onFocus={(e) => e.stopPropagation()}
               onBlur={(e) => e.stopPropagation()}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.start_at && (
               <p className="mt-1 text-sm text-red-400">{errors.start_at}</p>
@@ -371,7 +371,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
           {/* End Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               End Date
             </label>
@@ -382,7 +382,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               onKeyDown={(e) => e.stopPropagation()}
               onFocus={(e) => e.stopPropagation()}
               onBlur={(e) => e.stopPropagation()}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.end_at && (
               <p className="mt-1 text-sm text-red-400">{errors.end_at}</p>
@@ -391,7 +391,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
 
           {/* Max Seats */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <Users className="w-4 h-4 inline mr-2" />
               Maximum Seats
             </label>
@@ -407,20 +407,20 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
                 }
               }}
               onBlur={handleMaxSeatsBlur}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
               placeholder="Enter number of seats"
             />
             {errors.max_seats && (
               <p className="mt-1 text-sm text-red-400">{errors.max_seats}</p>
             )}
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               Number of seats/licenses available in this pool
             </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-semibold text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-muted-foreground mb-2">
               <FileText className="w-4 h-4 inline mr-2" />
               Notes (optional)
             </label>
@@ -428,21 +428,21 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors resize-none"
               placeholder="Add any additional notes about this pool..."
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
+          <div className="flex gap-3 pt-6 border-t border-border">
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 disabled:bg-secondary text-black font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
                   Creating...
                 </>
               ) : (
@@ -452,7 +452,7 @@ export function PoolFormModal({ isOpen, onClose, onPoolCreated }: PoolFormModalP
             <button
               type="button"
               onClick={handleClose}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors duration-200"
+              className="px-6 py-3 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-lg transition-colors duration-200"
             >
               Cancel
             </button>

@@ -142,14 +142,14 @@ export function PersonalAccountFormModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">
+      <div className="bg-card border border-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">
             {account ? 'Edit Personal Account' : 'Add Personal Account'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -157,7 +157,7 @@ export function PersonalAccountFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Service Provider *
             </label>
             <SearchableDropdown
@@ -180,14 +180,14 @@ export function PersonalAccountFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Login Email *
             </label>
             <input
               type="email"
               value={formData.login_email}
               onChange={(e) => handleInputChange('login_email', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+              className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
               required
             />
             {errors.login_email && (
@@ -196,38 +196,38 @@ export function PersonalAccountFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Login Secret/Password
             </label>
             <input
               type="password"
               value={formData.login_secret}
               onChange={(e) => handleInputChange('login_secret', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+              className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Expiry Date
             </label>
             <input
               type="date"
               value={formData.expiry_date}
               onChange={(e) => handleInputChange('expiry_date', e.target.value)}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+              className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               rows={3}
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-white"
+              className="w-full px-4 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
             />
           </div>
 
@@ -235,14 +235,14 @@ export function PersonalAccountFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-white hover:bg-gray-100 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-white hover:bg-gray-100 text-black font-medium rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? 'Saving...' : account ? 'Update' : 'Add'}
             </button>

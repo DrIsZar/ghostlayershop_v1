@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, Search, Download, Package, ChevronDown, ChevronRight, Clock, Tag, Info, DollarSign, Image } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Package, ChevronDown, ChevronRight, Clock, Tag, Info, Image } from 'lucide-react';
 import { supabase, Service } from '../lib/supabase';
 import ServiceModal from '../components/ServiceModal';
 import { getServiceLogo, migrateExistingLogos } from '../lib/fileUtils';
@@ -481,20 +481,17 @@ export default function ServicesManager() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-muted-foreground font-mono text-sm flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
+                          <span className="text-muted-foreground font-mono text-sm">
                             {formatCurrency(service.cost)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-muted-foreground font-mono text-sm flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
+                          <span className="text-muted-foreground font-mono text-sm">
                             {formatCurrency(service.selling_price)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className={`font-bold text-sm flex items-center gap-1 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            <DollarSign className="h-3 w-3" />
+                          <span className={`font-bold text-sm ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {formatCurrency(profit)}
                           </span>
                         </TableCell>

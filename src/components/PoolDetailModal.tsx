@@ -266,11 +266,11 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="bg-card border border-border rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gray-700 rounded-xl overflow-hidden flex items-center justify-center">
+            <div className="w-12 h-12 bg-secondary rounded-xl overflow-hidden flex items-center justify-center">
               {(() => {
                 const providerLogo = getProviderLogo(pool.provider);
                 return providerLogo ? (
@@ -294,10 +294,10 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white capitalize">
+              <h2 className="text-xl font-semibold text-foreground capitalize">
                 {pool.provider.replace('_', ' ')} Pool
               </h2>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 {POOL_TYPE_LABELS[pool.pool_type] || pool.pool_type}
               </p>
             </div>
@@ -314,7 +314,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -330,15 +330,15 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
             {/* Pool Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Login Credentials */}
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Mail className="w-5 h-5" />
                   Login Credentials
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400 w-16">Email:</span>
-                    <span className="text-sm text-white font-mono flex-1">{pool.login_email}</span>
+                    <span className="text-sm text-muted-foreground w-16">Email:</span>
+                    <span className="text-sm text-foreground font-mono flex-1">{pool.login_email}</span>
                     <button
                       onClick={() => handleCopy(pool.login_email, 'login')}
                       className="p-1 text-gray-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -350,8 +350,8 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
                   {pool.login_secret && (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400 w-16">Password:</span>
-                      <span className="text-sm text-white font-mono flex-1">
+                      <span className="text-sm text-muted-foreground w-16">Password:</span>
+                      <span className="text-sm text-foreground font-mono flex-1">
                         {showSecret ? pool.login_secret : '••••••••'}
                       </span>
                       <button
@@ -373,26 +373,26 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
               </div>
 
               {/* Pool Stats */}
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Pool Statistics
                 </h3>
                 {stats ? (
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Total Seats:</span>
-                      <span className="text-sm text-white font-medium">{stats.total_seats}</span>
+                      <span className="text-sm text-muted-foreground">Total Seats:</span>
+                      <span className="text-sm text-foreground font-medium">{stats.total_seats}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Assigned Seats:</span>
-                      <span className="text-sm text-white font-medium">{stats.used_seats}</span>
+                      <span className="text-sm text-muted-foreground">Assigned Seats:</span>
+                      <span className="text-sm text-foreground font-medium">{stats.used_seats}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Available Seats:</span>
-                      <span className="text-sm text-white font-medium">{stats.total_seats - stats.used_seats}</span>
+                      <span className="text-sm text-muted-foreground">Available Seats:</span>
+                      <span className="text-sm text-foreground font-medium">{stats.total_seats - stats.used_seats}</span>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+                    <div className="w-full bg-secondary rounded-full h-2 mt-3">
                       <div
                         className="bg-white h-2 rounded-full transition-all duration-300"
                         style={{ width: `${(stats.used_seats / stats.total_seats) * 100}%` }}
@@ -406,22 +406,22 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
             </div>
 
             {/* Time Info */}
-            <div className="bg-gray-800/50 rounded-xl p-4">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-secondary/50 rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 Validity Period
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-sm text-gray-400">Start Date:</span>
-                  <p className="text-white font-medium">{new Date(pool.start_at).toLocaleDateString()}</p>
+                  <span className="text-sm text-muted-foreground">Start Date:</span>
+                  <p className="text-foreground font-medium">{new Date(pool.start_at).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-400">End Date:</span>
-                  <p className="text-white font-medium">{new Date(pool.end_at).toLocaleDateString()}</p>
+                  <span className="text-sm text-muted-foreground">End Date:</span>
+                  <p className="text-foreground font-medium">{new Date(pool.end_at).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-400">Time Remaining:</span>
+                  <span className="text-sm text-muted-foreground">Time Remaining:</span>
                   <p className={`font-medium ${getTimeColor()}`}>{getTimeUntilExpiry()}</p>
                 </div>
               </div>
@@ -429,19 +429,19 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
 
             {/* Notes */}
             {pool.notes && (
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Notes
                 </h3>
-                <p className="text-gray-300">{pool.notes}</p>
+                <p className="text-muted-foreground">{pool.notes}</p>
               </div>
             )}
 
             {/* Seats Grid */}
             {poolWithSeats && (
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Seats ({poolWithSeats.seats.length})
                 </h3>
@@ -473,7 +473,7 @@ export function PoolDetailModal({ isOpen, onClose, pool, onUpdate, onDelete }: P
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-700">
+            <div className="flex gap-3 pt-4 border-t border-border">
               <button
                 onClick={handleToggleStatus}
                 className="px-4 py-2 ghost-button-secondary flex items-center gap-2"

@@ -21,7 +21,7 @@ import { ResourcePool } from '../types/inventory';
 import { PROVIDER_ICONS, STATUS_COLORS, POOL_TYPE_LABELS } from '../constants/provisioning';
 import { copyToClipboard } from '../lib/toast';
 import { updateResourcePool } from '../lib/inventory';
-import { getProviderLogo } from '../lib/fileUtils';
+import { getProviderLogo, getProviderLogoAsync } from '../lib/fileUtils';
 import { Image } from 'lucide-react';
 
 interface PoolCardProps {
@@ -174,12 +174,12 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
   };
 
   return (
-    <div className="w-full max-w-full rounded-2xl border border-gray-700/50 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 group hover-lift-subtle">
+    <div className="w-full max-w-full rounded-lg border border-border bg-card hover:border-white/20 transition-all duration-200 group animate-fade-in-up hover-lift">
       {/* Header - Mobile Viewport Optimized */}
-      <div className="p-3 sm:p-4 border-b border-gray-700/30">
+      <div className="p-3 sm:p-4 border-b border-border">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 bg-secondary rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
               {providerLogo ? (
                 <img
                   src={providerLogo}
@@ -201,10 +201,10 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white capitalize truncate">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-foreground capitalize truncate">
                 {pool.provider.replace('_', ' ')}
               </h3>
-              <p className="text-xs sm:text-sm text-gray-400 truncate">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {POOL_TYPE_LABELS[pool.pool_type] || pool.pool_type}
               </p>
             </div>
@@ -230,7 +230,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 top-6 sm:top-8 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[140px] sm:min-w-[160px]">
+                <div className="absolute right-0 top-6 sm:top-8 bg-card border border-border rounded-lg shadow-lg z-10 min-w-[140px] sm:min-w-[160px]">
                   <button
                     onClick={() => {
                       onView(pool);
@@ -293,8 +293,8 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
                       setShowMenu(false);
                     }}
                     className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${isArchived
-                        ? 'text-white hover:bg-white/10'
-                        : 'text-amber-400 hover:bg-amber-900/20'
+                      ? 'text-white hover:bg-white/10'
+                      : 'text-amber-400 hover:bg-amber-900/20'
                       }`}
                   >
                     {isArchived ? <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" /> : <Archive className="w-3 h-3 sm:w-4 sm:h-4" />}
@@ -321,10 +321,10 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
       </div>
 
       {/* Login Info - Mobile Viewport Optimized */}
-      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+      <div className="p-3 sm:p-4 bg-secondary/30 border-b border-border">
         <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-          <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Login:</span>
-          <span className="text-xs sm:text-sm text-white font-mono flex-1 truncate">{pool.login_email}</span>
+          <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Login:</span>
+          <span className="text-xs sm:text-sm text-foreground font-mono flex-1 truncate">{pool.login_email}</span>
           <button
             onClick={() => handleCopy(pool.login_email, 'login')}
             className="p-0.5 sm:p-1 text-gray-400 hover:text-white transition-colors flex-shrink-0"
@@ -336,8 +336,8 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
 
         {pool.login_secret && (
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">Password:</span>
-            <span className="text-xs sm:text-sm text-white font-mono flex-1 truncate">
+            <span className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">Password:</span>
+            <span className="text-xs sm:text-sm text-foreground font-mono flex-1 truncate">
               {showSecret ? pool.login_secret : '••••••••'}
             </span>
             <button
@@ -358,30 +358,30 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
       </div>
 
       {/* Time Info - Mobile Viewport Optimized */}
-      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+      <div className="p-3 sm:p-4 bg-secondary/30 border-b border-border">
         <div className="flex items-center gap-1 sm:gap-2 mb-1">
-          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
           <span className={`text-xs sm:text-sm font-medium ${getTimeColor()}`}>
             {getTimeUntilExpiry()}
           </span>
         </div>
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-muted-foreground">
           {new Date(pool.start_at).toLocaleDateString()} - {new Date(pool.end_at).toLocaleDateString()}
         </div>
       </div>
 
       {/* Seat Usage - Mobile Viewport Optimized */}
-      <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
+      <div className="p-3 sm:p-4 bg-secondary/30 border-b border-border">
         <div className="flex items-center justify-between mb-1 sm:mb-2">
           <div className="flex items-center gap-1 sm:gap-2">
-            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-            <span className="text-xs sm:text-sm text-gray-400">Seats</span>
+            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
+            <span className="text-xs sm:text-sm text-muted-foreground">Seats</span>
           </div>
-          <span className="text-xs sm:text-sm text-white font-medium">
+          <span className="text-xs sm:text-sm text-foreground font-medium">
             {pool.used_seats}/{pool.max_seats}
           </span>
         </div>
-        <div className="w-full bg-gray-700 rounded-full h-1 sm:h-2">
+        <div className="w-full bg-secondary rounded-full h-1 sm:h-2">
           <div
             className={`h-full rounded-full transition-all duration-300 ${getSeatUsageColor()}`}
             style={{ width: `${(pool.used_seats / pool.max_seats) * 100}%` }}
@@ -391,8 +391,8 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
 
       {/* Notes - Mobile Viewport Optimized */}
       {pool.notes && (
-        <div className="p-3 sm:p-4 bg-gray-800/20 border-b border-gray-700/30">
-          <div className="text-xs sm:text-sm text-gray-400 italic break-words">
+        <div className="p-3 sm:p-4 bg-secondary/30 border-b border-border">
+          <div className="text-xs sm:text-sm text-muted-foreground italic break-words">
             {pool.notes}
           </div>
         </div>
@@ -402,7 +402,7 @@ export function PoolCard({ pool, onUpdate, onArchive, onView, onEdit, onDelete, 
       <div className="p-3 sm:p-4">
         <button
           onClick={() => onView(pool)}
-          className="w-full py-1.5 sm:py-2 text-xs sm:text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
+          className="w-full py-1.5 sm:py-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors flex items-center justify-center gap-1 sm:gap-2"
         >
           <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
           <span className="hidden xs:inline">View Details</span>

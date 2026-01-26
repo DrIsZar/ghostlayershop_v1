@@ -62,6 +62,14 @@ export default function Inventory() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Ref to track modal state for use in setInterval (which doesn't have access to latest state)
+  const modalOpenRef = useRef(false);
+
+  // Sync modalOpenRef with current modal state
+  useEffect(() => {
+    modalOpenRef.current = isModalOpen || isDetailModalOpen || isEditModalOpen || isPersonalAccountModalOpen;
+  }, [isModalOpen, isDetailModalOpen, isEditModalOpen, isPersonalAccountModalOpen]);
+
 
   useEffect(() => {
     const initializeData = async () => {
@@ -75,7 +83,12 @@ export default function Inventory() {
     initializeData();
 
     // Set up periodic refresh every 5 minutes to auto-archive expired pools
+    // Uses ref to check modal state since setInterval closure doesn't have access to latest state
     const interval = setInterval(async () => {
+      if (modalOpenRef.current) {
+        console.log('Skipping periodic refresh: modal is open');
+        return;
+      }
       await refreshPoolStatus();
       await fetchPools();
       await fetchArchivedPools();
@@ -85,18 +98,23 @@ export default function Inventory() {
   }, []);
 
   // Refresh pools when component becomes visible again (user returns to page)
+  // But skip refresh if any modal is open to prevent form data loss
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      // Guard: Skip refresh if any modal is open to preserve user's form data
+      const anyModalOpen = isModalOpen || isDetailModalOpen || isEditModalOpen || isPersonalAccountModalOpen;
+      if (document.visibilityState === 'visible' && !anyModalOpen) {
         console.log('Page became visible, refreshing pools...');
         fetchPools();
         fetchArchivedPools();
+      } else if (document.visibilityState === 'visible' && anyModalOpen) {
+        console.log('Page became visible but modal is open, skipping refresh to preserve form data');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [isModalOpen, isDetailModalOpen, isEditModalOpen, isPersonalAccountModalOpen]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -569,12 +587,12 @@ export default function Inventory() {
       </div>
 
       {/* View Tabs */}
-      <div className="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-card border border-border p-1 rounded-lg">
         <button
           onClick={() => setViewMode('personal')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'personal'
             ? 'bg-white text-black'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
         >
           <User className="w-4 h-4 inline mr-2" />
@@ -584,7 +602,7 @@ export default function Inventory() {
           onClick={() => setViewMode('pools')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'pools'
             ? 'bg-white text-black'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
@@ -593,8 +611,8 @@ export default function Inventory() {
         <button
           onClick={() => setViewMode('archive')}
           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'archive'
-            ? 'bg-white text-white'
-            : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            ? 'bg-white text-black'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
             }`}
         >
           <Archive className="w-4 h-4 inline mr-2" />
@@ -605,25 +623,25 @@ export default function Inventory() {
       {viewMode === 'pools' && (
         <>
           {/* Filter Toolbar */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4">
             <div className="flex flex-wrap gap-4 items-center">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[300px]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
+                    className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -742,39 +760,39 @@ export default function Inventory() {
 
           {/* Stats Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-1">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Total Pools</p>
-                  <p className="text-2xl font-bold text-white">{stats.total}</p>
+                  <p className="text-muted-foreground text-sm">Total Pools</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-2">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Active</p>
-                  <p className="text-2xl font-bold text-white">{stats.active}</p>
+                  <p className="text-muted-foreground text-sm">Active</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.active}</p>
                 </div>
               </div>
             </div>
 
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Seats Used</p>
-                  <p className="text-2xl font-bold text-white">{stats.usedSeats}/{stats.totalSeats}</p>
+                  <p className="text-muted-foreground text-sm">Seats Used</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.usedSeats}/{stats.totalSeats}</p>
                 </div>
               </div>
             </div>
@@ -829,25 +847,25 @@ export default function Inventory() {
       {viewMode === 'archive' && (
         <>
           {/* Archive Filter Toolbar */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4">
             <div className="flex flex-wrap gap-4 items-center">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[300px]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search by provider, email, notes, or seat email... (Press / to focus)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
+                    className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -916,50 +934,50 @@ export default function Inventory() {
 
           {/* Archive Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-1">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                  <Archive className="w-6 h-6 text-amber-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <Archive className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Total Archived</p>
-                  <p className="text-2xl font-bold text-white">{stats.totalArchived}</p>
+                  <p className="text-muted-foreground text-sm">Total Archived</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalArchived}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-2">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Recent (7 days)</p>
-                  <p className="text-2xl font-bold text-white">{stats.recentlyArchived}</p>
+                  <p className="text-muted-foreground text-sm">Recent (7 days)</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.recentlyArchived}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Active Pools</p>
-                  <p className="text-2xl font-bold text-white">{stats.active}</p>
+                  <p className="text-muted-foreground text-sm">Active Pools</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.active}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Total Seats</p>
-                  <p className="text-2xl font-bold text-white">{stats.totalSeats}</p>
+                  <p className="text-muted-foreground text-sm">Total Seats</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalSeats}</p>
                 </div>
               </div>
             </div>
@@ -1011,24 +1029,24 @@ export default function Inventory() {
       {viewMode === 'personal' && (
         <>
           {/* Personal Accounts Filter Toolbar */}
-          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-4">
             <div className="flex flex-wrap gap-4 items-center">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[300px]">
-                <label className="block text-xs font-medium text-gray-400 mb-1">Search</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
                 <div className="relative">
-                  <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
                   <input
                     type="text"
                     placeholder="Search by provider, email, or notes..."
                     value={personalAccountSearchTerm}
                     onChange={(e) => setPersonalAccountSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-white"
+                    className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg text-foreground text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 placeholder:text-muted-foreground"
                   />
                   {personalAccountSearchTerm && (
                     <button
                       onClick={() => setPersonalAccountSearchTerm('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1099,40 +1117,40 @@ export default function Inventory() {
 
           {/* Personal Accounts Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-1">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Total Accounts</p>
-                  <p className="text-2xl font-bold text-white">{personalAccounts.length}</p>
+                  <p className="text-muted-foreground text-sm">Total Accounts</p>
+                  <p className="text-2xl font-bold text-foreground">{personalAccounts.length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-2">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Package className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Available</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-muted-foreground text-sm">Available</p>
+                  <p className="text-2xl font-bold text-foreground">
                     {personalAccounts.filter(a => a.status === 'available').length}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-5 animate-fade-in-up hover-lift stagger-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
                 </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Expired</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-muted-foreground text-sm">Expired</p>
+                  <p className="text-2xl font-bold text-foreground">
                     {personalAccounts.filter(a => a.status === 'expired').length}
                   </p>
                 </div>
@@ -1187,15 +1205,15 @@ export default function Inventory() {
       {/* Keyboard Shortcuts Help Modal */}
       {showKeyboardHelp && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[110]">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <div className="bg-card border border-border rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
                 <Keyboard className="w-5 h-5" />
                 Keyboard Shortcuts
               </h2>
               <button
                 onClick={() => setShowKeyboardHelp(false)}
-                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary/50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1203,46 +1221,46 @@ export default function Inventory() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Actions</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Actions</h3>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Create New Pool</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">N</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Add New Item</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">N</kbd>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Focus Search</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">/</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Focus Search</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">/</kbd>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Reset Filters</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">R</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Reset Filters</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">R</kbd>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Toggle Archive View</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">A</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Switch Tabs</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">A</kbd>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">General</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">General</h3>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Close Modal</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Esc</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Close Modal</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Esc</kbd>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Show Help</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Shift + ?</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Show Help</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Shift + ?</kbd>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-                      <span className="text-gray-300 text-sm">Focus Search (Alternative)</span>
-                      <kbd className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Ctrl + F</kbd>
+                    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                      <span className="text-foreground text-sm">Focus Search (Alternative)</span>
+                      <kbd className="px-2 py-1 bg-secondary text-muted-foreground rounded text-xs">Ctrl + F</kbd>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="pt-4 border-t border-gray-700">
-                <p className="text-xs text-gray-400 text-center">
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground text-center">
                   Keyboard shortcuts are disabled when typing in input fields
                 </p>
               </div>

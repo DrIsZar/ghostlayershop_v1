@@ -250,15 +250,15 @@ export default function SeatAssignmentModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100]" style={{ top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '16px' }}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
+      <div className="bg-card border border-border rounded-lg w-full max-w-md shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">
             {seat.seat_status === 'assigned' ? 'Edit Seat Assignment' : 'Assign Seat'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700/50"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-secondary/50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -266,19 +266,19 @@ export default function SeatAssignmentModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Seat Info */}
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Seat Information</h3>
-            <p className="text-white">Seat #{seat.seat_index}</p>
-            <p className="text-sm text-gray-400">Pool ID: {poolId}</p>
+          <div className="bg-secondary/50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Seat Information</h3>
+            <p className="text-foreground">Seat #{seat.seat_index}</p>
+            <p className="text-sm text-muted-foreground">Pool ID: {poolId}</p>
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               <Mail className="w-4 h-4 inline mr-2" />
               Customer Login *
               {formData.assigned_subscription_id && (
-                <span className="ml-2 text-xs text-white">
+                <span className="ml-2 text-xs text-muted-foreground">
                   (auto-filled from subscription)
                 </span>
               )}
@@ -287,7 +287,7 @@ export default function SeatAssignmentModal({
               type="text"
               value={formData.assigned_email}
               onChange={(e) => handleInputChange('assigned_email', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
               placeholder="customer@example.com or customer@example.com:password"
             />
             {errors.assigned_email && (
@@ -297,7 +297,7 @@ export default function SeatAssignmentModal({
 
           {/* Assignment Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
               Assignment Date *
             </label>
@@ -305,7 +305,7 @@ export default function SeatAssignmentModal({
               type="date"
               value={formData.assigned_at}
               onChange={(e) => handleInputChange('assigned_at', e.target.value)}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full px-4 py-3 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-colors"
             />
             {errors.assigned_at && (
               <p className="mt-1 text-sm text-red-400">{errors.assigned_at}</p>
@@ -373,14 +373,14 @@ export default function SeatAssignmentModal({
               </p>
             )}
             {formData.assigned_subscription_id && (
-              <p className="mt-1 text-sm text-white">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Customer email will be automatically filled from the selected subscription
               </p>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-6 border-t border-gray-700">
+          <div className="flex gap-3 pt-6 border-t border-border">
             {seat.seat_status === 'assigned' && (
               <button
                 type="button"
